@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell($out = [ordered]@{}; foreach \\($c in 'node','npm','python','py','docker','git','pnpm'\\) { $g = Get-Command $c -ErrorAction SilentlyContinue; if \\($g\\) { $out[$c] = $g.Source } else { $out[$c] = 'MISSING' } }; $out | Format-Table -AutoSize | Out-String)",
+      "PowerShell(node -v)",
+      "PowerShell(npm -v)",
+      "PowerShell(python --version)",
+      "PowerShell(docker --version)",
+      "PowerShell(docker info --format '{{.ServerVersion}}')",
+      "PowerShell($p = \"C:\\\\Users\\\\anton\\\\LingoImage AI\"; @\\('apps/web','apps/api/lingoimage','workers/vision','workers/export','packages/shared-types','packages/config','infra/docker','infra/nginx','infra/monitoring','docs/architecture','docs/architecture-decisions','docs/api','docs/operations','docs/security','docs/product','docs/testing','docs/seo','scripts','tests/fixtures','tests/golden','tests/load','.github/workflows'\\) | ForEach-Object { New-Item -ItemType Directory -Force -Path \\(Join-Path $p $_\\) | Out-Null }; Write-Output \"created\")",
+      "PowerShell($m = Get-Command make -ErrorAction SilentlyContinue; if \\($m\\) { $m.Source } else { 'make MISSING' })",
+      "PowerShell(Get-Process python -ErrorAction SilentlyContinue | Select-Object Id, CPU, StartTime | Format-Table -AutoSize | Out-String; $f = \"C:\\\\Users\\\\anton\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-anton-LingoImage-AI\\\\f2b89f36-7e45-460f-8c63-fff68c3e6e18\\\\tasks\\\\bh1u13t42.output\"; if \\(Test-Path $f\\) { \"size: \" + \\(Get-Item $f\\).Length })",
+      "PowerShell(Stop-Process -Id 32752 -Force -ErrorAction SilentlyContinue)",
+      "PowerShell(Stop-Process -Id 37328 -Force -ErrorAction SilentlyContinue)",
+      "PowerShell(\"killed\")",
+      "PowerShell(Get-Process python -ErrorAction SilentlyContinue)",
+      "PowerShell(Stop-Process -Id 36656 -Force -ErrorAction SilentlyContinue)",
+      "PowerShell(cd \"C:\\\\Users\\\\anton\\\\LingoImage AI\"; $env:NEXT_TELEMETRY_DISABLED=\"1\"; npm run build --workspace @lingoimage/web 2>&1 | Select-Object -Last 45)",
+      "PowerShell(cd \"C:\\\\Users\\\\anton\\\\LingoImage AI\"; $env:NEXT_TELEMETRY_DISABLED=\"1\"; npm run build --workspace @lingoimage/web 2>&1 | Select-String -Pattern \"Type error|error|Failed|✓|Route|●\" | Select-Object -First 25)",
+      "PowerShell(cd \"C:\\\\Users\\\\anton\\\\LingoImage AI\"; $env:NEXT_TELEMETRY_DISABLED=\"1\"; npm run build --workspace @lingoimage/web 2>&1 | Select-String -Pattern \"Type error|Failed|✓|^\\\\s+[├└]|Route \\\\\\(app\\\\\\)|First Load\" | Select-Object -First 30)",
+      "PowerShell(cd \"C:\\\\Users\\\\anton\\\\LingoImage AI\"; $env:NEXT_TELEMETRY_DISABLED=\"1\"; npm run build --workspace @lingoimage/web 2>&1 | Select-String -Pattern \"Type error|Failed|error|✓ Gener|✓ Compil\" | Select-Object -First 15)",
+      "PowerShell(cd \"C:\\\\Users\\\\anton\\\\LingoImage AI\"; $env:NEXT_TELEMETRY_DISABLED=\"1\"; npm run build --workspace @lingoimage/web 2>&1 | Select-String -Pattern \"Type error|Failed|Error|✓ Gener|✓ Compil|Route \\\\\\(app\\\\\\)\" | Select-Object -First 15)",
+      "PowerShell(cd \"C:\\\\Users\\\\anton\\\\LingoImage AI\"; \"=== web lint ===\"; npm run lint --workspace @lingoimage/web 2>&1 | Select-String -Pattern \"Warning|Error|No ESLint|✔\" | Select-Object -First 8; \"\"; \"=== web build ===\"; $env:NEXT_TELEMETRY_DISABLED=\"1\"; npm run build --workspace @lingoimage/web 2>&1 | Select-String -Pattern \"✓ Compil|✓ Gener|Failed|Error\" | Select-Object -First 6)",
+      "PowerShell(cd \"C:\\\\Users\\\\anton\\\\LingoImage AI\"; $env:NEXT_TELEMETRY_DISABLED=\"1\"; npm run build --workspace @lingoimage/web 2>&1 | Select-String -Pattern \"✓ Compil|✓ Gener|Failed|Error\" | Select-Object -First 5)"
+    ]
+  }
+}

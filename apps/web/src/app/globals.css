@@ -1,0 +1,162 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --bg: 250 250 251;
+    --surface: 255 255 255;
+    --raised: 245 246 248;
+    --border: 226 229 234;
+    --fg: 17 20 26;
+    --muted: 104 112 126;
+    --accent: 31 111 235;
+    --accent-fg: 255 255 255;
+    --ok: 22 137 82;
+    --warn: 180 83 9;
+    --danger: 200 42 42;
+  }
+
+  .dark {
+    --bg: 12 14 18;
+    --surface: 20 23 29;
+    --raised: 28 32 39;
+    --border: 44 49 58;
+    --fg: 233 236 241;
+    --muted: 150 158 172;
+    --accent: 88 158 255;
+    --accent-fg: 8 12 18;
+    --ok: 62 186 122;
+    --warn: 227 149 63;
+    --danger: 244 106 106;
+  }
+
+  * {
+    border-color: rgb(var(--border));
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: rgb(var(--bg));
+    color: rgb(var(--fg));
+    font-feature-settings: 'cv02', 'cv03', 'cv04';
+    /* Nothing on a page may force sideways scrolling on a phone. */
+    overflow-x: hidden;
+  }
+
+  h1, h2, h3, h4 {
+    text-wrap: balance;
+    letter-spacing: -0.015em;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  /* Focus must always be visible for keyboard users. */
+  :focus-visible {
+    outline: 2px solid rgb(var(--accent));
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  [dir='rtl'] .flip-rtl {
+    transform: scaleX(-1);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer components {
+  .container-page {
+    @apply mx-auto w-full max-w-content px-4 sm:px-6;
+  }
+
+  .card {
+    @apply rounded-card border border-border bg-surface;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm
+           font-semibold transition-colors disabled:pointer-events-none disabled:opacity-50;
+  }
+
+  .btn-primary {
+    @apply btn bg-accent text-accent-fg hover:opacity-90;
+  }
+
+  .btn-secondary {
+    @apply btn border border-border bg-surface text-fg hover:bg-raised;
+  }
+
+  .btn-ghost {
+    @apply btn text-muted hover:bg-raised hover:text-fg;
+  }
+
+  .input {
+    @apply w-full rounded-lg border border-border bg-surface px-3 py-2.5 text-sm text-fg
+           placeholder:text-muted focus:border-accent focus:outline-none;
+  }
+
+  .label {
+    @apply mb-1.5 block text-sm font-medium text-fg;
+  }
+
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-border bg-raised
+           px-2.5 py-1 text-xs font-medium text-muted;
+  }
+
+  .prose-content {
+    @apply text-[15px] leading-relaxed text-muted;
+  }
+
+  .prose-content h2 {
+    @apply mb-3 mt-8 text-xl font-semibold text-fg;
+  }
+
+  .prose-content h3 {
+    @apply mb-2 mt-6 text-base font-semibold text-fg;
+  }
+
+  .prose-content p {
+    @apply mb-4;
+  }
+
+  .prose-content ul {
+    @apply mb-4 list-disc space-y-1.5 pl-5;
+  }
+
+  /* Wide content scrolls inside its own box, never the page. */
+  .scroll-x {
+    @apply -mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0;
+  }
+
+  .skeleton {
+    @apply relative overflow-hidden bg-raised;
+  }
+
+  .skeleton::after {
+    @apply absolute inset-0 animate-shimmer;
+    content: '';
+    background-image: linear-gradient(
+      90deg,
+      transparent,
+      rgb(var(--surface) / 0.6),
+      transparent
+    );
+  }
+}

@@ -1,0 +1,182 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: '3.12'
+  NODE_VERSION: '22'
+
+jobs:
+  python:
+    name: Python — lint, types, tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: lingo
+          POSTGRES_PASSWORD: lingo
+          POSTGRES_DB: lingoimage_test
+        options: >-
+          --health-cmd "pg_isready -U lingo" --health-interval 5s
+          --health-timeout 5s --health-retries 20
+        ports: ['5432:5432']
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping" --health-interval 5s
+          --health-timeout 3s --health-retries 20
+        ports: ['6379:6379']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: System dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            tesseract-ocr tesseract-ocr-eng tesseract-ocr-rus tesseract-ocr-osd \
+            libgl1 libglib2.0-0 fonts-dejavu-core fonts-noto-core fonts-noto-cjk
+
+      - name: Install
+        run: pip install -e "apps/api[dev,ocr]"
+
+      - name: Lint
+        run: |
+          ruff check apps/api
+          ruff format --check apps/api
+
+      - name: Type check
+        run: mypy apps/api/lingoimage
+        continue-on-error: true # advisory until the annotation backlog is cleared
+
+      - name: Unit and integration tests
+        working-directory: apps/api
+        env:
+          ENVIRONMENT: test
+          DATABASE_URL: postgresql+psycopg://lingo:lingo@localhost:5432/lingoimage_test
+          REDIS_URL: redis://localhost:6379/0
+          QUEUE_BACKEND: inline
+          STORAGE_BACKEND: local
+          TRANSLATION_PROVIDER_PRIORITY: echo
+        run: pytest tests -v --cov=lingoimage --cov-report=xml
+
+      - name: Migrations apply cleanly from scratch
+        env:
+          DATABASE_URL: postgresql+psycopg://lingo:lingo@localhost:5432/lingoimage_test
+        run: |
+          alembic -c apps/api/alembic.ini upgrade head
+          alembic -c apps/api/alembic.ini downgrade base
+          alembic -c apps/api/alembic.ini upgrade head
+
+      - name: Detect un-migrated model changes
+        env:
+          DATABASE_URL: postgresql+psycopg://lingo:lingo@localhost:5432/lingoimage_test
+        run: |
+          alembic -c apps/api/alembic.ini check || {
+            echo "::error::Models changed without a migration. Run: make migration m='...'"
+            exit 1
+          }
+
+  web:
+    name: Web — lint, types, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci --workspaces --include-workspace-root
+      - run: npm run lint --workspace @lingoimage/web
+      - run: npm run typecheck --workspace @lingoimage/web
+      - run: npm run build --workspace @lingoimage/web
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
+
+  security:
+    name: Security — dependencies, secrets, SBOM
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Secret scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Python dependency audit
+        run: |
+          pip install pip-audit
+          pip-audit --skip-editable --strict || echo "::warning::pip-audit reported findings"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - run: npm ci --workspaces --include-workspace-root
+      - run: npm audit --audit-level=high || echo "::warning::npm audit reported findings"
+
+      - name: SBOM
+        run: |
+          pip install cyclonedx-bom
+          pip install -e apps/api
+          cyclonedx-py environment -o sbom-python.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: sbom-*.json
+
+  containers:
+    name: Containers — build and scan
+    runs-on: ubuntu-latest
+    needs: [python, web]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build API image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: infra/docker/api.Dockerfile
+          push: false
+          load: true
+          tags: lingoimage-api:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build worker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: infra/docker/worker.Dockerfile
+          push: false
+          load: true
+          tags: lingoimage-worker:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Scan images
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: lingoimage-worker:ci
+          severity: CRITICAL,HIGH
+          exit-code: '0' # report, do not block, until the base image is pinned

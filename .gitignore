@@ -1,0 +1,54 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+
+# Build output
+.next/
+out/
+dist/
+build/
+*.tsbuildinfo
+.turbo/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+!tests/fixtures/**/*.key
+secrets/
+
+# Runtime data
+/data/
+/var/
+storage/
+tmp/
+*.sqlite3
+*.db
+
+# Test / coverage
+coverage/
+.coverage
+.coverage.*
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+playwright-report/
+test-results/
+blob-report/
+
+# Editors / OS
+.idea/
+.vscode/*
+!.vscode/extensions.json
+.DS_Store
+Thumbs.db
+desktop.ini

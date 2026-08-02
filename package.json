@@ -1,0 +1,33 @@
+{
+  "name": "lingoimage-ai",
+  "version": "1.0.0",
+  "private": true,
+  "description": "LingoImage AI — translate, recognise and convert text in images and documents",
+  "license": "SEE LICENSE IN LICENSE",
+  "workspaces": [
+    "apps/web",
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=20.11.0"
+  },
+  "scripts": {
+    "setup": "node scripts/setup.mjs",
+    "dev": "npm run dev --workspace @lingoimage/web",
+    "build": "npm run build --workspace @lingoimage/web",
+    "start": "npm run start --workspace @lingoimage/web",
+    "lint": "npm run lint --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "test:e2e": "playwright test --config apps/web/playwright.config.ts",
+    "format": "prettier --write \"**/*.{ts,tsx,js,mjs,json,css,md}\" --ignore-path .gitignore",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,mjs,json,css,md}\" --ignore-path .gitignore",
+    "api:client": "node scripts/generate-api-client.mjs",
+    "prepare": "node scripts/install-hooks.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.1",
+    "prettier": "^3.4.2",
+    "typescript": "^5.7.3"
+  }
+}

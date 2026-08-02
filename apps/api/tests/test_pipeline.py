@@ -1,0 +1,183 @@
+"""End-to-end pipeline: upload → OCR → layout → translate → render → export."""
+
+from __future__ import annotations
+
+import fitz
+import pytest
+
+from lingoimage.workers import dispatch
+
+
+def _process(client, image_bytes: bytes, options: str) -> dict:
+    response = client.post(
+        "/api/v1/process",
+        files={"file": ("sign.png", image_bytes, "image/png")},
+        data={"options": options},
+    )
+    assert response.status_code == 202, response.text
+    job = response.json()
+    dispatch.wait_for(job["id"], timeout=300)
+    return client.get(f"/api/v1/jobs/{job['id']}").json()
+
+
+def test_guest_can_process_an_image_without_registering(client, sample_image_bytes):
+    job = _process(client, sample_image_bytes, '{"tool":"image-to-text","translate":false}')
+    assert job["status"] == "completed", job.get("error")
+    assert job["pages_completed"] == 1
+
+    project = client.get(f"/api/v1/projects/{job['project_id']}").json()
+    regions = project["pages"][0]["regions"]
+    assert len(regions) >= 3
+
+    recognised = " ".join(region["normalized_text"] for region in regions).lower()
+    assert "emergency" in recognised
+    assert "door" in recognised
+    assert all(region["confidence"] > 0.5 for region in regions)
+
+
+def test_translation_is_applied_and_rendered(client, sample_image_bytes):
+    job = _process(
+        client,
+        sample_image_bytes,
+        '{"tool":"image-translator","target_language":"ru","translate":true}',
+    )
+    assert job["status"] == "completed", job.get("error")
+
+    page = client.get(f"/api/v1/projects/{job['project_id']}").json()["pages"][0]
+    assert page["rendered_url"], "a rendered image should be produced"
+    assert all(region["translated_text"] for region in page["regions"])
+    # The echo provider prefixes the target language, proving the real path ran.
+    assert all(region["translated_text"].startswith("[ru]") for region in page["regions"])
+
+
+def test_layout_analysis_identifies_a_heading(client, sample_image_bytes):
+    job = _process(client, sample_image_bytes, '{"tool":"image-to-text"}')
+    page = client.get(f"/api/v1/projects/{job['project_id']}").json()["pages"][0]
+    types = {region["region_type"] for region in page["regions"]}
+    assert "heading" in types, f"expected a heading among {types}"
+
+    orders = [region["reading_order"] for region in page["regions"]]
+    assert orders == sorted(orders), "regions must be returned in reading order"
+
+
+def test_quality_score_is_explainable(client, sample_image_bytes):
+    job = _process(client, sample_image_bytes, '{"tool":"image-to-text"}')
+    project = client.get(f"/api/v1/projects/{job['project_id']}").json()
+
+    assert project["quality_score"] is not None
+    assert project["quality_band"] in {"high", "medium", "review_recommended", "low"}
+    # Every reported reason must name a factor and carry a score.
+    for reason in project["quality_reasons"]:
+        assert reason["key"]
+        assert 0.0 <= reason["score"] <= 1.0
+
+
+@pytest.mark.parametrize(
+    "fmt,sniff",
+    [
+        ("txt", b""),
+        ("json", b"{"),
+        ("png", b"\x89PNG"),
+        ("pdf", b"%PDF-"),
+        ("docx", b"PK"),
+        ("xlsx", b"PK"),
+        ("csv", b"\xef\xbb\xbf"),
+        ("md", b"#"),
+    ],
+)
+def test_every_export_format_produces_a_valid_file(
+    pro_client, sample_image_bytes, fmt, sniff, session
+):
+    job = _process(pro_client, sample_image_bytes, '{"tool":"image-to-text"}')
+    project_id = job["project_id"]
+
+    response = pro_client.post(f"/api/v1/projects/{project_id}/exports", json={"format": fmt})
+    assert response.status_code == 201, response.text
+    export = response.json()
+    assert export["byte_size"] > 0
+
+    data = _export_bytes(export["id"])
+    assert data.startswith(sniff) or not sniff
+
+
+def test_searchable_pdf_contains_a_real_text_layer(pro_client, sample_image_bytes):
+    job = _process(pro_client, sample_image_bytes, '{"tool":"pdf-ocr"}')
+    response = pro_client.post(
+        f"/api/v1/projects/{job['project_id']}/exports",
+        json={"format": "pdf_searchable", "content": "source"},
+    )
+    assert response.status_code == 201, response.text
+
+    document = fitz.open(stream=_export_bytes(response.json()["id"]), filetype="pdf")
+    text = document[0].get_text("text")
+    document.close()
+
+    assert "Emergency" in text, f"invisible text layer missing: {text!r}"
+
+
+def test_reexporting_identical_settings_reuses_the_first_export(pro_client, sample_image_bytes):
+    job = _process(pro_client, sample_image_bytes, '{"tool":"image-to-text"}')
+    project_id = job["project_id"]
+
+    first = pro_client.post(f"/api/v1/projects/{project_id}/exports", json={"format": "txt"}).json()
+    second = pro_client.post(
+        f"/api/v1/projects/{project_id}/exports", json={"format": "txt"}
+    ).json()
+    assert first["id"] == second["id"], "a free re-export must not rebuild the file"
+
+
+def test_table_extraction_produces_typed_cells(pro_client, sample_table_bytes):
+    response = pro_client.post(
+        "/api/v1/process",
+        files={"file": ("table.png", sample_table_bytes, "image/png")},
+        data={"options": '{"tool":"image-to-excel","translate":false}'},
+    )
+    assert response.status_code == 202, response.text
+    job_id = response.json()["id"]
+    dispatch.wait_for(job_id, timeout=300)
+
+    job = pro_client.get(f"/api/v1/jobs/{job_id}").json()
+    assert job["status"] == "completed", job.get("error")
+
+    page = pro_client.get(f"/api/v1/projects/{job['project_id']}").json()["pages"][0]
+    assert page["tables"], "a ruled table should be detected"
+    table = page["tables"][0]
+    assert table["rows"] >= 3
+    assert table["cols"] >= 2
+
+    numeric = [cell for cell in table["cells"] if cell["value_type"] in {"number", "currency"}]
+    assert numeric, "prices and quantities should be typed as numbers, not text"
+
+    export = pro_client.post(
+        f"/api/v1/projects/{job['project_id']}/exports", json={"format": "xlsx"}
+    )
+    assert export.status_code == 201, export.text
+
+
+def test_unsupported_and_malicious_uploads_are_refused(client, sample_image_bytes):
+    fake_mime = client.post(
+        "/api/v1/process",
+        files={"file": ("payload.png", b"MZ\x90\x00 not an image", "image/png")},
+        data={"options": '{"tool":"image-to-text"}'},
+    )
+    assert fake_mime.status_code == 415
+    assert fake_mime.json()["error"]["code"] == "unsupported_file_type"
+
+    dangerous = client.post(
+        "/api/v1/process",
+        files={"file": ("../../etc/passwd.exe", sample_image_bytes, "image/png")},
+        data={"options": '{"tool":"image-to-text"}'},
+    )
+    assert dangerous.status_code == 415
+
+
+def _export_bytes(export_id: str) -> bytes:
+    from lingoimage.db.models import Export
+    from lingoimage.db.session import session_scope
+    from lingoimage.services import projects as project_service
+    from lingoimage.services import storage
+
+    with session_scope() as db:
+        export = db.get(Export, export_id)
+        asset = project_service.get_asset(db, export.asset_id)
+        return storage.get_storage().get(asset.storage_key)

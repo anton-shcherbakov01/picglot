@@ -1,0 +1,192 @@
+# Single-server production stack.
+#   docker compose -f docker-compose.yml -f docker-compose.production.yml up -d
+#
+# Differences from the dev file: nginx TLS terminator in front, no published
+# database/redis/minio ports, stricter restart + resource policies, migrations
+# run once from a dedicated job container, log rotation enabled.
+
+name: lingoimage
+
+services:
+  postgres:
+    ports: []
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    command:
+      - postgres
+      - -c
+      - max_connections=200
+      - -c
+      - shared_buffers=512MB
+      - -c
+      - work_mem=16MB
+      - -c
+      - maintenance_work_mem=256MB
+      - -c
+      - wal_level=replica
+      - -c
+      - archive_mode=on
+      - -c
+      - archive_command=/bin/true
+      - -c
+      - log_min_duration_statement=1000
+    logging: &logging
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
+    deploy:
+      resources:
+        limits:
+          memory: 4g
+
+  redis:
+    ports: []
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD}", "--maxmemory", "1gb", "--maxmemory-policy", "allkeys-lru"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+    logging: *logging
+
+  minio:
+    ports: []
+    logging: *logging
+    deploy:
+      resources:
+        limits:
+          memory: 2g
+
+  mailpit:
+    profiles: ["never"]
+
+  migrate:
+    build:
+      context: .
+      dockerfile: infra/docker/api.Dockerfile
+    restart: "no"
+    command: ["alembic", "-c", "/app/alembic.ini", "upgrade", "head"]
+    env_file: [.env]
+    environment:
+      RUN_MIGRATIONS_ON_START: "false"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    logging: *logging
+
+  api:
+    ports: []
+    env_file: [.env]
+    environment:
+      ENVIRONMENT: production
+      DEBUG: "false"
+      LOG_FORMAT: json
+      RUN_MIGRATIONS_ON_START: "false"
+      SESSION_COOKIE_SECURE: "true"
+    command:
+      - uvicorn
+      - lingoimage.main:app
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8000"
+      - --workers
+      - "4"
+      - --proxy-headers
+      - --forwarded-allow-ips
+      - "*"
+      - --timeout-graceful-shutdown
+      - "25"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    logging: *logging
+    deploy:
+      resources:
+        limits:
+          memory: 2g
+
+  worker-cpu:
+    env_file: [.env]
+    environment:
+      ENVIRONMENT: production
+      LOG_FORMAT: json
+    command: ["celery", "-A", "lingoimage.workers.celery_app", "worker", "-Q", "cpu", "-c", "4", "-l", "info", "--max-tasks-per-child", "40", "--max-memory-per-child", "1500000"]
+    logging: *logging
+    deploy:
+      resources:
+        limits:
+          memory: 8g
+
+  worker-export:
+    env_file: [.env]
+    environment:
+      ENVIRONMENT: production
+      LOG_FORMAT: json
+    logging: *logging
+
+  worker-beat:
+    env_file: [.env]
+    environment:
+      ENVIRONMENT: production
+      LOG_FORMAT: json
+    logging: *logging
+
+  web:
+    ports: []
+    environment:
+      NODE_ENV: production
+      API_INTERNAL_URL: http://api:8000
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+      NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL}
+    logging: *logging
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      NGINX_SERVER_NAME: ${BRAND_DOMAIN}
+    volumes:
+      - ./infra/nginx/nginx.conf:/etc/nginx/templates/nginx.conf.template:ro
+      - certbot-conf:/etc/letsencrypt:ro
+      - certbot-www:/var/www/certbot
+      - nginx-logs:/var/log/nginx
+    command: >
+      /bin/sh -c "envsubst '$$NGINX_SERVER_NAME' < /etc/nginx/templates/nginx.conf.template > /etc/nginx/nginx.conf
+      && nginx -g 'daemon off;'"
+    depends_on:
+      - web
+      - api
+    logging: *logging
+
+  certbot:
+    image: certbot/certbot:v3.2.0
+    restart: unless-stopped
+    volumes:
+      - certbot-conf:/etc/letsencrypt
+      - certbot-www:/var/www/certbot
+    entrypoint: >
+      /bin/sh -c "trap exit TERM;
+      while :; do certbot renew --webroot -w /var/www/certbot --quiet; sleep 12h & wait $${!}; done"
+
+  backup:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    env_file: [.env]
+    volumes:
+      - ./scripts:/scripts:ro
+      - backup-data:/backups
+    entrypoint: ["/bin/sh", "/scripts/backup-loop.sh"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    logging: *logging
+
+volumes:
+  certbot-conf:
+  certbot-www:
+  nginx-logs:
+  backup-data:

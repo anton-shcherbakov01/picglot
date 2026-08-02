@@ -1,0 +1,152 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "lingoimage"
+version = "1.0.0"
+description = "LingoImage AI — OCR, translation and document conversion engine"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "Proprietary" }
+
+dependencies = [
+    # web
+    "fastapi>=0.115.6,<0.116",
+    "uvicorn[standard]>=0.34.0,<0.35",
+    "python-multipart>=0.0.20",
+    "pydantic>=2.10.4,<3",
+    "pydantic-settings>=2.7.0,<3",
+    "email-validator>=2.2.0",
+    "itsdangerous>=2.2.0",
+    # persistence
+    "SQLAlchemy>=2.0.36,<2.1",
+    "alembic>=1.14.0,<2",
+    "psycopg[binary]>=3.2.3,<4",
+    "redis>=5.2.1,<6",
+    # queue
+    "celery>=5.4.0,<6",
+    # storage
+    "boto3>=1.35.90,<2",
+    # security
+    "argon2-cffi>=23.1.0",
+    "pyotp>=2.9.0",
+    "cryptography>=44.0.0",
+    # imaging / documents
+    "pillow>=11.1.0,<12",
+    "pillow-heif>=0.21.0",
+    "numpy>=2.0,<3",
+    "opencv-python-headless>=4.10.0.84,<5",
+    "PyMuPDF>=1.25.1,<2",
+    "pikepdf>=9.4.2",
+    "python-docx>=1.1.2",
+    "openpyxl>=3.1.5",
+    "fonttools>=4.55.3",
+    "python-bidi>=0.6.3",
+    "arabic-reshaper>=3.0.0",
+    # http / providers
+    "httpx>=0.28.1,<0.29",
+    "tenacity>=9.0.0",
+    # observability
+    "structlog>=24.4.0",
+    "prometheus-client>=0.21.1",
+]
+
+[project.optional-dependencies]
+ocr = [
+    "rapidocr-onnxruntime>=1.4.4",
+    "onnxruntime>=1.20.1",
+    "pytesseract>=0.3.13",
+]
+gpu = [
+    "onnxruntime-gpu>=1.20.1",
+]
+translate-local = [
+    "argostranslate>=1.9.6",
+]
+observability = [
+    "sentry-sdk[fastapi]>=2.19.2",
+    "opentelemetry-sdk>=1.29.0",
+    "opentelemetry-instrumentation-fastapi>=0.50b0",
+    "opentelemetry-instrumentation-sqlalchemy>=0.50b0",
+    "opentelemetry-exporter-otlp-proto-grpc>=1.29.0",
+]
+dev = [
+    "pytest>=8.3.4",
+    "pytest-asyncio>=0.25.0",
+    "pytest-cov>=6.0.0",
+    "ruff>=0.8.6",
+    "mypy>=1.14.1",
+    "types-boto3",
+    "freezegun>=1.5.1",
+    "respx>=0.22.0",
+    "pip-audit>=2.7.3",
+    "cyclonedx-bom>=5.1.1",
+]
+
+[project.scripts]
+lingoimage = "lingoimage.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["lingoimage"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+exclude = ["migrations/versions"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "C4", "SIM", "RUF", "S", "T20", "ASYNC"]
+ignore = [
+    "S101",   # assert is fine in tests
+    "B008",   # FastAPI Depends() in defaults is idiomatic
+    "RUF001", # ambiguous unicode is intentional in the language tables
+    "RUF002",
+    "RUF003",
+    "N818",   # our error classes deliberately do not end in "Error"
+    # Deliberate: telemetry, cache and metrics writes must never break a request
+    # or fail a job. Each of these sites logs or degrades on purpose; turning
+    # them into contextlib.suppress would hide the same intent behind an import.
+    "S110",   # try/except/pass
+    "S112",   # try/except/continue
+    "SIM105", # "use contextlib.suppress"
+    # Constant *names* containing "password"/"token" (PURPOSE_PASSWORD_RESET,
+    # API_KEY_PREFIX_LIVE) are not secrets; real secrets come from settings.
+    "S105",
+    "S104",   # 0.0.0.0 bind is correct inside a container
+    "RUF005", # explicit list concatenation reads better than unpacking here
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S", "T20"]
+"lingoimage/cli.py" = ["T20"]
+"lingoimage/db/seed.py" = ["T20"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["lingoimage"]
+
+[tool.mypy]
+python_version = "3.11"
+warn_unused_configs = true
+warn_redundant_casts = true
+warn_unused_ignores = false
+disallow_untyped_defs = false
+check_untyped_defs = true
+ignore_missing_imports = true
+plugins = ["pydantic.mypy"]
+exclude = ["migrations/versions", "tests/"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-ra --strict-markers"
+markers = [
+    "integration: requires postgres/redis/minio",
+    "slow: long running",
+    "golden: golden-file comparison",
+]
+filterwarnings = ["ignore::DeprecationWarning:passlib.*"]
+
+[tool.coverage.run]
+source = ["lingoimage"]
+omit = ["*/migrations/*", "*/tests/*"]
