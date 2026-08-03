@@ -8,6 +8,14 @@ COPY apps/web/package.json ./apps/web/
 # `packages/*` is declared in the root workspaces glob but no package exists
 # yet; copying them individually made the build fail on a path that was never
 # there. Add a COPY line here when a real package appears.
+#
+# The root `prepare` script runs during `npm ci`, so the file it invokes has to
+# be in the layer or the install dies on MODULE_NOT_FOUND. It is copied on its
+# own rather than the whole scripts/ directory to keep this layer's cache from
+# being invalidated by unrelated scripts. `--ignore-scripts` would have been
+# the shorter fix but sharp, esbuild and unrs-resolver need their install
+# scripts to place native binaries.
+COPY scripts/install-hooks.mjs ./scripts/
 RUN npm ci --workspaces --include-workspace-root
 
 FROM node:22-alpine AS builder
