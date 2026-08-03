@@ -60,3 +60,37 @@ def test_config_exposes_overrides_only_where_they_exist():
 
     screenshot = tool_catalog.BY_TYPE[ToolType.SCREENSHOT_TRANSLATOR]
     assert tool_catalog.localized_slugs(screenshot) == {}
+
+
+# --------------------------------------------------------------------------- #
+# Deployment layout
+# --------------------------------------------------------------------------- #
+def test_config_roots_survive_a_flat_install_layout():
+    """`config.py` must import from a deployed image, not just a checkout.
+
+    In the image the package lives at /app/picglot/core/, which has no fourth
+    ancestor. Indexing `parents[4]` blindly raised IndexError at import time and
+    every container — api, workers, migrate — died before doing any work.
+    """
+    from pathlib import PurePosixPath
+
+    def roots(path: str) -> tuple[str, str]:
+        parents = PurePosixPath(path).parents
+        api_root = parents[2] if len(parents) > 2 else parents[-1]
+        repo_root = parents[4] if len(parents) > 4 else api_root
+        return str(api_root), str(repo_root)
+
+    # Deployed image: both roots collapse to the application directory.
+    assert roots("/app/picglot/core/config.py") == ("/app", "/app")
+    # Source checkout: the repository root is four levels above the package.
+    assert roots("/src/apps/api/picglot/core/config.py") == ("/src/apps/api", "/src")
+
+
+def test_config_module_exposes_usable_roots():
+    from picglot.core.config import API_ROOT, REPO_ROOT
+
+    assert API_ROOT.is_absolute()
+    assert REPO_ROOT.is_absolute()
+    # A relative storage path is resolved against REPO_ROOT, so it must never
+    # collapse to the filesystem root.
+    assert str(REPO_ROOT) != "/"

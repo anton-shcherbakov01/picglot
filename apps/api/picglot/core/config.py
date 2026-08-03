@@ -16,8 +16,16 @@ from typing import Annotated, Any, Literal
 from pydantic import ValidationError, computed_field, field_validator, model_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
-API_ROOT = Path(__file__).resolve().parents[2]
+_PARENTS = Path(__file__).resolve().parents
+
+#: In a source checkout this file sits at ``apps/api/picglot/core/config.py``,
+#: so the API package root is two levels up and the repository root four.
+#: A deployed image copies the package to ``/app/picglot/core/``, where no
+#: fourth ancestor exists — indexing it blindly raised IndexError on import and
+#: took down every container. There, both roots collapse to the app directory,
+#: which is what the two callers below actually want anyway.
+API_ROOT = _PARENTS[2] if len(_PARENTS) > 2 else _PARENTS[-1]
+REPO_ROOT = _PARENTS[4] if len(_PARENTS) > 4 else API_ROOT
 
 Environment = Literal["development", "staging", "production", "test"]
 
