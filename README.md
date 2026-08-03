@@ -183,8 +183,10 @@ Details: [`docs/security/threat-model.md`](docs/security/threat-model.md) and
 
 ## Production
 
-See [`docs/operations/deployment.md`](docs/operations/deployment.md) for the
-single-server Docker Compose path and the managed-infrastructure path, plus
+Start with [`docs/operations/hosting-quickstart.md`](docs/operations/hosting-quickstart.md)
+for the condensed single-server path (including sharing a server with other
+projects). See [`docs/operations/deployment.md`](docs/operations/deployment.md)
+for the managed-infrastructure path and upgrades, plus
 [`backups.md`](docs/operations/backups.md), [`scaling.md`](docs/operations/scaling.md),
 [`incident-response.md`](docs/operations/incident-response.md) and
 [`provider-outage.md`](docs/operations/provider-outage.md).

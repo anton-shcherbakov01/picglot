@@ -53,10 +53,21 @@ find mistakes — do not bypass it.
 
 ### 3. Certificates
 
+The `:443` server block references the certificate files, so nginx cannot
+start before they exist — and `--webroot` needs something already serving
+port 80. Issue the first certificate with `--standalone`, where certbot binds
+port 80 itself:
+
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.production.yml run --rm certbot \
-  certonly --webroot -w /var/www/certbot -d example.com --agree-tos -m ops@example.com
+docker compose -f docker-compose.yml -f docker-compose.production.yml \
+  run --rm --service-ports --entrypoint certbot certbot \
+  certonly --standalone -d example.com --agree-tos -m ops@example.com --non-interactive
 ```
+
+Renewals afterwards use `--webroot` from the long-running `certbot` service,
+which works because nginx is up by then. If port 80 already belongs to
+another service on the host, use that service's webroot for the first
+issuance instead — see [hosting-quickstart.md](hosting-quickstart.md).
 
 ### 4. Start
 

@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Annotated, Any
 
-from fastapi import APIRouter, Request, Response, status
+from fastapi import APIRouter, File, Form, Request, Response, UploadFile, status
 from sqlalchemy import select
 
 from lingoimage.api.deps import CurrentIdentity, DbSession, client_ip
@@ -20,7 +20,9 @@ from lingoimage.schemas import (
     ContactRequestIn,
     SeoPageOut,
 )
+from lingoimage.services import files as file_service
 from lingoimage.services import share as share_service
+from lingoimage.services import storage
 
 log = get_logger(__name__)
 router = APIRouter(prefix="/api/v1", tags=["public"])
@@ -172,14 +174,29 @@ def testimonials(session: DbSession, locale: str = "en") -> dict[str, Any]:
 # --------------------------------------------------------------------------- #
 # Contact
 # --------------------------------------------------------------------------- #
+CONTACT_MAX_ATTACHMENTS = 3
+CONTACT_MAX_ATTACHMENT_BYTES = 8 * 1024 * 1024  # 8 MB — a screenshot, not a payload
+
+
 @router.post("/contact", status_code=status.HTTP_202_ACCEPTED)
 def contact(
-    payload: ContactRequestIn,
     request: Request,
     session: DbSession,
     identity: CurrentIdentity,
+    payload: Annotated[str, Form()],
+    attachments: Annotated[list[UploadFile] | None, File()] = None,
 ) -> dict[str, bool]:
-    if payload.website:
+    attachments = attachments or []
+    try:
+        parsed = ContactRequestIn.model_validate_json(payload)
+    except Exception as exc:
+        raise AppError(
+            code=ErrorCode.VALIDATION_FAILED,
+            details={"field": "payload"},
+            internal=str(exc)[:200],
+        ) from exc
+
+    if parsed.website:
         # Honeypot filled: pretend success, store nothing.
         log.info("contact.honeypot_triggered")
         return {"received": True}
@@ -187,17 +204,42 @@ def contact(
     ip = hash_ip(client_ip(request)) or "anon"
     rate_check("contact", ip, 5, 3600).raise_if_blocked()
 
+    if len(attachments) > CONTACT_MAX_ATTACHMENTS:
+        raise AppError(
+            code=ErrorCode.VALIDATION_FAILED,
+            details={"field": "attachments", "max": CONTACT_MAX_ATTACHMENTS},
+        )
+
+    # Same magic-byte identification and malware scan as any other upload path —
+    # a support attachment gets no less scrutiny than a processing job.
+    attachment_keys: list[str] = []
+    for upload in attachments:
+        data = upload.file.read()
+        if not data:
+            continue
+        if len(data) > CONTACT_MAX_ATTACHMENT_BYTES:
+            raise AppError(
+                code=ErrorCode.FILE_TOO_LARGE,
+                details={"field": "attachments", "max_bytes": CONTACT_MAX_ATTACHMENT_BYTES},
+            )
+        identity_info = file_service.identify(data, filename=upload.filename)
+        file_service.scan_for_malware(data)
+        key = storage.build_key("contact-attachments", extension=identity_info.extension)
+        storage.get_storage().put(key, data, content_type=identity_info.mime_type)
+        attachment_keys.append(key)
+
     session.add(
         ContactRequest(
             user_id=identity.user_id,
-            email=str(payload.email),
-            name=payload.name,
-            category=payload.category,
-            subject=payload.subject,
-            message=payload.message,
-            project_id=payload.project_id,
-            request_id=payload.request_id or getattr(request.state, "request_id", None),
+            email=str(parsed.email),
+            name=parsed.name,
+            category=parsed.category,
+            subject=parsed.subject,
+            message=parsed.message,
+            project_id=parsed.project_id,
+            request_id=parsed.request_id or getattr(request.state, "request_id", None),
             ip_hash=ip,
+            attachment_keys=attachment_keys,
         )
     )
     session.commit()

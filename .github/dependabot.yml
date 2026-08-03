@@ -1,0 +1,27 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+    labels: [dependencies]
+
+  - package-ecosystem: pip
+    directory: /apps/api
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+    labels: [dependencies]
+
+  - package-ecosystem: docker
+    directory: /infra/docker
+    schedule:
+      interval: monthly
+    labels: [infrastructure]
+
+  - package-ecosystem: github-actions
+    directory: /.github/workflows
+    schedule:
+      interval: monthly
+    labels: [ci]

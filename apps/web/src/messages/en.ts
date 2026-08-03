@@ -303,6 +303,14 @@ export const en = {
     skipToContent: 'Skip to main content',
   },
 
+  consent: {
+    message:
+      'We use essential cookies for the app to work. Analytics cookies help us improve the product — document content is never collected.',
+    accept: 'Accept analytics',
+    decline: 'Essential only',
+    policyLink: 'Cookie Policy',
+  },
+
   footer: {
     product: 'Product',
     legal: 'Legal',

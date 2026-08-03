@@ -16,10 +16,11 @@ not just written. Everything marked ⚠️ or ❌ says plainly what is missing.
 |---|---|---|
 | Python lint | `ruff check apps/api` | ✅ All checks passed |
 | Python format | `ruff format --check apps/api` | ✅ 88 files clean |
-| Python tests | `pytest apps/api/tests` | ✅ **87 passed, 1 skipped** (74 s) |
+| Python tests | `pytest apps/api/tests` | ✅ **87 passed, 1 skipped** (65 s) |
+| Python typecheck | `mypy apps/api/lingoimage` | ❌ **72 pre-existing errors** — see §3 |
 | TS typecheck | `tsc --noEmit` | ✅ clean (strict, `noUncheckedIndexedAccess`) |
 | Web lint | `next lint --max-warnings 0` | ✅ No warnings or errors |
-| Web build | `next build` | ✅ **216 static pages** generated |
+| Web build | `next build` | ✅ **226 static pages** generated |
 | API boot | `import lingoimage.main` | ✅ 117 routes, OpenAPI generates |
 
 The one skip is `test_concurrent_charges_never_oversell`: the guarantee comes
@@ -83,12 +84,37 @@ first-party analytics with a server-side allow-list, and a lifecycle worker that
 enforces retention.
 
 ### Web app ✅
-216 prerendered pages: home, 13 tool pages, format and language-pair landing
+226 prerendered pages: home, 13 tool pages, format and language-pair landing
 pages, pricing, API docs, supported languages, status, blog, contact, five legal
-pages, security, auth flows, dashboard, project editor, share view — across 10
-locales, with sitemap, robots, manifest, structured data, hreflang, dark mode
-and a keyboard-navigable editor whose block list doubles as the accessible
-alternative to the image overlay.
+pages, security, auth flows, dashboard, project editor, admin panel, share view
+— across 10 locales, with sitemap, robots, manifest, structured data, hreflang,
+dark mode and a keyboard-navigable editor whose block list doubles as the
+accessible alternative to the image overlay.
+
+**All ten locales are fully translated** (`en ru es de fr pt tr id pl uk`);
+`MISSING_TRANSLATIONS` in `apps/web/src/lib/messages.ts` is now empty, and the
+`Messages` type makes a dropped or misspelled key a compile error.
+
+### Admin UI ✅
+`/{locale}/admin` — dashboard (volume, success/error rates, job duration
+percentiles, revenue, provider cost, storage), users (search, detail, credit
+adjustment, suspend/reactivate), jobs (filter, timeline, provider calls, retry,
+refund), providers (config, 24h usage, live health), feature flags (toggle,
+rollout, kill switch), support tickets, status incidents (open/resolve) and the
+audit log. Client-rendered and `noindex`, since every response depends on the
+caller's admin role. Every mutating action prompts for the reason the API
+requires and records it in the audit trail.
+
+### Editor undo/redo ✅
+100-step history. Because block edits are server-authoritative with optimistic
+version locking, undo replays an inverse `PATCH` rather than rewinding local
+state; a new edit discards the redo branch, and a stale version surfaces the
+same conflict message as any other concurrent edit.
+
+### PWA ✅
+Service worker caches the app shell and immutable `/_next/static/` assets, and
+explicitly never caches `/api/`, `/app/`, `/share/` or `/admin` — results and
+share links stay off disk.
 
 ---
 
@@ -101,16 +127,6 @@ they orchestrate was verified natively instead (API, workers via the inline
 queue, migrations, seed, full pipeline, exports). Expect the usual first-run
 friction: image build times and any base-image drift.
 
-### ⚠️ Interface translations are partial
-`en` and `ru` are complete. The other eight locales (`es de fr pt tr id pl uk`)
-have localised URLs, metadata and language names but fall back to English body
-copy. This is recorded in code as `MISSING_TRANSLATIONS` in
-`apps/web/src/lib/messages.ts`, not hidden.
-
-### ⚠️ Admin panel is API-only
-Every admin endpoint exists, is authorised, and writes audit records. The admin
-**UI** is not built — use the API or Swagger UI.
-
 ### ⚠️ Account sub-pages are API-only
 Billing, API keys, webhooks, glossary, translation memory, team and session
 management all have working endpoints; the dashboard currently renders projects
@@ -121,22 +137,36 @@ function.
 The batch service, child-job fan-out, ZIP assembly and CSV report are
 implemented; the drag-a-folder interface is not.
 
-### ❌ Playwright E2E suite
-`test:e2e` is wired into the Makefile and CI but no specs are written. The
-equivalent journeys are covered by the HTTP-level tests in
-`apps/api/tests/test_pipeline.py`, which exercise the same endpoints the browser
-would call.
+### ⚠️ Playwright E2E is smoke-level
+`apps/web/e2e/smoke.spec.ts` covers page rendering, the locale redirect, the
+theme toggle and the auth forms. The full upload → translate → export journey
+is still covered only at the HTTP level in `apps/api/tests/test_pipeline.py`,
+which needs no browser or file fixtures.
+
+### ⚠️ Backend mypy is not clean
+`ruff check`, `ruff format --check`, `tsc --noEmit`, `next lint` and `pytest`
+all pass. `mypy apps/api/lingoimage` reports **72 pre-existing errors across 23
+files** — mostly missing third-party stubs (celery, sentry_sdk, opentelemetry)
+plus a handful of real `str | None` argument mismatches in `pipeline.py`,
+`batch.py`, `jobs.py` and `account.py`. `make typecheck` therefore fails today.
 
 ### ❌ Golden fixture corpus
-`tests/golden/` exists but is empty. The suite generates its fixtures
-programmatically (synthetic signs and ruled tables) instead — deliberate, since
-committing third-party documents would be a licensing problem, but a curated
-corpus of real-world photographs is what would catch regressions in the
-preprocessing heuristics.
+`tests/golden/` holds only a README explaining why it is empty. The suite
+generates its fixtures programmatically (synthetic signs and ruled tables) —
+deliberate, since committing third-party documents would be a licensing
+problem, but a curated corpus of real-world photographs is what would catch
+regressions in the preprocessing heuristics.
 
 ### ❌ Advanced inpainting model
 The hook (`vision/advanced_inpaint.py`) and configuration exist; no model is
 bundled. The classical strategies are what runs.
+
+### ❌ Docker Compose still not executed
+Unchanged from the note above: the compose stack has never been run on this
+machine. The first-run instructions in
+`docs/operations/hosting-quickstart.md` were derived by reading the compose
+files, Dockerfiles and nginx config — including a certificate-ordering bug
+they fix — but they have not been executed end to end.
 
 ---
 

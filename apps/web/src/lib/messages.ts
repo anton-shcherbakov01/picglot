@@ -1,27 +1,19 @@
+import { de } from '@/messages/de';
 import { en, type Messages } from '@/messages/en';
+import { es } from '@/messages/es';
+import { fr } from '@/messages/fr';
+import { id } from '@/messages/id';
+import { pl } from '@/messages/pl';
+import { pt } from '@/messages/pt';
 import { ru } from '@/messages/ru';
+import { tr } from '@/messages/tr';
+import { uk } from '@/messages/uk';
 import { DEFAULT_LOCALE, type Locale } from './i18n';
 
-/**
- * Locale dictionaries.
- *
- * `en` and `ru` are complete. The other advertised locales currently reuse the
- * English strings for body copy while their URLs, metadata and language names
- * are localised — a partially translated interface is better than a missing
- * page, and `MISSING_TRANSLATIONS` records the truth rather than hiding it.
- */
-const DICTIONARIES: Partial<Record<Locale, Messages>> = { en, ru };
+/** All ten advertised locales are fully translated. */
+const DICTIONARIES: Partial<Record<Locale, Messages>> = { en, ru, es, de, fr, pt, tr, id, pl, uk };
 
-export const MISSING_TRANSLATIONS: Locale[] = [
-  'es',
-  'de',
-  'fr',
-  'pt',
-  'tr',
-  'id',
-  'pl',
-  'uk',
-];
+export const MISSING_TRANSLATIONS: Locale[] = [];
 
 export function getMessages(locale: Locale): Messages {
   return DICTIONARIES[locale] ?? DICTIONARIES[DEFAULT_LOCALE] ?? en;

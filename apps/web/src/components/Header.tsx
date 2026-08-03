@@ -18,11 +18,15 @@ export function Header({ locale, messages, tools }: Props) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
-  const [user, setUser] = useState<{ name: string | null; email: string } | null>(null);
+  const [user, setUser] = useState<{
+    name: string | null;
+    email: string;
+    admin_role: string | null;
+  } | null>(null);
 
   useEffect(() => {
     // Quietly probe the session; anonymous visitors simply get no user.
-    apiFetch<{ name: string | null; email: string }>('/api/v1/auth/me')
+    apiFetch<{ name: string | null; email: string; admin_role: string | null }>('/api/v1/auth/me')
       .then(setUser)
       .catch(() => setUser(null));
   }, []);
@@ -101,9 +105,19 @@ export function Header({ locale, messages, tools }: Props) {
           <LocaleSwitcher locale={locale} hrefFor={switchLocale} />
           <ThemeToggle label={messages.common.theme} />
           {user ? (
-            <Link href={localePath(locale, 'app')} className="btn-secondary hidden sm:inline-flex">
-              {messages.nav.dashboard}
-            </Link>
+            <>
+              {user.admin_role && (
+                <Link
+                  href={localePath(locale, 'admin')}
+                  className="btn-ghost hidden sm:inline-flex"
+                >
+                  Admin
+                </Link>
+              )}
+              <Link href={localePath(locale, 'app')} className="btn-secondary hidden sm:inline-flex">
+                {messages.nav.dashboard}
+              </Link>
+            </>
           ) : (
             <>
               <Link

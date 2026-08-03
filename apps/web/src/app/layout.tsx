@@ -41,13 +41,24 @@ const THEME_BOOTSTRAP = `
   } catch (e) {}
 })();`;
 
+/** Registered here (not the locale layout) because this is the only layout that owns <body>. */
+const SW_REGISTER = `
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('/sw.js').catch(function () {});
+  });
+}`;
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP }} />
       </head>
-      <body className="min-h-dvh antialiased">{children}</body>
+      <body className="min-h-dvh antialiased">
+        {children}
+        <script dangerouslySetInnerHTML={{ __html: SW_REGISTER }} />
+      </body>
     </html>
   );
 }

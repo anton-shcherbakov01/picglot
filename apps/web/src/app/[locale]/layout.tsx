@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
+import { ConsentBanner } from '@/components/ConsentBanner';
 import { Footer } from '@/components/Footer';
 import { Header } from '@/components/Header';
 import { serverFetch, type AppConfig } from '@/lib/api';
@@ -67,6 +68,7 @@ export default async function LocaleLayout({
         messages={messages}
         toolSlugs={tools.map((tool) => tool.slug)}
       />
+      <ConsentBanner locale={typed} messages={messages} />
     </div>
   );
 }

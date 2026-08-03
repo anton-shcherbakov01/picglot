@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import {
   ApiError,
@@ -15,6 +15,15 @@ import { track } from '@/lib/analytics';
 import type { Messages } from '@/lib/messages';
 
 type View = 'result' | 'original' | 'compare';
+
+/** One reversible block edit. Values are whatever the API accepted for those keys. */
+interface HistoryEntry {
+  regionId: string;
+  before: Record<string, unknown>;
+  after: Record<string, unknown>;
+}
+
+const HISTORY_LIMIT = 100;
 
 interface Props {
   messages: Messages;
@@ -43,6 +52,8 @@ export function Editor({ messages, config, project, onReload, onReset }: Props) 
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [zoom, setZoom] = useState(1);
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const [historyIndex, setHistoryIndex] = useState(0);
 
   const page: PageResponse | undefined = pages[pageIndex];
   const selected = page?.regions.find((region) => region.id === selectedId) ?? null;
@@ -85,27 +96,66 @@ export function Editor({ messages, config, project, onReload, onReset }: Props) 
       : (page?.rendered_url ?? page?.preview_url ?? page?.original_url);
 
   // ------------------------------------------------------------ mutations
+  const sendPatch = useCallback(
+    async (region: RegionResponse, changes: Record<string, unknown>) => {
+      setSaving(true);
+      setError(null);
+      try {
+        await apiFetch(`/api/v1/projects/${project.id}/regions/${region.id}`, {
+          method: 'PATCH',
+          json: { ...changes, version: region.version },
+        });
+        setDirty(true);
+        await onReload();
+        return true;
+      } catch (failure) {
+        const apiError = failure as ApiError;
+        setError(
+          apiError.code === 'version_conflict'
+            ? messages.editor.conflict
+            : ((messages.errors as Record<string, string>)[apiError.code] ?? apiError.message),
+        );
+        return false;
+      } finally {
+        setSaving(false);
+      }
+    },
+    [project.id, onReload, messages],
+  );
+
   const patchRegion = async (region: RegionResponse, changes: Record<string, unknown>) => {
-    setSaving(true);
-    setError(null);
-    try {
-      await apiFetch(`/api/v1/projects/${project.id}/regions/${region.id}`, {
-        method: 'PATCH',
-        json: { ...changes, version: region.version },
-      });
-      setDirty(true);
-      await onReload();
-      track('region_edited', { tool: project.tool_type });
-    } catch (failure) {
-      const apiError = failure as ApiError;
-      setError(
-        apiError.code === 'version_conflict'
-          ? messages.editor.conflict
-          : ((messages.errors as Record<string, string>)[apiError.code] ?? apiError.message),
-      );
-    } finally {
-      setSaving(false);
+    const before = Object.fromEntries(
+      Object.keys(changes).map((key) => [key, (region as unknown as Record<string, unknown>)[key]]),
+    );
+    if (!(await sendPatch(region, changes))) return;
+
+    // A new edit discards any redo branch, exactly like a text editor.
+    setHistory((entries) =>
+      [...entries.slice(0, historyIndex), { regionId: region.id, before, after: changes }].slice(
+        -HISTORY_LIMIT,
+      ),
+    );
+    setHistoryIndex((index) => Math.min(index + 1, HISTORY_LIMIT));
+    track('region_edited', { tool: project.tool_type });
+  };
+
+  /** Undo/redo replay inverse patches against the server — there is no local document to rewind. */
+  const findRegion = useCallback(
+    (regionId: string) =>
+      pages.flatMap((item) => item.regions).find((region) => region.id === regionId) ?? null,
+    [pages],
+  );
+
+  const step = async (direction: -1 | 1) => {
+    const entry = direction === -1 ? history[historyIndex - 1] : history[historyIndex];
+    if (!entry) return;
+    const region = findRegion(entry.regionId);
+    if (!region) {
+      setError(messages.editor.conflict);
+      return;
     }
+    if (!(await sendPatch(region, direction === -1 ? entry.before : entry.after))) return;
+    setHistoryIndex((index) => index + direction);
   };
 
   const runAction = async (path: string, body?: Record<string, unknown>) => {
@@ -183,6 +233,26 @@ export function Editor({ messages, config, project, onReload, onReset }: Props) 
         </div>
 
         <div className="ml-auto flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            className="btn-ghost px-2"
+            onClick={() => void step(-1)}
+            disabled={saving || historyIndex === 0}
+            aria-label={messages.editor.undo}
+            title={messages.editor.undo}
+          >
+            ↶
+          </button>
+          <button
+            type="button"
+            className="btn-ghost px-2"
+            onClick={() => void step(1)}
+            disabled={saving || historyIndex >= history.length}
+            aria-label={messages.editor.redo}
+            title={messages.editor.redo}
+          >
+            ↷
+          </button>
           <button type="button" className="btn-ghost px-2" onClick={() => setZoom((z) => Math.max(0.25, z - 0.25))} aria-label={messages.editor.zoomOut}>
             −
           </button>

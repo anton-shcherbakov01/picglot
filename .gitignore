@@ -45,6 +45,10 @@ playwright-report/
 test-results/
 blob-report/
 
+# Generated repo snapshots (rebuild with git archive / npx repomix)
+lingoimage_ai.zip
+repomix-*.md
+
 # Editors / OS
 .idea/
 .vscode/*

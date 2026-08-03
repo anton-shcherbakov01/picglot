@@ -21,7 +21,26 @@
       "PowerShell(cd \"C:\\\\Users\\\\anton\\\\LingoImage AI\"; $env:NEXT_TELEMETRY_DISABLED=\"1\"; npm run build --workspace @lingoimage/web 2>&1 | Select-String -Pattern \"Type error|Failed|error|✓ Gener|✓ Compil\" | Select-Object -First 15)",
       "PowerShell(cd \"C:\\\\Users\\\\anton\\\\LingoImage AI\"; $env:NEXT_TELEMETRY_DISABLED=\"1\"; npm run build --workspace @lingoimage/web 2>&1 | Select-String -Pattern \"Type error|Failed|Error|✓ Gener|✓ Compil|Route \\\\\\(app\\\\\\)\" | Select-Object -First 15)",
       "PowerShell(cd \"C:\\\\Users\\\\anton\\\\LingoImage AI\"; \"=== web lint ===\"; npm run lint --workspace @lingoimage/web 2>&1 | Select-String -Pattern \"Warning|Error|No ESLint|✔\" | Select-Object -First 8; \"\"; \"=== web build ===\"; $env:NEXT_TELEMETRY_DISABLED=\"1\"; npm run build --workspace @lingoimage/web 2>&1 | Select-String -Pattern \"✓ Compil|✓ Gener|Failed|Error\" | Select-Object -First 6)",
-      "PowerShell(cd \"C:\\\\Users\\\\anton\\\\LingoImage AI\"; $env:NEXT_TELEMETRY_DISABLED=\"1\"; npm run build --workspace @lingoimage/web 2>&1 | Select-String -Pattern \"✓ Compil|✓ Gener|Failed|Error\" | Select-Object -First 5)"
+      "PowerShell(cd \"C:\\\\Users\\\\anton\\\\LingoImage AI\"; $env:NEXT_TELEMETRY_DISABLED=\"1\"; npm run build --workspace @lingoimage/web 2>&1 | Select-String -Pattern \"✓ Compil|✓ Gener|Failed|Error\" | Select-Object -First 5)",
+      "Bash(npx repomix@latest --style markdown --compress -o \"repomix-compact.md\" -i \"node_modules,.venv,.next,__pycache__,.git,package-lock.json,lingoimage_ai.zip,repomix-full.md,repomix-compact.md\")",
+      "Bash(chmod +x scripts/backup.sh scripts/restore.sh scripts/backup-loop.sh)",
+      "Bash(npm run *)",
+      "Bash(.venv/Scripts/python -m ruff check apps/api/lingoimage/api/routers/public.py)",
+      "Bash(.venv/Scripts/python -m mypy apps/api/lingoimage/api/routers/public.py)",
+      "Bash(.venv/Scripts/python -c \"import lingoimage.main; print\\('routes:', len\\(lingoimage.main.app.routes\\)\\)\")",
+      "Bash(.venv/Scripts/python -m lingoimage.cli openapi --output docs/api/openapi.json)",
+      "Bash(.venv/Scripts/python -m pytest apps/api/tests -q)",
+      "Bash(chmod +x scripts/server-diagnostics.sh)",
+      "Bash(bash -n scripts/server-diagnostics.sh)",
+      "Bash(bash -n scripts/backup.sh)",
+      "Bash(bash -n scripts/restore.sh)",
+      "Bash(sh -n scripts/backup-loop.sh)",
+      "Bash(.venv/Scripts/python -m ruff check apps/api)",
+      "Bash(.venv/Scripts/python -m ruff format --check apps/api)",
+      "Bash(.venv/Scripts/python -m mypy apps/api/lingoimage)",
+      "Bash(git stash *)",
+      "Bash(git checkout *)",
+      "Bash(git add *)"
     ]
   }
 }

@@ -19,9 +19,10 @@ export function ContactForm({ locale }: { locale: Locale }) {
     setBusy(true);
     setError(null);
     try {
-      await apiFetch('/api/v1/contact', {
-        method: 'POST',
-        json: {
+      const body = new FormData();
+      body.set(
+        'payload',
+        JSON.stringify({
           email: form.get('email'),
           name: form.get('name') || null,
           category: form.get('category'),
@@ -30,8 +31,12 @@ export function ContactForm({ locale }: { locale: Locale }) {
           project_id: form.get('project_id') || null,
           // Honeypot: a real person never fills this in.
           website: form.get('website') || '',
-        },
-      });
+        }),
+      );
+      for (const file of form.getAll('attachments')) {
+        if (file instanceof File && file.size > 0) body.append('attachments', file);
+      }
+      await apiFetch('/api/v1/contact', { method: 'POST', body });
       setSent(true);
     } catch (failure) {
       setError((failure as ApiError).message);
@@ -116,6 +121,20 @@ export function ContactForm({ locale }: { locale: Locale }) {
             {ru ? 'ID проекта (необязательно)' : 'Project ID (optional)'}
           </label>
           <input id="project_id" name="project_id" className="input" placeholder="prj_…" />
+        </div>
+
+        <div>
+          <label className="label" htmlFor="attachments">
+            {ru ? 'Вложения (необязательно, до 3 файлов)' : 'Attachments (optional, up to 3 files)'}
+          </label>
+          <input
+            id="attachments"
+            name="attachments"
+            type="file"
+            accept="image/*,.pdf"
+            multiple
+            className="input"
+          />
         </div>
 
         {/* Honeypot — visually and programmatically hidden from real users. */}
