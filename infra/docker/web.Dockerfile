@@ -16,7 +16,12 @@ COPY apps/web/package.json ./apps/web/
 # the shorter fix but sharp, esbuild and unrs-resolver need their install
 # scripts to place native binaries.
 COPY scripts/install-hooks.mjs ./scripts/
-RUN npm ci --workspaces --include-workspace-root
+# npm hoists everything to the root node_modules here, so apps/web/node_modules
+# is never created and the COPY in the builder stage fails on a missing path.
+# Creating it unconditionally keeps that COPY valid either way: if a future
+# platform-specific dependency does land there, it still gets carried over.
+RUN npm ci --workspaces --include-workspace-root \
+    && mkdir -p /app/apps/web/node_modules
 
 FROM node:22-alpine AS builder
 WORKDIR /app
