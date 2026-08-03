@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.7
 # Worker image — carries the heavy vision stack: OpenCV, Tesseract language
 # packs, RapidOCR ONNX models, PDF tooling and the bundled font set.
-FROM python:3.12-slim-bookworm AS base
+FROM python:3.14-slim-bookworm AS base
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \

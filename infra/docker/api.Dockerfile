@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.7
 # API image — FastAPI + uvicorn. Shares the picglot package with the workers
 # but installs only the light extras (no OCR models) to keep the image small.
-FROM python:3.12-slim-bookworm AS base
+FROM python:3.14-slim-bookworm AS base
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
