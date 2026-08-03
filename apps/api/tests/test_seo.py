@@ -94,3 +94,25 @@ def test_config_module_exposes_usable_roots():
     # A relative storage path is resolved against REPO_ROOT, so it must never
     # collapse to the filesystem root.
     assert str(REPO_ROOT) != "/"
+
+
+def test_loopback_host_is_accepted_in_production(monkeypatch):
+    """The container health check addresses the app as 127.0.0.1.
+
+    TrustedHostMiddleware answers 400 to any Host it does not know, so leaving
+    the loopback address out meant the probe failed against a perfectly healthy
+    process and the container sat 'unhealthy' forever.
+    """
+    from fastapi.testclient import TestClient
+
+    from picglot.core.config import settings
+
+    monkeypatch.setattr(type(settings), "is_production", property(lambda self: True))
+    from picglot.main import create_app
+
+    client = TestClient(create_app())
+    for host in ("127.0.0.1", "localhost", settings.brand_domain):
+        response = client.get("/health/live", headers={"Host": host})
+        assert response.status_code == 200, f"{host} rejected: {response.status_code}"
+
+    assert client.get("/health/live", headers={"Host": "evil.example"}).status_code == 400

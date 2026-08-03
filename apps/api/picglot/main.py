@@ -193,6 +193,14 @@ def _install_middleware(app: FastAPI) -> None:
                 f"*.{settings.brand_domain}",
                 "api",
                 "localhost",
+                # Container and load-balancer probes address the app by IP over
+                # loopback. Without these the health check gets a 400 from this
+                # very middleware and the container never becomes healthy —
+                # which is indistinguishable from the app being broken.
+                # Loopback cannot be reached from off-host, so allowing it here
+                # widens nothing.
+                "127.0.0.1",
+                "::1",
             ],
         )
 
