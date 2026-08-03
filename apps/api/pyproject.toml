@@ -13,7 +13,7 @@ license = { text = "Proprietary" }
 dependencies = [
     # web
     "fastapi>=0.115.6,<0.116",
-    "uvicorn[standard]>=0.34.0,<0.35",
+    "uvicorn[standard]>=0.34.0,<0.53",
     "python-multipart>=0.0.20",
     "pydantic>=2.10.4,<3",
     "pydantic-settings>=2.7.0,<3",
