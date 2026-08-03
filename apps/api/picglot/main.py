@@ -15,7 +15,17 @@ from fastapi.responses import JSONResponse
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from picglot import __version__
-from picglot.api.routers import account, admin, auth, billing, jobs, projects, public, system
+from picglot.api.routers import (
+    account,
+    admin,
+    auth,
+    billing,
+    jobs,
+    projects,
+    public,
+    system,
+    workspaces,
+)
 from picglot.core.config import settings
 from picglot.core.errors import AppError, ErrorCode
 from picglot.core.ids import request_id as new_request_id
@@ -145,6 +155,7 @@ def create_app() -> FastAPI:
     app.include_router(billing.router)
     app.include_router(public.router)
     app.include_router(admin.router)
+    app.include_router(workspaces.router)
 
     return app
 

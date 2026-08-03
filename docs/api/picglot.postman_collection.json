@@ -2885,7 +2885,7 @@
             "description": "Redraw pages after editing. Free — no recognition or translation runs.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"render_mode\": \"translation_only\",\n  \"page_ids\": [\n    \"\"\n  ]\n}",
+              "raw": "{\n  \"render_mode\": \"translation_only\",\n  \"page_ids\": [\n    \"\"\n  ],\n  \"masks\": {}\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -3465,6 +3465,467 @@
               "path": ["api", "v1", "status"]
             },
             "description": "Derived from live health checks, with manual overrides from the admin panel."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "workspaces",
+      "item": [
+        {
+          "name": "Workspaces you belong to",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "authorization",
+                "value": "",
+                "disabled": true
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/workspaces",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "workspaces"]
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Create Workspace",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "authorization",
+                "value": "",
+                "disabled": true
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/workspaces",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "workspaces"]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"\",\n  \"billing_email\": \"\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Workspace",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "authorization",
+                "value": "",
+                "disabled": true
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/workspaces/{workspace_id}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "workspaces", "{workspace_id}"],
+              "variable": [
+                {
+                  "key": "workspace_id",
+                  "value": "",
+                  "description": ""
+                }
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Update Workspace",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "authorization",
+                "value": "",
+                "disabled": true
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/workspaces/{workspace_id}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "workspaces", "{workspace_id}"],
+              "variable": [
+                {
+                  "key": "workspace_id",
+                  "value": "",
+                  "description": ""
+                }
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"\",\n  \"billing_email\": \"\",\n  \"retention_override_hours\": 0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Workspace",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "authorization",
+                "value": "",
+                "disabled": true
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/workspaces/{workspace_id}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "workspaces", "{workspace_id}"],
+              "variable": [
+                {
+                  "key": "workspace_id",
+                  "value": "",
+                  "description": ""
+                }
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "List Members",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "authorization",
+                "value": "",
+                "disabled": true
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/workspaces/{workspace_id}/members",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "workspaces", "{workspace_id}", "members"],
+              "variable": [
+                {
+                  "key": "workspace_id",
+                  "value": "",
+                  "description": ""
+                }
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Update Member",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "authorization",
+                "value": "",
+                "disabled": true
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/workspaces/{workspace_id}/members/{user_id}",
+              "host": ["{{baseUrl}}"],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{workspace_id}",
+                "members",
+                "{user_id}"
+              ],
+              "variable": [
+                {
+                  "key": "workspace_id",
+                  "value": "",
+                  "description": ""
+                },
+                {
+                  "key": "user_id",
+                  "value": "",
+                  "description": ""
+                }
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"owner\",\n  \"monthly_credit_limit\": 0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Remove Member",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "authorization",
+                "value": "",
+                "disabled": true
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/workspaces/{workspace_id}/members/{user_id}",
+              "host": ["{{baseUrl}}"],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{workspace_id}",
+                "members",
+                "{user_id}"
+              ],
+              "variable": [
+                {
+                  "key": "workspace_id",
+                  "value": "",
+                  "description": ""
+                },
+                {
+                  "key": "user_id",
+                  "value": "",
+                  "description": ""
+                }
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Transfer Ownership",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "authorization",
+                "value": "",
+                "disabled": true
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/workspaces/{workspace_id}/transfer",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "workspaces", "{workspace_id}", "transfer"],
+              "variable": [
+                {
+                  "key": "workspace_id",
+                  "value": "",
+                  "description": ""
+                }
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"new_owner_id\": \"\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List Invitations",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "authorization",
+                "value": "",
+                "disabled": true
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/workspaces/{workspace_id}/invitations",
+              "host": ["{{baseUrl}}"],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{workspace_id}",
+                "invitations"
+              ],
+              "variable": [
+                {
+                  "key": "workspace_id",
+                  "value": "",
+                  "description": ""
+                }
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Create Invitation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "authorization",
+                "value": "",
+                "disabled": true
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/workspaces/{workspace_id}/invitations",
+              "host": ["{{baseUrl}}"],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{workspace_id}",
+                "invitations"
+              ],
+              "variable": [
+                {
+                  "key": "workspace_id",
+                  "value": "",
+                  "description": ""
+                }
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"\",\n  \"role\": \"owner\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Revoke Invitation",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "authorization",
+                "value": "",
+                "disabled": true
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/workspaces/{workspace_id}/invitations/{invitation_id}",
+              "host": ["{{baseUrl}}"],
+              "path": [
+                "api",
+                "v1",
+                "workspaces",
+                "{workspace_id}",
+                "invitations",
+                "{invitation_id}"
+              ],
+              "variable": [
+                {
+                  "key": "workspace_id",
+                  "value": "",
+                  "description": ""
+                },
+                {
+                  "key": "invitation_id",
+                  "value": "",
+                  "description": ""
+                }
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Accept Invitation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "authorization",
+                "value": "",
+                "disabled": true
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/workspaces/invitations/accept",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "workspaces", "invitations", "accept"]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
           },
           "response": []
         }

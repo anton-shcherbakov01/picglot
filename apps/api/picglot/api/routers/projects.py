@@ -858,7 +858,7 @@ def rerender(
     project_service.assert_can_write(
         session, project, user=identity.user, guest_session_id=identity.guest_id
     )
-    _render_pages(session, project, payload.render_mode, payload.page_ids)
+    _render_pages(session, project, payload.render_mode, payload.page_ids, payload.masks)
     project_service.touch(project)
 
     job = job_service.create_job(
@@ -878,7 +878,11 @@ def rerender(
 
 
 def _render_pages(
-    session: Any, project: Project, mode: RenderMode, page_ids: list[str] | None
+    session: Any,
+    project: Project,
+    mode: RenderMode,
+    page_ids: list[str] | None,
+    masks: dict[str, str] | None = None,
 ) -> None:
     from picglot.vision import inpaint
     from picglot.vision import render as render_tools
@@ -898,10 +902,11 @@ def _render_pages(
             if translation.is_active and translation.translated_text
         }
         renderable = [region for region in regions if translations.get(region.id, "").strip()]
-        if mode is RenderMode.OVERLAY:
+        user_mask = _decode_mask(masks.get(page.id) if masks else None, image.size)
+        if mode is RenderMode.OVERLAY and user_mask is None:
             background = image
         else:
-            background = inpaint.remove_text(image, renderable)[0]
+            background = inpaint.remove_text(image, renderable, user_mask=user_mask)[0]
         rendered, _report = render_tools.render_page(
             background,
             renderable,
@@ -914,6 +919,46 @@ def _render_pages(
             session, project, rendered, kind=AssetKind.RENDERED, fmt="PNG"
         )
         page.rendered_asset_id = asset.id
+
+
+#: A brush mask is a small greyscale PNG; anything larger is not a mask.
+MAX_MASK_BYTES = 4 * 1024 * 1024
+
+
+def _decode_mask(encoded: str | None, size: tuple[int, int]) -> Any | None:
+    """Decode an editor brush mask, or return None if there isn't a usable one.
+
+    The mask is user input like any upload: it is size-capped and parsed by
+    Pillow, and a malformed one is ignored rather than failing the re-render —
+    losing a brush stroke is better than losing the page.
+    """
+    if not encoded:
+        return None
+
+    import base64
+    import binascii
+    from io import BytesIO
+
+    from PIL import Image as PILImage
+
+    payload = encoded.split(",", 1)[-1]  # tolerate a data: URL prefix
+    try:
+        raw = base64.b64decode(payload, validate=True)
+    except (binascii.Error, ValueError):
+        log.info("rerender.mask_not_base64")
+        return None
+    if not raw or len(raw) > MAX_MASK_BYTES:
+        log.info("rerender.mask_rejected", byte_size=len(raw))
+        return None
+    try:
+        mask = PILImage.open(BytesIO(raw))
+        mask.load()
+    except Exception:
+        # Pillow raises a wide range of types on a malformed image; any of them
+        # mean the same thing here — there is no usable mask.
+        log.info("rerender.mask_undecodable")
+        return None
+    return mask.convert("L").resize(size)
 
 
 # --------------------------------------------------------------------------- #

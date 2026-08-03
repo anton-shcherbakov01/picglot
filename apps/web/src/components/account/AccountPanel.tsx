@@ -14,6 +14,7 @@ import { AccountGlossaries } from "./AccountGlossaries";
 import { AccountMemory } from "./AccountMemory";
 import { AccountProfile } from "./AccountProfile";
 import { AccountSecurity } from "./AccountSecurity";
+import { AccountTeam } from "./AccountTeam";
 import { AccountUsage } from "./AccountUsage";
 import { AccountWebhooks } from "./AccountWebhooks";
 
@@ -30,6 +31,7 @@ const SECTIONS = [
   "webhooks",
   "glossary",
   "memory",
+  "team",
   "profile",
   "security",
   "data",
@@ -56,6 +58,7 @@ export function AccountPanel({
     webhooks: messages.dashboard.webhooks,
     glossary: messages.dashboard.glossary,
     memory: messages.dashboard.memory,
+    team: messages.dashboard.team,
     profile: messages.dashboard.profile,
     security: messages.nav.security,
     data: messages.dashboard.dataRetention,
@@ -107,6 +110,7 @@ export function AccountPanel({
         {section === "webhooks" && <AccountWebhooks {...shared} />}
         {section === "glossary" && <AccountGlossaries {...shared} />}
         {section === "memory" && <AccountMemory {...shared} />}
+        {section === "team" && <AccountTeam {...shared} />}
         {section === "profile" && <AccountProfile {...shared} />}
         {section === "security" && <AccountSecurity {...shared} />}
         {section === "data" && <AccountData {...shared} />}

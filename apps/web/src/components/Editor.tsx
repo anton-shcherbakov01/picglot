@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
@@ -13,6 +14,18 @@ import {
 } from "@/lib/api";
 import { track } from "@/lib/analytics";
 import type { Messages } from "@/lib/messages";
+
+import { BeforeAfterSlider } from "./editor/BeforeAfterSlider";
+import type { BoxChange, CanvasTool, MaskStroke } from "./editor/CanvasStage";
+
+/** Konva touches `window` on import, so the stage only loads in the browser. */
+const CanvasStage = dynamic(
+  () => import("./editor/CanvasStage").then((module) => module.CanvasStage),
+  {
+    ssr: false,
+    loading: () => <div className="skeleton aspect-[4/3] w-full" />,
+  },
+);
 
 type View = "result" | "original" | "compare";
 
@@ -36,9 +49,15 @@ interface Props {
 /**
  * Result view and block editor.
  *
- * The overlay is DOM-based rather than canvas: every block is a real focusable
- * element, so keyboard navigation and screen readers work without a parallel
- * accessibility tree, and text editing uses ordinary inputs.
+ * Pointer work happens on a Konva canvas: pan, zoom, move/resize/rotate a
+ * block, drag polygon vertices, paint an inpainting mask. The block list beside
+ * it is the keyboard and screen-reader path — a canvas cannot carry an
+ * accessibility tree, so the list is the accessible equivalent rather than an
+ * afterthought, and text editing uses ordinary inputs there.
+ *
+ * Geometry edits go through `patchRegion` like any other change, so optimistic
+ * version locking, the 100-step history and conflict reporting all apply to
+ * dragging a box exactly as they do to retyping its text.
  */
 export function Editor({
   messages,
@@ -62,6 +81,11 @@ export function Editor({
   const [zoom, setZoom] = useState(1);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [historyIndex, setHistoryIndex] = useState(0);
+  const [tool, setTool] = useState<CanvasTool>("select");
+  const [brushSize, setBrushSize] = useState(24);
+  const [showBoxes, setShowBoxes] = useState(true);
+  const [showMask, setShowMask] = useState(true);
+  const [maskStrokes, setMaskStrokes] = useState<MaskStroke[]>([]);
 
   const page: PageResponse | undefined = pages[pageIndex];
   const selected =
@@ -181,6 +205,68 @@ export function Editor({
     )
       return;
     setHistoryIndex((index) => index + direction);
+  };
+
+  // Geometry from the canvas goes through the same patch path as text, so it
+  // inherits versioning, history and conflict handling.
+  const handleBoxChange = (region: RegionResponse, box: BoxChange) => {
+    void patchRegion(region, {
+      bounding_box: {
+        x: Math.round(box.x),
+        y: Math.round(box.y),
+        width: Math.round(box.width),
+        height: Math.round(box.height),
+      },
+      rotation: Number(box.rotation.toFixed(2)),
+    });
+  };
+
+  const handlePolygonChange = (region: RegionResponse, polygon: number[][]) => {
+    void patchRegion(region, {
+      polygon: polygon.map(([x, y]) => [
+        Math.round(x ?? 0),
+        Math.round(y ?? 0),
+      ]),
+    });
+  };
+
+  /** Flatten the brush strokes to a PNG the re-render endpoint can inpaint with. */
+  const maskDataUrl = useCallback((): string | null => {
+    if (!page || maskStrokes.length === 0) return null;
+    const canvas = document.createElement("canvas");
+    canvas.width = page.width;
+    canvas.height = page.height;
+    const context = canvas.getContext("2d");
+    if (!context) return null;
+    context.fillStyle = "#000000";
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.lineCap = "round";
+    context.lineJoin = "round";
+    for (const stroke of maskStrokes) {
+      context.globalCompositeOperation = stroke.erase
+        ? "destination-out"
+        : "source-over";
+      context.strokeStyle = "#ffffff";
+      context.lineWidth = stroke.size;
+      context.beginPath();
+      for (let index = 0; index + 1 < stroke.points.length; index += 2) {
+        const x = stroke.points[index]!;
+        const y = stroke.points[index + 1]!;
+        if (index === 0) context.moveTo(x, y);
+        else context.lineTo(x, y);
+      }
+      context.stroke();
+    }
+    return canvas.toDataURL("image/png");
+  }, [page, maskStrokes]);
+
+  const applyEdits = async () => {
+    const mask = maskDataUrl();
+    await runAction(`/api/v1/projects/${project.id}/rerender`, {
+      render_mode: "translation_only",
+      ...(mask && page ? { masks: { [page.id]: mask } } : {}),
+    });
+    setMaskStrokes([]);
   };
 
   const runAction = async (path: string, body?: Record<string, unknown>) => {
@@ -325,66 +411,165 @@ export function Editor({
       <div className="grid gap-4 lg:grid-cols-[1fr_20rem]">
         <div className="card overflow-hidden">
           {view === "compare" ? (
-            <div className="grid gap-px bg-border sm:grid-cols-2">
-              <figure className="bg-surface p-2">
-                <figcaption className="mb-2 text-xs font-medium text-muted">
-                  {messages.result.original}
-                </figcaption>
-                {page?.original_url && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={page.original_url}
-                    alt={messages.result.original}
-                    className="w-full"
-                  />
-                )}
-              </figure>
-              <figure className="bg-surface p-2">
-                <figcaption className="mb-2 text-xs font-medium text-muted">
-                  {messages.result.translated}
-                </figcaption>
-                {(page?.rendered_url ?? page?.preview_url) && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={page.rendered_url ?? page.preview_url ?? ""}
-                    alt={messages.result.translated}
-                    className="w-full"
-                  />
-                )}
-              </figure>
-            </div>
-          ) : (
-            <div className="scroll-x">
-              <div
-                ref={imageWrapRef}
-                className="relative mx-auto origin-top"
-                style={{
-                  width: `${100 * zoom}%`,
-                  maxWidth: zoom > 1 ? "none" : "100%",
-                }}
-              >
-                {imageUrl ? (
-                  <>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
+            page?.original_url && (page.rendered_url ?? page.preview_url) ? (
+              <BeforeAfterSlider
+                beforeUrl={page.original_url}
+                afterUrl={page.rendered_url ?? page.preview_url ?? ""}
+                beforeLabel={messages.result.original}
+                afterLabel={messages.result.translated}
+                ariaLabel={messages.result.compare}
+              />
+            ) : (
+              <div className="grid gap-px bg-border sm:grid-cols-2">
+                <figure className="bg-surface p-2">
+                  <figcaption className="mb-2 text-xs font-medium text-muted">
+                    {messages.result.original}
+                  </figcaption>
+                  {page?.original_url && (
+                    // eslint-disable-next-line @next/next/no-img-element
                     <img
-                      src={imageUrl}
-                      alt={project.name}
-                      className="block w-full select-none"
-                      draggable={false}
+                      src={page.original_url}
+                      alt={messages.result.original}
+                      className="w-full"
                     />
-                    {page && (
-                      <RegionOverlay
-                        page={page}
-                        selectedId={selectedId}
-                        onSelect={setSelectedId}
-                        hint={messages.result.editHint}
-                      />
-                    )}
-                  </>
-                ) : (
-                  <div className="skeleton aspect-[4/3] w-full" />
+                  )}
+                </figure>
+                <figure className="bg-surface p-2">
+                  <figcaption className="mb-2 text-xs font-medium text-muted">
+                    {messages.result.translated}
+                  </figcaption>
+                  {(page?.rendered_url ?? page?.preview_url) && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={page.rendered_url ?? page.preview_url ?? ""}
+                      alt={messages.result.translated}
+                      className="w-full"
+                    />
+                  )}
+                </figure>
+              </div>
+            )
+          ) : (
+            <div className="grid gap-2 p-2" ref={imageWrapRef}>
+              <div
+                role="toolbar"
+                aria-label={messages.editor.title}
+                className="flex flex-wrap items-center gap-2"
+              >
+                <div className="flex rounded-lg border border-border p-0.5">
+                  {(
+                    [
+                      ["select", "✥"],
+                      ["polygon", "⬠"],
+                      ["brush", "✎"],
+                      ["eraser", "⌫"],
+                    ] as [CanvasTool, string][]
+                  ).map(([option, glyph]) => (
+                    <button
+                      key={option}
+                      type="button"
+                      aria-pressed={tool === option}
+                      onClick={() => setTool(option)}
+                      title={
+                        option === "brush"
+                          ? messages.editor.brush
+                          : option === "eraser"
+                            ? messages.editor.eraser
+                            : option === "polygon"
+                              ? messages.editor.polygon
+                              : messages.editor.selectTool
+                      }
+                      className={`rounded-md px-2.5 py-1 text-sm ${
+                        tool === option
+                          ? "bg-accent text-accent-fg"
+                          : "text-muted hover:text-fg"
+                      }`}
+                    >
+                      <span aria-hidden>{glyph}</span>
+                      <span className="sr-only">
+                        {option === "brush"
+                          ? messages.editor.brush
+                          : option === "eraser"
+                            ? messages.editor.eraser
+                            : option === "polygon"
+                              ? messages.editor.polygon
+                              : messages.editor.selectTool}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+
+                {(tool === "brush" || tool === "eraser") && (
+                  <label className="flex items-center gap-2 text-xs text-muted">
+                    {messages.editor.brushSize}
+                    <input
+                      type="range"
+                      min={4}
+                      max={120}
+                      value={brushSize}
+                      onChange={(event) =>
+                        setBrushSize(Number(event.target.value))
+                      }
+                    />
+                  </label>
+                )}
+
+                <label className="flex items-center gap-1.5 text-xs text-muted">
+                  <input
+                    type="checkbox"
+                    checked={showBoxes}
+                    onChange={(event) => setShowBoxes(event.target.checked)}
+                  />
+                  {messages.editor.blocks}
+                </label>
+                <label className="flex items-center gap-1.5 text-xs text-muted">
+                  <input
+                    type="checkbox"
+                    checked={showMask}
+                    onChange={(event) => setShowMask(event.target.checked)}
+                  />
+                  {messages.editor.maskLayer}
+                </label>
+                {maskStrokes.length > 0 && (
+                  <button
+                    type="button"
+                    className="btn-ghost text-xs"
+                    onClick={() => setMaskStrokes([])}
+                  >
+                    {messages.common.cancel}
+                  </button>
                 )}
               </div>
+
+              {page && imageUrl ? (
+                <CanvasStage
+                  page={page}
+                  imageUrl={imageUrl}
+                  regions={page.regions}
+                  selectedId={selectedId}
+                  onSelect={setSelectedId}
+                  onBoxChange={handleBoxChange}
+                  onPolygonChange={handlePolygonChange}
+                  onMaskChange={setMaskStrokes}
+                  tool={tool}
+                  layers={{
+                    base: view === "original" ? "original" : "result",
+                    boxes: showBoxes,
+                    mask: showMask,
+                  }}
+                  zoom={zoom}
+                  onZoomChange={setZoom}
+                  brushSize={brushSize}
+                  labels={{
+                    canvas: messages.editor.title,
+                    zoomIn: messages.editor.zoomIn,
+                    zoomOut: messages.editor.zoomOut,
+                    fit: messages.editor.fit,
+                  }}
+                />
+              ) : (
+                <div className="skeleton aspect-[4/3] w-full" />
+              )}
             </div>
           )}
 
@@ -463,14 +648,12 @@ export function Editor({
             <h2 className="mb-3 text-sm font-semibold">
               {messages.result.download}
             </h2>
-            {dirty && (
+            {(dirty || maskStrokes.length > 0) && (
               <button
                 type="button"
                 className="btn-primary mb-3 w-full"
                 disabled={busy}
-                onClick={() =>
-                  runAction(`/api/v1/projects/${project.id}/rerender`)
-                }
+                onClick={() => void applyEdits()}
               >
                 {busy ? messages.editor.applying : messages.editor.apply}
               </button>
@@ -509,53 +692,6 @@ export function Editor({
           </div>
         </aside>
       </div>
-    </div>
-  );
-}
-
-function RegionOverlay({
-  page,
-  selectedId,
-  onSelect,
-  hint,
-}: {
-  page: PageResponse;
-  selectedId: string | null;
-  onSelect: (id: string) => void;
-  hint: string;
-}) {
-  return (
-    <div className="absolute inset-0" aria-label={hint}>
-      {page.regions.map((region) => {
-        const box = region.bounding_box;
-        const uncertain = (region.confidence ?? 1) < 0.75;
-        return (
-          <button
-            key={region.id}
-            type="button"
-            onClick={() => onSelect(region.id)}
-            aria-pressed={selectedId === region.id}
-            title={region.normalized_text ?? region.source_text}
-            className={`absolute rounded-sm border-2 transition-colors ${
-              selectedId === region.id
-                ? "border-accent bg-accent/15"
-                : uncertain
-                  ? "border-warn/70 bg-warn/10 hover:bg-warn/20"
-                  : "border-transparent hover:border-accent/60 hover:bg-accent/10"
-            }`}
-            style={{
-              left: `${(box.x / page.width) * 100}%`,
-              top: `${(box.y / page.height) * 100}%`,
-              width: `${(box.width / page.width) * 100}%`,
-              height: `${(box.height / page.height) * 100}%`,
-            }}
-          >
-            <span className="sr-only">
-              {region.normalized_text ?? region.source_text}
-            </span>
-          </button>
-        );
-      })}
     </div>
   );
 }

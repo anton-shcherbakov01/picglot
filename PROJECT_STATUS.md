@@ -3,7 +3,7 @@
 **PicGlot** — 2026-08-03
 
 25 900 lines of Python across 81 files, 12 700 lines of TypeScript across 71
-files, 51 database tables, 118 API endpoints, 13 tools, 26 languages,
+files, 51 database tables, 131 API endpoints, 13 tools, 26 languages,
 10 fully translated locales.
 
 Everything below marked ✅ was executed on this machine and its output checked,
@@ -17,12 +17,12 @@ not just written. Everything marked ⚠️ or ❌ says plainly what is missing.
 | ---------------- | ------------------------------ | -------------------------------------------------- |
 | Python lint      | `ruff check apps/api`          | ✅ All checks passed                               |
 | Python format    | `ruff format --check apps/api` | ✅ 88 files clean                                  |
-| Python tests     | `pytest apps/api/tests`        | ✅ **92 passed, 1 skipped** (54 s)                 |
+| Python tests     | `pytest apps/api/tests`        | ✅ **106 passed, 1 skipped** (57 s)                |
 | Python typecheck | `mypy apps/api/picglot`        | ❌ **72 pre-existing errors** in 23 files — see §3 |
 | TS typecheck     | `tsc --noEmit`                 | ✅ clean (strict, `noUncheckedIndexedAccess`)      |
 | Web lint         | `next lint --max-warnings 0`   | ✅ No warnings or errors                           |
 | Web build        | `next build`                   | ✅ **236 static pages** generated                  |
-| API boot         | `import picglot.main`          | ✅ 118 routes, OpenAPI generates                   |
+| API boot         | `import picglot.main`          | ✅ 131 routes, OpenAPI generates                   |
 
 The one skip is `test_concurrent_charges_never_oversell`: the guarantee comes
 from `SELECT … FOR UPDATE`, which SQLite does not have. It is marked
@@ -146,6 +146,34 @@ backend stays the single source of truth. It is a **replacement**, not an
 addition: the English path redirects, hreflang follows each locale's own slug,
 and startup assertions plus `test_seo.py` guard against slug collisions.
 
+### Team / workspace ✅
+
+`/api/v1/workspaces` — create, rename, soft-delete, members with roles
+(owner/admin/editor/viewer) and per-member monthly credit limits, invitations
+by email with a single-use expiring token, revoke, and ownership transfer that
+leaves exactly one owner and demotes the previous one to admin rather than
+locking them out. Non-membership returns **404, not 403**, so a stranger cannot
+confirm a workspace exists. 14 HTTP-level tests cover the authorisation rules,
+including that an invitation is addressed to a person rather than to whoever
+holds the link. The Team tab in the account area drives all of it.
+
+### Canvas editor ✅
+
+Konva stage for pointer work: wheel and pinch zoom about the cursor, pan,
+fit-to-screen, select/move/resize/rotate a block through a transformer, drag
+polygon vertices, and a brush/eraser that paints an inpainting mask. The mask
+is flattened to a PNG and sent with the re-render, where it reaches the
+`user_mask` argument the inpainting code already accepted but no endpoint could
+supply. Compare view is a real before/after wipe driven by a range input, so it
+works from the keyboard.
+
+Geometry edits go through the same `PATCH` path as text, so optimistic version
+locking, the 100-step history and conflict reporting apply to dragging a box
+exactly as they do to retyping it. The block list beside the canvas remains the
+keyboard and screen-reader path — a bitmap cannot carry an accessibility tree,
+so the list is the accessible equivalent rather than an afterthought, and the
+stage itself is `aria-hidden`.
+
 ### PWA ✅
 
 Service worker caches the app shell and immutable `/_next/static/` assets, and
@@ -164,22 +192,13 @@ they orchestrate was verified natively instead (API, workers via the inline
 queue, migrations, seed, full pipeline, exports). Expect the usual first-run
 friction: image build times and any base-image drift.
 
-### ❌ Team / workspace has no API
+### ⚠️ Workspace billing is per-user, not per-seat
 
-`Workspace`, `WorkspaceMember` and `WorkspaceInvitation` exist as tables, and
-jobs and wallets are already workspace-aware, but **no router exposes them** —
-there is no endpoint to create a workspace, invite a member, change a role or
-transfer ownership. The account area therefore has no Team tab: building one
-would mean building the backend first. This is the largest remaining gap
-against the master prompt (§9.3, §17).
-
-### ⚠️ The editor is DOM-based, not canvas
-
-The master prompt asks for a Konva/Fabric canvas. The editor renders each block
-as a real focusable DOM element instead, which is what makes the keyboard and
-screen-reader path work without a separate fallback. It has zoom and 100-step
-undo/redo, but **not** pan, a before/after slider, freehand brush/eraser,
-polygon vertex editing or rotation handles — those need the canvas rewrite.
+Workspaces, roles, invitations and per-member credit limits all work, and jobs
+and wallets are workspace-aware. What is _not_ built is seat-based pricing: a
+workspace inherits its owner's plan, and there is no separate subscription
+object for a team. Charging a company per seat needs a pricing decision first,
+not more code.
 
 ### ⚠️ Playwright E2E is smoke-level
 

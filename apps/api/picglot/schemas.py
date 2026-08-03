@@ -429,6 +429,10 @@ class TableCellUpdate(Base):
 class RerenderRequest(Base):
     render_mode: RenderMode = RenderMode.TRANSLATION_ONLY
     page_ids: list[str] | None = None
+    #: Optional brush/eraser mask from the editor: a base64 PNG, white where
+    #: the user wants the background repaired. Keyed by page id so a multi-page
+    #: project can carry one mask per page in a single request.
+    masks: dict[str, str] | None = None
 
 
 # --------------------------------------------------------------------------- #
@@ -638,8 +642,14 @@ class TranslationMemoryOut(Base):
 # Workspace
 # --------------------------------------------------------------------------- #
 class WorkspaceCreateRequest(Base):
-    name: str = Field(min_length=1, max_length=160)
+    name: str = Field(min_length=2, max_length=160)
     billing_email: EmailStr | None = None
+
+
+class WorkspaceUpdateRequest(Base):
+    name: str | None = Field(default=None, min_length=2, max_length=160)
+    billing_email: EmailStr | None = None
+    retention_override_hours: int | None = Field(default=None, ge=1, le=8760)
 
 
 class WorkspaceOut(Base):
@@ -647,22 +657,53 @@ class WorkspaceOut(Base):
     name: str
     slug: str
     plan_code: str
+    billing_email: str | None = None
     owner_id: str
+    #: The calling user's role in this workspace.
+    role: str
     member_count: int = 0
+    retention_override_hours: int | None = None
     created_at: datetime
 
 
-class InviteRequest(Base):
+class WorkspaceInviteRequest(Base):
     email: EmailStr
     role: WorkspaceRole = WorkspaceRole.EDITOR
 
 
-class MemberOut(Base):
+class WorkspaceMemberOut(Base):
     user_id: str
     email: str
     name: str | None
     role: str
+    monthly_credit_limit: int | None = None
     joined_at: datetime
+
+
+class WorkspaceMemberUpdate(Base):
+    role: WorkspaceRole | None = None
+    monthly_credit_limit: int | None = Field(default=None, ge=0)
+
+
+class WorkspaceTransferRequest(Base):
+    new_owner_id: str
+
+
+class WorkspaceInvitationOut(Base):
+    id: str
+    email: str
+    role: str
+    expires_at: datetime
+    created_at: datetime
+
+
+class WorkspaceInvitationCreatedOut(WorkspaceInvitationOut):
+    #: Returned once so the inviter can pass the link on if the email bounces.
+    invitation_url: str
+
+
+class WorkspaceAcceptRequest(Base):
+    token: str = Field(min_length=8, max_length=256)
 
 
 # --------------------------------------------------------------------------- #

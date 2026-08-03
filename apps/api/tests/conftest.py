@@ -40,6 +40,10 @@ os.environ.update(
 
 @pytest.fixture(scope="session", autouse=True)
 def _schema() -> Iterator[None]:
+    # `models` must be imported for its tables to be registered on the metadata;
+    # without it `create_all` silently creates nothing, and a single-file run
+    # fails with "no such table" while the full suite passes by accident.
+    from picglot.db import models as _models  # noqa: F401
     from picglot.db.base import Base
     from picglot.db.session import dispose_engine, get_engine
 
