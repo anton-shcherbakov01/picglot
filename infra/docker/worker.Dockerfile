@@ -51,6 +51,9 @@ RUN groupadd --system --gid 1001 picglot \
 
 WORKDIR /app
 COPY --chown=picglot:picglot apps/api/alembic.ini ./alembic.ini
+# Workers do not migrate, but they ship alembic.ini and the revisions travel
+# with it so a shell in a worker can inspect or repair schema state.
+COPY --chown=picglot:picglot apps/api/migrations ./migrations
 COPY --chown=picglot:picglot apps/api/picglot ./picglot
 COPY --chown=picglot:picglot assets ./assets
 

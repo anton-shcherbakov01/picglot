@@ -50,6 +50,10 @@ RUN groupadd --system --gid 1001 picglot \
 
 WORKDIR /app
 COPY --chown=picglot:picglot apps/api/alembic.ini ./alembic.ini
+# alembic.ini sets script_location = %(here)s/migrations, so the revisions have
+# to be in the image or `alembic upgrade head` exits before touching the
+# database. This image is what the `migrate` service runs.
+COPY --chown=picglot:picglot apps/api/migrations ./migrations
 COPY --chown=picglot:picglot apps/api/picglot ./picglot
 COPY --chown=picglot:picglot assets ./assets
 COPY --chown=picglot:picglot infra/docker/api-entrypoint.sh /usr/local/bin/entrypoint.sh
