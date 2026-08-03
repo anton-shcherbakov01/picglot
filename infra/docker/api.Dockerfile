@@ -21,6 +21,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         curl \
     && rm -rf /var/lib/apt/lists/*
 
+# The API renders too — `POST /projects/{id}/rerender` redraws pages in-process
+# — so it needs the same font coverage as the workers, not just the workers.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        fonts-dejavu-core fonts-noto-core fonts-noto-cjk fonts-noto-color-emoji \
+    && rm -rf /var/lib/apt/lists/*
+
 FROM base AS builder
 RUN apt-get update && apt-get install -y --no-install-recommends \
         build-essential libpq-dev \

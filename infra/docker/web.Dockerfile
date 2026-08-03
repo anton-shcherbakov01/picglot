@@ -5,10 +5,9 @@ WORKDIR /app
 RUN apk add --no-cache libc6-compat
 COPY package.json package-lock.json* ./
 COPY apps/web/package.json ./apps/web/
-COPY packages/shared-types/package.json ./packages/shared-types/
-COPY packages/config/package.json ./packages/config/
-COPY packages/ui/package.json ./packages/ui/
-COPY packages/api-client/package.json ./packages/api-client/
+# `packages/*` is declared in the root workspaces glob but no package exists
+# yet; copying them individually made the build fail on a path that was never
+# there. Add a COPY line here when a real package appears.
 RUN npm ci --workspaces --include-workspace-root
 
 FROM node:22-alpine AS builder
