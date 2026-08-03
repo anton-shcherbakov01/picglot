@@ -33,7 +33,7 @@ dependencies = [
     "pyotp>=2.9.0",
     "cryptography>=44.0.0",
     # imaging / documents
-    "pillow>=11.1.0,<12",
+    "pillow>=11.1.0,<13",
     "pillow-heif>=0.21.0",
     "numpy>=2.0,<3",
     "opencv-python-headless>=4.10.0.84,<5",
