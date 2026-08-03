@@ -23,7 +23,12 @@ log = get_logger(__name__)
 
 _engine: Engine | None = None
 _session_factory: sessionmaker[Session] | None = None
-_lock = threading.Lock()
+#: Re-entrant on purpose: `get_session_factory` holds this lock while calling
+#: `get_engine`, which takes it again. A plain Lock deadlocked the calling
+#: thread against itself whenever the factory was built before the engine —
+#: which is every CLI invocation, since the API creates its engine during
+#: startup and then never reaches the slow path.
+_lock = threading.RLock()
 
 
 def _engine_kwargs() -> dict[str, Any]:
