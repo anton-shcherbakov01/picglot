@@ -1,11 +1,11 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "LingoImage AI API",
+    "title": "PicGlot API",
     "description": "\nRecognise, translate, edit and convert text in images and documents.\n\n**Authentication** — session cookie for the web app, `Authorization: Bearer lik_live_…`\nfor the public API.\n\n**Idempotency** — send an `Idempotency-Key` header on any POST that creates a job or\na payment; repeating the request returns the original result instead of doing the work\ntwice.\n\n**Errors** — every failure returns `{\"error\": {\"code\", \"message\", \"retryable\"}}` with a\nstable machine-readable `code`.\n",
     "contact": {
-      "name": "LingoImage AI",
-      "email": "support@lingoimage.ai"
+      "name": "PicGlot",
+      "email": "support@picglot.ru"
     },
     "license": {
       "name": "Proprietary"
@@ -21,9 +21,7 @@
   "paths": {
     "/health/live": {
       "get": {
-        "tags": [
-          "system"
-        ],
+        "tags": ["system"],
         "summary": "Liveness probe",
         "description": "Answers as soon as the process can serve traffic. No dependencies.",
         "operationId": "live_health_live_get",
@@ -43,9 +41,7 @@
     },
     "/health/ready": {
       "get": {
-        "tags": [
-          "system"
-        ],
+        "tags": ["system"],
         "summary": "Readiness probe",
         "description": "Checks every dependency the app needs to actually do work.",
         "operationId": "ready_health_ready_get",
@@ -65,9 +61,7 @@
     },
     "/health/providers": {
       "get": {
-        "tags": [
-          "system"
-        ],
+        "tags": ["system"],
         "summary": "Provider health",
         "operationId": "providers_health_providers_get",
         "responses": {
@@ -88,9 +82,7 @@
     },
     "/api/v1/config": {
       "get": {
-        "tags": [
-          "system"
-        ],
+        "tags": ["system"],
         "summary": "Client bootstrap config",
         "description": "Everything the web app needs to render: tools, languages, plans, limits.",
         "operationId": "app_config_api_v1_config_get",
@@ -110,9 +102,7 @@
     },
     "/api/v1/languages": {
       "get": {
-        "tags": [
-          "system"
-        ],
+        "tags": ["system"],
         "summary": "Supported languages",
         "operationId": "supported_languages_api_v1_languages_get",
         "responses": {
@@ -133,9 +123,7 @@
     },
     "/api/v1/status": {
       "get": {
-        "tags": [
-          "system"
-        ],
+        "tags": ["system"],
         "summary": "Service status",
         "description": "Derived from live health checks, with manual overrides from the admin panel.",
         "operationId": "status_api_v1_status_get",
@@ -155,9 +143,7 @@
     },
     "/api/v1/auth/register": {
       "post": {
-        "tags": [
-          "auth"
-        ],
+        "tags": ["auth"],
         "summary": "Register",
         "operationId": "register_api_v1_auth_register_post",
         "parameters": [
@@ -214,9 +200,7 @@
     },
     "/api/v1/auth/login": {
       "post": {
-        "tags": [
-          "auth"
-        ],
+        "tags": ["auth"],
         "summary": "Login",
         "operationId": "login_api_v1_auth_login_post",
         "parameters": [
@@ -273,9 +257,7 @@
     },
     "/api/v1/auth/2fa/verify": {
       "post": {
-        "tags": [
-          "auth"
-        ],
+        "tags": ["auth"],
         "summary": "Verify Two Factor",
         "operationId": "verify_two_factor_api_v1_auth_2fa_verify_post",
         "requestBody": {
@@ -314,9 +296,7 @@
     },
     "/api/v1/auth/logout": {
       "post": {
-        "tags": [
-          "auth"
-        ],
+        "tags": ["auth"],
         "summary": "Logout",
         "operationId": "logout_api_v1_auth_logout_post",
         "parameters": [
@@ -356,9 +336,7 @@
     },
     "/api/v1/auth/logout-all": {
       "post": {
-        "tags": [
-          "auth"
-        ],
+        "tags": ["auth"],
         "summary": "Logout Everywhere",
         "operationId": "logout_everywhere_api_v1_auth_logout_all_post",
         "parameters": [
@@ -398,9 +376,7 @@
     },
     "/api/v1/auth/me": {
       "get": {
-        "tags": [
-          "auth"
-        ],
+        "tags": ["auth"],
         "summary": "Me",
         "operationId": "me_api_v1_auth_me_get",
         "parameters": [
@@ -447,9 +423,7 @@
     },
     "/api/v1/auth/csrf": {
       "get": {
-        "tags": [
-          "auth"
-        ],
+        "tags": ["auth"],
         "summary": "Csrf",
         "operationId": "csrf_api_v1_auth_csrf_get",
         "responses": {
@@ -472,9 +446,7 @@
     },
     "/api/v1/auth/verify-email": {
       "post": {
-        "tags": [
-          "auth"
-        ],
+        "tags": ["auth"],
         "summary": "Verify Email",
         "operationId": "verify_email_api_v1_auth_verify_email_post",
         "requestBody": {
@@ -513,9 +485,7 @@
     },
     "/api/v1/auth/resend-verification": {
       "post": {
-        "tags": [
-          "auth"
-        ],
+        "tags": ["auth"],
         "summary": "Resend Verification",
         "operationId": "resend_verification_api_v1_auth_resend_verification_post",
         "parameters": [
@@ -566,9 +536,7 @@
     },
     "/api/v1/auth/magic-link": {
       "post": {
-        "tags": [
-          "auth"
-        ],
+        "tags": ["auth"],
         "summary": "Magic Link",
         "description": "Always reports success — the response must not reveal whether an account exists.",
         "operationId": "magic_link_api_v1_auth_magic_link_post",
@@ -612,9 +580,7 @@
     },
     "/api/v1/auth/magic-link/verify": {
       "post": {
-        "tags": [
-          "auth"
-        ],
+        "tags": ["auth"],
         "summary": "Magic Link Verify",
         "operationId": "magic_link_verify_api_v1_auth_magic_link_verify_post",
         "requestBody": {
@@ -653,9 +619,7 @@
     },
     "/api/v1/auth/forgot-password": {
       "post": {
-        "tags": [
-          "auth"
-        ],
+        "tags": ["auth"],
         "summary": "Forgot Password",
         "operationId": "forgot_password_api_v1_auth_forgot_password_post",
         "requestBody": {
@@ -698,9 +662,7 @@
     },
     "/api/v1/auth/reset-password": {
       "post": {
-        "tags": [
-          "auth"
-        ],
+        "tags": ["auth"],
         "summary": "Reset Password",
         "operationId": "reset_password_api_v1_auth_reset_password_post",
         "requestBody": {
@@ -739,9 +701,7 @@
     },
     "/api/v1/auth/change-password": {
       "post": {
-        "tags": [
-          "auth"
-        ],
+        "tags": ["auth"],
         "summary": "Change Password",
         "operationId": "change_password_api_v1_auth_change_password_post",
         "parameters": [
@@ -791,9 +751,7 @@
     },
     "/api/v1/auth/sessions": {
       "get": {
-        "tags": [
-          "auth"
-        ],
+        "tags": ["auth"],
         "summary": "Sessions",
         "operationId": "sessions_api_v1_auth_sessions_get",
         "parameters": [
@@ -844,9 +802,7 @@
     },
     "/api/v1/auth/sessions/{session_id}": {
       "delete": {
-        "tags": [
-          "auth"
-        ],
+        "tags": ["auth"],
         "summary": "Revoke Session",
         "operationId": "revoke_session_api_v1_auth_sessions__session_id__delete",
         "parameters": [
@@ -895,9 +851,7 @@
     },
     "/api/v1/auth/2fa/start": {
       "post": {
-        "tags": [
-          "auth"
-        ],
+        "tags": ["auth"],
         "summary": "Start Two Factor",
         "operationId": "start_two_factor_api_v1_auth_2fa_start_post",
         "parameters": [
@@ -946,9 +900,7 @@
     },
     "/api/v1/auth/2fa/confirm": {
       "post": {
-        "tags": [
-          "auth"
-        ],
+        "tags": ["auth"],
         "summary": "Confirm Two Factor",
         "operationId": "confirm_two_factor_api_v1_auth_2fa_confirm_post",
         "parameters": [
@@ -998,9 +950,7 @@
     },
     "/api/v1/auth/2fa": {
       "delete": {
-        "tags": [
-          "auth"
-        ],
+        "tags": ["auth"],
         "summary": "Disable Two Factor",
         "operationId": "disable_two_factor_api_v1_auth_2fa_delete",
         "parameters": [
@@ -1050,9 +1000,7 @@
     },
     "/api/v1/auth/oauth/google/start": {
       "get": {
-        "tags": [
-          "auth"
-        ],
+        "tags": ["auth"],
         "summary": "Google Start",
         "operationId": "google_start_api_v1_auth_oauth_google_start_get",
         "responses": {
@@ -1075,9 +1023,7 @@
     },
     "/api/v1/auth/oauth/google/callback": {
       "get": {
-        "tags": [
-          "auth"
-        ],
+        "tags": ["auth"],
         "summary": "Google Callback",
         "operationId": "google_callback_api_v1_auth_oauth_google_callback_get",
         "parameters": [
@@ -1126,9 +1072,7 @@
     },
     "/api/v1/process": {
       "post": {
-        "tags": [
-          "projects"
-        ],
+        "tags": ["projects"],
         "summary": "Upload And Process",
         "description": "Single-call upload → job creation. This is what the web app uses.",
         "operationId": "upload_and_process_api_v1_process_post",
@@ -1200,11 +1144,83 @@
         }
       }
     },
+    "/api/v1/batch": {
+      "post": {
+        "tags": ["projects"],
+        "summary": "Upload Batch",
+        "description": "Fan a multi-file upload out to one child job per file.\n\nThe parent job owns the ZIP and the CSV report; each child is an ordinary\npipeline job, so a single bad file fails alone instead of the whole batch.",
+        "operationId": "upload_batch_api_v1_batch_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_batch_api_v1_batch_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/estimate": {
       "post": {
-        "tags": [
-          "projects"
-        ],
+        "tags": ["projects"],
         "summary": "Estimate Cost",
         "description": "Quote a price before the user commits. Same code path as the charge.",
         "operationId": "estimate_cost_api_v1_estimate_post",
@@ -1271,9 +1287,7 @@
     },
     "/api/v1/projects": {
       "get": {
-        "tags": [
-          "projects"
-        ],
+        "tags": ["projects"],
         "summary": "List Projects",
         "operationId": "list_projects_api_v1_projects_get",
         "parameters": [
@@ -1424,9 +1438,7 @@
     },
     "/api/v1/projects/{project_id}": {
       "get": {
-        "tags": [
-          "projects"
-        ],
+        "tags": ["projects"],
         "summary": "Get Project",
         "operationId": "get_project_api_v1_projects__project_id__get",
         "parameters": [
@@ -1480,9 +1492,7 @@
         }
       },
       "patch": {
-        "tags": [
-          "projects"
-        ],
+        "tags": ["projects"],
         "summary": "Rename Project",
         "operationId": "rename_project_api_v1_projects__project_id__patch",
         "parameters": [
@@ -1546,9 +1556,7 @@
         }
       },
       "delete": {
-        "tags": [
-          "projects"
-        ],
+        "tags": ["projects"],
         "summary": "Delete Project",
         "operationId": "delete_project_api_v1_projects__project_id__delete",
         "parameters": [
@@ -1607,9 +1615,7 @@
     },
     "/api/v1/projects/{project_id}/duplicate": {
       "post": {
-        "tags": [
-          "projects"
-        ],
+        "tags": ["projects"],
         "summary": "Duplicate Project",
         "operationId": "duplicate_project_api_v1_projects__project_id__duplicate_post",
         "parameters": [
@@ -1665,9 +1671,7 @@
     },
     "/api/v1/projects/{project_id}/restore": {
       "post": {
-        "tags": [
-          "projects"
-        ],
+        "tags": ["projects"],
         "summary": "Restore Project",
         "operationId": "restore_project_api_v1_projects__project_id__restore_post",
         "parameters": [
@@ -1723,9 +1727,7 @@
     },
     "/api/v1/projects/{project_id}/regions/{region_id}": {
       "patch": {
-        "tags": [
-          "projects"
-        ],
+        "tags": ["projects"],
         "summary": "Update Region",
         "operationId": "update_region_api_v1_projects__project_id__regions__region_id__patch",
         "parameters": [
@@ -1798,9 +1800,7 @@
         }
       },
       "delete": {
-        "tags": [
-          "projects"
-        ],
+        "tags": ["projects"],
         "summary": "Delete Region",
         "operationId": "delete_region_api_v1_projects__project_id__regions__region_id__delete",
         "parameters": [
@@ -1858,9 +1858,7 @@
     },
     "/api/v1/projects/{project_id}/regions": {
       "post": {
-        "tags": [
-          "projects"
-        ],
+        "tags": ["projects"],
         "summary": "Create Region",
         "operationId": "create_region_api_v1_projects__project_id__regions_post",
         "parameters": [
@@ -1926,9 +1924,7 @@
     },
     "/api/v1/projects/{project_id}/regions/merge": {
       "post": {
-        "tags": [
-          "projects"
-        ],
+        "tags": ["projects"],
         "summary": "Merge Regions",
         "operationId": "merge_regions_api_v1_projects__project_id__regions_merge_post",
         "parameters": [
@@ -1994,9 +1990,7 @@
     },
     "/api/v1/projects/{project_id}/regions/{region_id}/split": {
       "post": {
-        "tags": [
-          "projects"
-        ],
+        "tags": ["projects"],
         "summary": "Split Region",
         "operationId": "split_region_api_v1_projects__project_id__regions__region_id__split_post",
         "parameters": [
@@ -2075,9 +2069,7 @@
     },
     "/api/v1/projects/{project_id}/regions/{region_id}/retranslate": {
       "post": {
-        "tags": [
-          "projects"
-        ],
+        "tags": ["projects"],
         "summary": "Retranslate Region",
         "operationId": "retranslate_region_api_v1_projects__project_id__regions__region_id__retranslate_post",
         "parameters": [
@@ -2152,9 +2144,7 @@
     },
     "/api/v1/projects/{project_id}/regions/{region_id}/alternatives": {
       "get": {
-        "tags": [
-          "projects"
-        ],
+        "tags": ["projects"],
         "summary": "Translation Alternatives",
         "operationId": "translation_alternatives_api_v1_projects__project_id__regions__region_id__alternatives_get",
         "parameters": [
@@ -2221,9 +2211,7 @@
     },
     "/api/v1/projects/{project_id}/regions/{region_id}/reocr": {
       "post": {
-        "tags": [
-          "projects"
-        ],
+        "tags": ["projects"],
         "summary": "Reocr Region",
         "description": "Re-run recognition on just this rectangle, at full resolution.",
         "operationId": "reocr_region_api_v1_projects__project_id__regions__region_id__reocr_post",
@@ -2299,9 +2287,7 @@
     },
     "/api/v1/projects/{project_id}/tables/{table_id}/cells": {
       "patch": {
-        "tags": [
-          "projects"
-        ],
+        "tags": ["projects"],
         "summary": "Update Table Cells",
         "operationId": "update_table_cells_api_v1_projects__project_id__tables__table_id__cells_patch",
         "parameters": [
@@ -2384,9 +2370,7 @@
     },
     "/api/v1/projects/{project_id}/rerender": {
       "post": {
-        "tags": [
-          "projects"
-        ],
+        "tags": ["projects"],
         "summary": "Rerender",
         "description": "Redraw pages after editing. Free — no recognition or translation runs.",
         "operationId": "rerender_api_v1_projects__project_id__rerender_post",
@@ -2453,9 +2437,7 @@
     },
     "/api/v1/projects/{project_id}/exports": {
       "post": {
-        "tags": [
-          "projects"
-        ],
+        "tags": ["projects"],
         "summary": "Create Export",
         "operationId": "create_export_api_v1_projects__project_id__exports_post",
         "parameters": [
@@ -2519,9 +2501,7 @@
         }
       },
       "get": {
-        "tags": [
-          "projects"
-        ],
+        "tags": ["projects"],
         "summary": "List Exports",
         "operationId": "list_exports_api_v1_projects__project_id__exports_get",
         "parameters": [
@@ -2581,9 +2561,7 @@
     },
     "/api/v1/exports/{export_id}/download": {
       "get": {
-        "tags": [
-          "projects"
-        ],
+        "tags": ["projects"],
         "summary": "Download Export",
         "operationId": "download_export_api_v1_exports__export_id__download_get",
         "parameters": [
@@ -2643,9 +2621,7 @@
     },
     "/api/v1/projects/{project_id}/share": {
       "post": {
-        "tags": [
-          "projects"
-        ],
+        "tags": ["projects"],
         "summary": "Create Share",
         "operationId": "create_share_api_v1_projects__project_id__share_post",
         "parameters": [
@@ -2709,9 +2685,7 @@
         }
       },
       "get": {
-        "tags": [
-          "projects"
-        ],
+        "tags": ["projects"],
         "summary": "List Shares",
         "operationId": "list_shares_api_v1_projects__project_id__share_get",
         "parameters": [
@@ -2771,9 +2745,7 @@
     },
     "/api/v1/share/{share_id}": {
       "delete": {
-        "tags": [
-          "projects"
-        ],
+        "tags": ["projects"],
         "summary": "Revoke Share",
         "operationId": "revoke_share_api_v1_share__share_id__delete",
         "parameters": [
@@ -2822,9 +2794,7 @@
     },
     "/api/v1/jobs": {
       "get": {
-        "tags": [
-          "jobs"
-        ],
+        "tags": ["jobs"],
         "summary": "List Jobs",
         "operationId": "list_jobs_api_v1_jobs_get",
         "parameters": [
@@ -2858,6 +2828,22 @@
                 }
               ],
               "title": "Job Type"
+            }
+          },
+          {
+            "name": "parent_job_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Parent Job Id"
             }
           },
           {
@@ -2923,9 +2909,7 @@
     },
     "/api/v1/jobs/{job_id}": {
       "get": {
-        "tags": [
-          "jobs"
-        ],
+        "tags": ["jobs"],
         "summary": "Get Job",
         "operationId": "get_job_api_v1_jobs__job_id__get",
         "parameters": [
@@ -2981,9 +2965,7 @@
     },
     "/api/v1/jobs/{job_id}/events": {
       "get": {
-        "tags": [
-          "jobs"
-        ],
+        "tags": ["jobs"],
         "summary": "Live progress (Server-Sent Events)",
         "description": "Streams progress until the job reaches a terminal state.\n\nClients that cannot use SSE poll ``GET /jobs/{id}`` instead; both read the\nsame state, so there is no behavioural difference.",
         "operationId": "job_events_api_v1_jobs__job_id__events_get",
@@ -3038,9 +3020,7 @@
     },
     "/api/v1/jobs/{job_id}/cancel": {
       "post": {
-        "tags": [
-          "jobs"
-        ],
+        "tags": ["jobs"],
         "summary": "Cancel Job",
         "operationId": "cancel_job_api_v1_jobs__job_id__cancel_post",
         "parameters": [
@@ -3096,9 +3076,7 @@
     },
     "/api/v1/jobs/{job_id}/retry": {
       "post": {
-        "tags": [
-          "jobs"
-        ],
+        "tags": ["jobs"],
         "summary": "Retry Job",
         "operationId": "retry_job_api_v1_jobs__job_id__retry_post",
         "parameters": [
@@ -3154,9 +3132,7 @@
     },
     "/api/v1/jobs/{job_id}/retry-failed": {
       "post": {
-        "tags": [
-          "jobs"
-        ],
+        "tags": ["jobs"],
         "summary": "Retry Failed Children",
         "description": "Batch only: re-run just the files that failed.",
         "operationId": "retry_failed_children_api_v1_jobs__job_id__retry_failed_post",
@@ -3213,9 +3189,7 @@
     },
     "/api/v1/jobs/{job_id}/timeline": {
       "get": {
-        "tags": [
-          "jobs"
-        ],
+        "tags": ["jobs"],
         "summary": "Job Timeline",
         "operationId": "job_timeline_api_v1_jobs__job_id__timeline_get",
         "parameters": [
@@ -3273,9 +3247,7 @@
     },
     "/api/v1/account/profile": {
       "patch": {
-        "tags": [
-          "account"
-        ],
+        "tags": ["account"],
         "summary": "Update Profile",
         "operationId": "update_profile_api_v1_account_profile_patch",
         "parameters": [
@@ -3334,9 +3306,7 @@
     },
     "/api/v1/account/wallet": {
       "get": {
-        "tags": [
-          "account"
-        ],
+        "tags": ["account"],
         "summary": "Wallet",
         "operationId": "wallet_api_v1_account_wallet_get",
         "parameters": [
@@ -3383,9 +3353,7 @@
     },
     "/api/v1/account/wallet/ledger": {
       "get": {
-        "tags": [
-          "account"
-        ],
+        "tags": ["account"],
         "summary": "Ledger",
         "operationId": "ledger_api_v1_account_wallet_ledger_get",
         "parameters": [
@@ -3456,9 +3424,7 @@
     },
     "/api/v1/account/usage": {
       "get": {
-        "tags": [
-          "account"
-        ],
+        "tags": ["account"],
         "summary": "Usage",
         "operationId": "usage_api_v1_account_usage_get",
         "parameters": [
@@ -3517,9 +3483,7 @@
     },
     "/api/v1/account/api-keys": {
       "get": {
-        "tags": [
-          "account"
-        ],
+        "tags": ["account"],
         "summary": "List Api Keys",
         "operationId": "list_api_keys_api_v1_account_api_keys_get",
         "parameters": [
@@ -3568,9 +3532,7 @@
         }
       },
       "post": {
-        "tags": [
-          "account"
-        ],
+        "tags": ["account"],
         "summary": "Create Api Key",
         "operationId": "create_api_key_api_v1_account_api_keys_post",
         "parameters": [
@@ -3627,9 +3589,7 @@
     },
     "/api/v1/account/api-keys/{key_id}": {
       "delete": {
-        "tags": [
-          "account"
-        ],
+        "tags": ["account"],
         "summary": "Revoke Api Key",
         "operationId": "revoke_api_key_api_v1_account_api_keys__key_id__delete",
         "parameters": [
@@ -3678,9 +3638,7 @@
     },
     "/api/v1/account/webhooks": {
       "get": {
-        "tags": [
-          "account"
-        ],
+        "tags": ["account"],
         "summary": "List Webhooks",
         "operationId": "list_webhooks_api_v1_account_webhooks_get",
         "parameters": [
@@ -3729,9 +3687,7 @@
         }
       },
       "post": {
-        "tags": [
-          "account"
-        ],
+        "tags": ["account"],
         "summary": "Create Webhook",
         "operationId": "create_webhook_api_v1_account_webhooks_post",
         "parameters": [
@@ -3788,9 +3744,7 @@
     },
     "/api/v1/account/webhooks/{endpoint_id}/rotate": {
       "post": {
-        "tags": [
-          "account"
-        ],
+        "tags": ["account"],
         "summary": "Rotate Webhook Secret",
         "operationId": "rotate_webhook_secret_api_v1_account_webhooks__endpoint_id__rotate_post",
         "parameters": [
@@ -3850,9 +3804,7 @@
     },
     "/api/v1/account/webhooks/{endpoint_id}/deliveries": {
       "get": {
-        "tags": [
-          "account"
-        ],
+        "tags": ["account"],
         "summary": "Webhook Deliveries",
         "operationId": "webhook_deliveries_api_v1_account_webhooks__endpoint_id__deliveries_get",
         "parameters": [
@@ -3912,9 +3864,7 @@
     },
     "/api/v1/account/webhooks/deliveries/{delivery_id}/replay": {
       "post": {
-        "tags": [
-          "account"
-        ],
+        "tags": ["account"],
         "summary": "Replay Delivery",
         "operationId": "replay_delivery_api_v1_account_webhooks_deliveries__delivery_id__replay_post",
         "parameters": [
@@ -3970,9 +3920,7 @@
     },
     "/api/v1/account/webhooks/{endpoint_id}": {
       "delete": {
-        "tags": [
-          "account"
-        ],
+        "tags": ["account"],
         "summary": "Delete Webhook",
         "operationId": "delete_webhook_api_v1_account_webhooks__endpoint_id__delete",
         "parameters": [
@@ -4021,9 +3969,7 @@
     },
     "/api/v1/account/glossaries": {
       "get": {
-        "tags": [
-          "account"
-        ],
+        "tags": ["account"],
         "summary": "List Glossaries",
         "operationId": "list_glossaries_api_v1_account_glossaries_get",
         "parameters": [
@@ -4072,9 +4018,7 @@
         }
       },
       "post": {
-        "tags": [
-          "account"
-        ],
+        "tags": ["account"],
         "summary": "Create Glossary",
         "operationId": "create_glossary_api_v1_account_glossaries_post",
         "parameters": [
@@ -4131,9 +4075,7 @@
     },
     "/api/v1/account/glossaries/{glossary_id}/terms": {
       "put": {
-        "tags": [
-          "account"
-        ],
+        "tags": ["account"],
         "summary": "Replace Terms",
         "operationId": "replace_terms_api_v1_account_glossaries__glossary_id__terms_put",
         "parameters": [
@@ -4203,9 +4145,7 @@
     },
     "/api/v1/account/translation-memory": {
       "get": {
-        "tags": [
-          "account"
-        ],
+        "tags": ["account"],
         "summary": "Translation Memory",
         "operationId": "translation_memory_api_v1_account_translation_memory_get",
         "parameters": [
@@ -4276,9 +4216,7 @@
     },
     "/api/v1/account/translation-memory/{entry_id}": {
       "delete": {
-        "tags": [
-          "account"
-        ],
+        "tags": ["account"],
         "summary": "Delete Memory Entry",
         "operationId": "delete_memory_entry_api_v1_account_translation_memory__entry_id__delete",
         "parameters": [
@@ -4327,9 +4265,7 @@
     },
     "/api/v1/account/export-data": {
       "get": {
-        "tags": [
-          "account"
-        ],
+        "tags": ["account"],
         "summary": "Export Data",
         "operationId": "export_data_api_v1_account_export_data_get",
         "parameters": [
@@ -4378,9 +4314,7 @@
     },
     "/api/v1/account": {
       "delete": {
-        "tags": [
-          "account"
-        ],
+        "tags": ["account"],
         "summary": "Delete Account",
         "operationId": "delete_account_api_v1_account_delete",
         "parameters": [
@@ -4420,9 +4354,7 @@
     },
     "/api/v1/billing/plans": {
       "get": {
-        "tags": [
-          "billing"
-        ],
+        "tags": ["billing"],
         "summary": "List Plans",
         "operationId": "list_plans_api_v1_billing_plans_get",
         "responses": {
@@ -4443,9 +4375,7 @@
     },
     "/api/v1/billing/checkout": {
       "post": {
-        "tags": [
-          "billing"
-        ],
+        "tags": ["billing"],
         "summary": "Checkout",
         "operationId": "checkout_api_v1_billing_checkout_post",
         "parameters": [
@@ -4502,9 +4432,7 @@
     },
     "/api/v1/billing/subscription": {
       "get": {
-        "tags": [
-          "billing"
-        ],
+        "tags": ["billing"],
         "summary": "Current Subscription",
         "operationId": "current_subscription_api_v1_billing_subscription_get",
         "parameters": [
@@ -4559,9 +4487,7 @@
     },
     "/api/v1/billing/subscription/cancel": {
       "post": {
-        "tags": [
-          "billing"
-        ],
+        "tags": ["billing"],
         "summary": "Cancel Subscription",
         "operationId": "cancel_subscription_api_v1_billing_subscription_cancel_post",
         "parameters": [
@@ -4608,9 +4534,7 @@
     },
     "/api/v1/billing/payments": {
       "get": {
-        "tags": [
-          "billing"
-        ],
+        "tags": ["billing"],
         "summary": "List Payments",
         "operationId": "list_payments_api_v1_billing_payments_get",
         "parameters": [
@@ -4681,9 +4605,7 @@
     },
     "/api/v1/share/{token}": {
       "get": {
-        "tags": [
-          "public"
-        ],
+        "tags": ["public"],
         "summary": "View Share",
         "operationId": "view_share_api_v1_share__token__get",
         "parameters": [
@@ -4741,9 +4663,7 @@
     },
     "/api/v1/share/{token}/download": {
       "get": {
-        "tags": [
-          "public"
-        ],
+        "tags": ["public"],
         "summary": "Download Share",
         "operationId": "download_share_api_v1_share__token__download_get",
         "parameters": [
@@ -4819,9 +4739,7 @@
     },
     "/api/v1/content/pages/{locale}": {
       "get": {
-        "tags": [
-          "public"
-        ],
+        "tags": ["public"],
         "summary": "List Pages",
         "operationId": "list_pages_api_v1_content_pages__locale__get",
         "parameters": [
@@ -4881,9 +4799,7 @@
     },
     "/api/v1/content/page": {
       "get": {
-        "tags": [
-          "public"
-        ],
+        "tags": ["public"],
         "summary": "Get Page",
         "operationId": "get_page_api_v1_content_page_get",
         "parameters": [
@@ -4932,9 +4848,7 @@
     },
     "/api/v1/content/sitemap": {
       "get": {
-        "tags": [
-          "public"
-        ],
+        "tags": ["public"],
         "summary": "Sitemap Data",
         "description": "Feeds the Next.js sitemap route so URLs come from one source.",
         "operationId": "sitemap_data_api_v1_content_sitemap_get",
@@ -4984,9 +4898,7 @@
     },
     "/api/v1/content/blog/{locale}": {
       "get": {
-        "tags": [
-          "public"
-        ],
+        "tags": ["public"],
         "summary": "List Posts",
         "operationId": "list_posts_api_v1_content_blog__locale__get",
         "parameters": [
@@ -5040,9 +4952,7 @@
     },
     "/api/v1/content/blog/{locale}/{slug}": {
       "get": {
-        "tags": [
-          "public"
-        ],
+        "tags": ["public"],
         "summary": "Get Post",
         "operationId": "get_post_api_v1_content_blog__locale___slug__get",
         "parameters": [
@@ -5091,9 +5001,7 @@
     },
     "/api/v1/content/testimonials": {
       "get": {
-        "tags": [
-          "public"
-        ],
+        "tags": ["public"],
         "summary": "Testimonials",
         "description": "Returns only genuinely published testimonials — the UI hides the section when empty.",
         "operationId": "testimonials_api_v1_content_testimonials_get",
@@ -5137,9 +5045,7 @@
     },
     "/api/v1/contact": {
       "post": {
-        "tags": [
-          "public"
-        ],
+        "tags": ["public"],
         "summary": "Contact",
         "operationId": "contact_api_v1_contact_post",
         "parameters": [
@@ -5200,9 +5106,7 @@
     },
     "/api/v1/analytics/events": {
       "post": {
-        "tags": [
-          "public"
-        ],
+        "tags": ["public"],
         "summary": "Track",
         "operationId": "track_api_v1_analytics_events_post",
         "parameters": [
@@ -5252,9 +5156,7 @@
     },
     "/api/v1/samples": {
       "get": {
-        "tags": [
-          "public"
-        ],
+        "tags": ["public"],
         "summary": "Samples",
         "description": "Safe demo files a visitor can try without uploading anything of their own.",
         "operationId": "samples_api_v1_samples_get",
@@ -5276,9 +5178,7 @@
     },
     "/api/v1/admin/dashboard": {
       "get": {
-        "tags": [
-          "admin"
-        ],
+        "tags": ["admin"],
         "summary": "Dashboard",
         "operationId": "dashboard_api_v1_admin_dashboard_get",
         "parameters": [
@@ -5337,9 +5237,7 @@
     },
     "/api/v1/admin/users": {
       "get": {
-        "tags": [
-          "admin"
-        ],
+        "tags": ["admin"],
         "summary": "List Users",
         "operationId": "list_users_api_v1_admin_users_get",
         "parameters": [
@@ -5440,9 +5338,7 @@
     },
     "/api/v1/admin/users/{user_id}": {
       "get": {
-        "tags": [
-          "admin"
-        ],
+        "tags": ["admin"],
         "summary": "User Detail",
         "operationId": "user_detail_api_v1_admin_users__user_id__get",
         "parameters": [
@@ -5500,9 +5396,7 @@
     },
     "/api/v1/admin/users/{user_id}/credits": {
       "post": {
-        "tags": [
-          "admin"
-        ],
+        "tags": ["admin"],
         "summary": "Adjust Credits",
         "operationId": "adjust_credits_api_v1_admin_users__user_id__credits_post",
         "parameters": [
@@ -5572,9 +5466,7 @@
     },
     "/api/v1/admin/users/{user_id}/status": {
       "post": {
-        "tags": [
-          "admin"
-        ],
+        "tags": ["admin"],
         "summary": "Set User Status",
         "operationId": "set_user_status_api_v1_admin_users__user_id__status_post",
         "parameters": [
@@ -5644,9 +5536,7 @@
     },
     "/api/v1/admin/jobs": {
       "get": {
-        "tags": [
-          "admin"
-        ],
+        "tags": ["admin"],
         "summary": "Admin Jobs",
         "operationId": "admin_jobs_api_v1_admin_jobs_get",
         "parameters": [
@@ -5763,9 +5653,7 @@
     },
     "/api/v1/admin/jobs/{job_id}": {
       "get": {
-        "tags": [
-          "admin"
-        ],
+        "tags": ["admin"],
         "summary": "Admin Job Detail",
         "operationId": "admin_job_detail_api_v1_admin_jobs__job_id__get",
         "parameters": [
@@ -5823,9 +5711,7 @@
     },
     "/api/v1/admin/jobs/{job_id}/retry": {
       "post": {
-        "tags": [
-          "admin"
-        ],
+        "tags": ["admin"],
         "summary": "Admin Retry Job",
         "operationId": "admin_retry_job_api_v1_admin_jobs__job_id__retry_post",
         "parameters": [
@@ -5883,9 +5769,7 @@
     },
     "/api/v1/admin/jobs/{job_id}/refund": {
       "post": {
-        "tags": [
-          "admin"
-        ],
+        "tags": ["admin"],
         "summary": "Admin Refund Job",
         "operationId": "admin_refund_job_api_v1_admin_jobs__job_id__refund_post",
         "parameters": [
@@ -5955,9 +5839,7 @@
     },
     "/api/v1/admin/providers": {
       "get": {
-        "tags": [
-          "admin"
-        ],
+        "tags": ["admin"],
         "summary": "Admin Providers",
         "operationId": "admin_providers_api_v1_admin_providers_get",
         "parameters": [
@@ -6006,9 +5888,7 @@
     },
     "/api/v1/admin/feature-flags": {
       "get": {
-        "tags": [
-          "admin"
-        ],
+        "tags": ["admin"],
         "summary": "List Flags",
         "operationId": "list_flags_api_v1_admin_feature_flags_get",
         "parameters": [
@@ -6057,9 +5937,7 @@
     },
     "/api/v1/admin/feature-flags/{key}": {
       "put": {
-        "tags": [
-          "admin"
-        ],
+        "tags": ["admin"],
         "summary": "Update Flag",
         "operationId": "update_flag_api_v1_admin_feature_flags__key__put",
         "parameters": [
@@ -6129,9 +6007,7 @@
     },
     "/api/v1/admin/content/pages": {
       "put": {
-        "tags": [
-          "admin"
-        ],
+        "tags": ["admin"],
         "summary": "Upsert Page",
         "operationId": "upsert_page_api_v1_admin_content_pages_put",
         "parameters": [
@@ -6192,9 +6068,7 @@
     },
     "/api/v1/admin/audit": {
       "get": {
-        "tags": [
-          "admin"
-        ],
+        "tags": ["admin"],
         "summary": "Audit Log",
         "operationId": "audit_log_api_v1_admin_audit_get",
         "parameters": [
@@ -6279,9 +6153,7 @@
     },
     "/api/v1/admin/support/tickets": {
       "get": {
-        "tags": [
-          "admin"
-        ],
+        "tags": ["admin"],
         "summary": "Tickets",
         "operationId": "tickets_api_v1_admin_support_tickets_get",
         "parameters": [
@@ -6360,9 +6232,7 @@
     },
     "/api/v1/admin/status/incidents": {
       "post": {
-        "tags": [
-          "admin"
-        ],
+        "tags": ["admin"],
         "summary": "Create Incident",
         "operationId": "create_incident_api_v1_admin_status_incidents_post",
         "parameters": [
@@ -6423,9 +6293,7 @@
     },
     "/api/v1/admin/status/incidents/{incident_id}/resolve": {
       "post": {
-        "tags": [
-          "admin"
-        ],
+        "tags": ["admin"],
         "summary": "Resolve Incident",
         "operationId": "resolve_incident_api_v1_admin_status_incidents__incident_id__resolve_post",
         "parameters": [
@@ -6517,9 +6385,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "name"
-        ],
+        "required": ["name"],
         "title": "AnalyticsEventIn"
       },
       "ApiKeyCreateRequest": {
@@ -6557,9 +6423,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "name"
-        ],
+        "required": ["name"],
         "title": "ApiKeyCreateRequest"
       },
       "ApiKeyCreatedOut": {
@@ -6948,9 +6812,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "payload"
-        ],
+        "required": ["payload"],
         "title": "Body_contact_api_v1_contact_post"
       },
       "Body_upload_and_process_api_v1_process_post": {
@@ -6967,10 +6829,28 @@
           }
         },
         "type": "object",
-        "required": [
-          "file"
-        ],
+        "required": ["file"],
         "title": "Body_upload_and_process_api_v1_process_post"
+      },
+      "Body_upload_batch_api_v1_batch_post": {
+        "properties": {
+          "files": {
+            "items": {
+              "type": "string",
+              "format": "binary"
+            },
+            "type": "array",
+            "title": "Files"
+          },
+          "payload": {
+            "type": "string",
+            "title": "Payload",
+            "default": "{}"
+          }
+        },
+        "type": "object",
+        "required": ["files"],
+        "title": "Body_upload_batch_api_v1_batch_post"
       },
       "BoundingBoxOut": {
         "properties": {
@@ -6992,12 +6872,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "x",
-          "y",
-          "width",
-          "height"
-        ],
+        "required": ["x", "y", "width", "height"],
         "title": "BoundingBoxOut"
       },
       "ChangePasswordRequest": {
@@ -7014,10 +6889,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "current_password",
-          "new_password"
-        ],
+        "required": ["current_password", "new_password"],
         "title": "ChangePasswordRequest"
       },
       "CheckoutOut": {
@@ -7048,20 +6920,14 @@
           }
         },
         "type": "object",
-        "required": [
-          "checkout_url",
-          "provider"
-        ],
+        "required": ["checkout_url", "provider"],
         "title": "CheckoutOut"
       },
       "CheckoutRequest": {
         "properties": {
           "kind": {
             "type": "string",
-            "enum": [
-              "subscription",
-              "credit_pack"
-            ],
+            "enum": ["subscription", "credit_pack"],
             "title": "Kind",
             "default": "subscription"
           },
@@ -7161,11 +7027,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "pages",
-          "total_credits",
-          "breakdown"
-        ],
+        "required": ["pages", "total_credits", "breakdown"],
         "title": "CostEstimateOut"
       },
       "CreateJobRequest": {
@@ -7247,9 +7109,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "tool"
-        ],
+        "required": ["tool"],
         "title": "CreateJobRequest"
       },
       "ExportFormat": {
@@ -7315,13 +7175,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "id",
-          "format",
-          "byte_size",
-          "created_at",
-          "expires_at"
-        ],
+        "required": ["id", "format", "byte_size", "created_at", "expires_at"],
         "title": "ExportOut"
       },
       "ExportRequest": {
@@ -7331,11 +7185,7 @@
           },
           "content": {
             "type": "string",
-            "enum": [
-              "source",
-              "translation",
-              "bilingual"
-            ],
+            "enum": ["source", "translation", "bilingual"],
             "title": "Content",
             "default": "translation"
           },
@@ -7375,10 +7225,7 @@
           },
           "pdf_layout": {
             "type": "string",
-            "enum": [
-              "sequential",
-              "side_by_side"
-            ],
+            "enum": ["sequential", "side_by_side"],
             "title": "Pdf Layout",
             "default": "sequential"
           },
@@ -7401,9 +7248,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "format"
-        ],
+        "required": ["format"],
         "title": "ExportRequest"
       },
       "GlossaryCreateRequest": {
@@ -7436,11 +7281,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "name",
-          "source_language",
-          "target_language"
-        ],
+        "required": ["name", "source_language", "target_language"],
         "title": "GlossaryCreateRequest"
       },
       "GlossaryOut": {
@@ -7535,9 +7376,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "source_term"
-        ],
+        "required": ["source_term"],
         "title": "GlossaryTermIn"
       },
       "HTTPValidationError": {
@@ -7557,11 +7396,7 @@
         "properties": {
           "status": {
             "type": "string",
-            "enum": [
-              "ok",
-              "degraded",
-              "error"
-            ],
+            "enum": ["ok", "degraded", "error"],
             "title": "Status"
           },
           "version": {
@@ -7579,11 +7414,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "status",
-          "version",
-          "environment"
-        ],
+        "required": ["status", "version", "environment"],
         "title": "HealthOut"
       },
       "JobListOut": {
@@ -7609,12 +7440,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "items",
-          "total",
-          "limit",
-          "offset"
-        ],
+        "required": ["items", "total", "limit", "offset"],
         "title": "JobListOut"
       },
       "JobOut": {
@@ -7903,10 +7729,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "email",
-          "password"
-        ],
+        "required": ["email", "password"],
         "title": "LoginRequest"
       },
       "MagicLinkRequest": {
@@ -7918,9 +7741,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "email"
-        ],
+        "required": ["email"],
         "title": "MagicLinkRequest"
       },
       "PageOut": {
@@ -8068,10 +7889,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "token",
-          "password"
-        ],
+        "required": ["token", "password"],
         "title": "PasswordResetRequest"
       },
       "PaymentOut": {
@@ -8434,12 +8252,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "items",
-          "total",
-          "limit",
-          "offset"
-        ],
+        "required": ["items", "total", "limit", "offset"],
         "title": "ProjectListOut"
       },
       "ProjectOut": {
@@ -8607,10 +8420,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "page_id",
-          "bounding_box"
-        ],
+        "required": ["page_id", "bounding_box"],
         "title": "RegionCreate"
       },
       "RegionMergeRequest": {
@@ -8626,9 +8436,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "region_ids"
-        ],
+        "required": ["region_ids"],
         "title": "RegionMergeRequest"
       },
       "RegionOut": {
@@ -8784,9 +8592,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "at_character"
-        ],
+        "required": ["at_character"],
         "title": "RegionSplitRequest"
       },
       "RegionType": {
@@ -8982,10 +8788,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "email",
-          "password"
-        ],
+        "required": ["email", "password"],
         "title": "RegisterRequest"
       },
       "RenameProjectRequest": {
@@ -8998,19 +8801,12 @@
           }
         },
         "type": "object",
-        "required": [
-          "name"
-        ],
+        "required": ["name"],
         "title": "RenameProjectRequest"
       },
       "RenderMode": {
         "type": "string",
-        "enum": [
-          "translation_only",
-          "overlay",
-          "bilingual",
-          "side_by_side"
-        ],
+        "enum": ["translation_only", "overlay", "bilingual", "side_by_side"],
         "title": "RenderMode",
         "description": "How the translated image is composed."
       },
@@ -9079,10 +8875,7 @@
             "anyOf": [
               {
                 "type": "string",
-                "enum": [
-                  "formal",
-                  "informal"
-                ]
+                "enum": ["formal", "informal"]
               },
               {
                 "type": "null"
@@ -9255,12 +9048,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "id",
-          "device_label",
-          "created_at",
-          "last_used_at"
-        ],
+        "required": ["id", "device_label", "created_at", "last_used_at"],
         "title": "SessionOut"
       },
       "ShareCreateRequest": {
@@ -9404,10 +9192,7 @@
       },
       "SharePermission": {
         "type": "string",
-        "enum": [
-          "view",
-          "view_download"
-        ],
+        "enum": ["view", "view_download"],
         "title": "SharePermission"
       },
       "StatusComponentOut": {
@@ -9418,12 +9203,7 @@
           },
           "state": {
             "type": "string",
-            "enum": [
-              "operational",
-              "degraded",
-              "down",
-              "maintenance"
-            ],
+            "enum": ["operational", "degraded", "down", "maintenance"],
             "title": "State"
           },
           "detail": {
@@ -9433,22 +9213,14 @@
           }
         },
         "type": "object",
-        "required": [
-          "key",
-          "state"
-        ],
+        "required": ["key", "state"],
         "title": "StatusComponentOut"
       },
       "StatusOut": {
         "properties": {
           "overall": {
             "type": "string",
-            "enum": [
-              "operational",
-              "degraded",
-              "down",
-              "maintenance"
-            ],
+            "enum": ["operational", "degraded", "down", "maintenance"],
             "title": "Overall"
           },
           "components": {
@@ -9473,11 +9245,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "overall",
-          "components",
-          "checked_at"
-        ],
+        "required": ["overall", "components", "checked_at"],
         "title": "StatusOut"
       },
       "SubscriptionOut": {
@@ -9662,10 +9430,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "row",
-          "col"
-        ],
+        "required": ["row", "col"],
         "title": "TableCellUpdate"
       },
       "TableOut": {
@@ -9741,9 +9506,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "token"
-        ],
+        "required": ["token"],
         "title": "TokenRequest"
       },
       "ToolOut": {
@@ -9789,6 +9552,13 @@
           "credit_multiplier": {
             "type": "number",
             "title": "Credit Multiplier"
+          },
+          "localized_slugs": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Localized Slugs"
           }
         },
         "type": "object",
@@ -9926,10 +9696,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "text",
-          "target_language"
-        ],
+        "required": ["text", "target_language"],
         "title": "TranslationOut"
       },
       "TwoFactorRequest": {
@@ -9953,9 +9720,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "code"
-        ],
+        "required": ["code"],
         "title": "TwoFactorRequest"
       },
       "UserOut": {
@@ -10069,11 +9834,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "loc",
-          "msg",
-          "type"
-        ],
+        "required": ["loc", "msg", "type"],
         "title": "ValidationError"
       },
       "WalletOut": {
@@ -10132,9 +9893,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "url"
-        ],
+        "required": ["url"],
         "title": "WebhookCreateRequest"
       },
       "WebhookCreatedOut": {

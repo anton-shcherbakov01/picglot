@@ -1,8 +1,8 @@
 {
-  "name": "lingoimage-ai",
+  "name": "picglot",
   "version": "1.0.0",
   "private": true,
-  "description": "LingoImage AI — translate, recognise and convert text in images and documents",
+  "description": "PicGlot — translate, recognise and convert text in images and documents",
   "license": "SEE LICENSE IN LICENSE",
   "workspaces": [
     "apps/web",
@@ -13,9 +13,9 @@
   },
   "scripts": {
     "setup": "node scripts/setup.mjs",
-    "dev": "npm run dev --workspace @lingoimage/web",
-    "build": "npm run build --workspace @lingoimage/web",
-    "start": "npm run start --workspace @lingoimage/web",
+    "dev": "npm run dev --workspace @picglot/web",
+    "build": "npm run build --workspace @picglot/web",
+    "start": "npm run start --workspace @picglot/web",
     "lint": "npm run lint --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
@@ -23,6 +23,7 @@
     "format": "prettier --write \"**/*.{ts,tsx,js,mjs,json,css,md}\" --ignore-path .gitignore",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,mjs,json,css,md}\" --ignore-path .gitignore",
     "api:client": "node scripts/generate-api-client.mjs",
+    "api:postman": "node scripts/generate-postman.mjs",
     "prepare": "node scripts/install-hooks.mjs"
   },
   "devDependencies": {

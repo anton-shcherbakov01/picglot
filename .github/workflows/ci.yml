@@ -21,11 +21,11 @@ jobs:
       postgres:
         image: postgres:17-alpine
         env:
-          POSTGRES_USER: lingo
-          POSTGRES_PASSWORD: lingo
-          POSTGRES_DB: lingoimage_test
+          POSTGRES_USER: picglot
+          POSTGRES_PASSWORD: picglot
+          POSTGRES_DB: picglot_test
         options: >-
-          --health-cmd "pg_isready -U lingo" --health-interval 5s
+          --health-cmd "pg_isready -U picglot" --health-interval 5s
           --health-timeout 5s --health-retries 20
         ports: ['5432:5432']
       redis:
@@ -59,23 +59,23 @@ jobs:
           ruff format --check apps/api
 
       - name: Type check
-        run: mypy apps/api/lingoimage
+        run: mypy apps/api/picglot
         continue-on-error: true # advisory until the annotation backlog is cleared
 
       - name: Unit and integration tests
         working-directory: apps/api
         env:
           ENVIRONMENT: test
-          DATABASE_URL: postgresql+psycopg://lingo:lingo@localhost:5432/lingoimage_test
+          DATABASE_URL: postgresql+psycopg://picglot:picglot@localhost:5432/picglot_test
           REDIS_URL: redis://localhost:6379/0
           QUEUE_BACKEND: inline
           STORAGE_BACKEND: local
           TRANSLATION_PROVIDER_PRIORITY: echo
-        run: pytest tests -v --cov=lingoimage --cov-report=xml
+        run: pytest tests -v --cov=picglot --cov-report=xml
 
       - name: Migrations apply cleanly from scratch
         env:
-          DATABASE_URL: postgresql+psycopg://lingo:lingo@localhost:5432/lingoimage_test
+          DATABASE_URL: postgresql+psycopg://picglot:picglot@localhost:5432/picglot_test
         run: |
           alembic -c apps/api/alembic.ini upgrade head
           alembic -c apps/api/alembic.ini downgrade base
@@ -83,7 +83,7 @@ jobs:
 
       - name: Detect un-migrated model changes
         env:
-          DATABASE_URL: postgresql+psycopg://lingo:lingo@localhost:5432/lingoimage_test
+          DATABASE_URL: postgresql+psycopg://picglot:picglot@localhost:5432/picglot_test
         run: |
           alembic -c apps/api/alembic.ini check || {
             echo "::error::Models changed without a migration. Run: make migration m='...'"
@@ -100,9 +100,9 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
       - run: npm ci --workspaces --include-workspace-root
-      - run: npm run lint --workspace @lingoimage/web
-      - run: npm run typecheck --workspace @lingoimage/web
-      - run: npm run build --workspace @lingoimage/web
+      - run: npm run lint --workspace @picglot/web
+      - run: npm run typecheck --workspace @picglot/web
+      - run: npm run build --workspace @picglot/web
         env:
           NEXT_TELEMETRY_DISABLED: '1'
 
@@ -159,7 +159,7 @@ jobs:
           file: infra/docker/api.Dockerfile
           push: false
           load: true
-          tags: lingoimage-api:ci
+          tags: picglot-api:ci
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -170,13 +170,13 @@ jobs:
           file: infra/docker/worker.Dockerfile
           push: false
           load: true
-          tags: lingoimage-worker:ci
+          tags: picglot-worker:ci
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
       - name: Scan images
         uses: aquasecurity/trivy-action@0.28.0
         with:
-          image-ref: lingoimage-worker:ci
+          image-ref: picglot-worker:ci
           severity: CRITICAL,HIGH
           exit-code: '0' # report, do not block, until the base image is pinned

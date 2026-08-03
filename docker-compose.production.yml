@@ -5,7 +5,7 @@
 # database/redis/minio ports, stricter restart + resource policies, migrations
 # run once from a dedicated job container, log rotation enabled.
 
-name: lingoimage
+name: picglot
 
 services:
   postgres:
@@ -85,7 +85,7 @@ services:
       SESSION_COOKIE_SECURE: "true"
     command:
       - uvicorn
-      - lingoimage.main:app
+      - picglot.main:app
       - --host
       - 0.0.0.0
       - --port
@@ -111,7 +111,7 @@ services:
     environment:
       ENVIRONMENT: production
       LOG_FORMAT: json
-    command: ["celery", "-A", "lingoimage.workers.celery_app", "worker", "-Q", "cpu", "-c", "4", "-l", "info", "--max-tasks-per-child", "40", "--max-memory-per-child", "1500000"]
+    command: ["celery", "-A", "picglot.workers.celery_app", "worker", "-Q", "cpu", "-c", "4", "-l", "info", "--max-tasks-per-child", "40", "--max-memory-per-child", "1500000"]
     logging: *logging
     deploy:
       resources:

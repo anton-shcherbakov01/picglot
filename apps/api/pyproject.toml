@@ -3,9 +3,9 @@ requires = ["hatchling>=1.25"]
 build-backend = "hatchling.build"
 
 [project]
-name = "lingoimage"
+name = "picglot"
 version = "1.0.0"
-description = "LingoImage AI — OCR, translation and document conversion engine"
+description = "PicGlot — OCR, translation and document conversion engine"
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "Proprietary" }
@@ -85,10 +85,10 @@ dev = [
 ]
 
 [project.scripts]
-lingoimage = "lingoimage.cli:main"
+picglot = "picglot.cli:main"
 
 [tool.hatch.build.targets.wheel]
-packages = ["lingoimage"]
+packages = ["picglot"]
 
 [tool.ruff]
 line-length = 100
@@ -119,11 +119,11 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["S", "T20"]
-"lingoimage/cli.py" = ["T20"]
-"lingoimage/db/seed.py" = ["T20"]
+"picglot/cli.py" = ["T20"]
+"picglot/db/seed.py" = ["T20"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["lingoimage"]
+known-first-party = ["picglot"]
 
 [tool.mypy]
 python_version = "3.11"
@@ -148,5 +148,5 @@ markers = [
 filterwarnings = ["ignore::DeprecationWarning:passlib.*"]
 
 [tool.coverage.run]
-source = ["lingoimage"]
+source = ["picglot"]
 omit = ["*/migrations/*", "*/tests/*"]

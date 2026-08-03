@@ -1,5 +1,5 @@
 groups:
-  - name: lingoimage-availability
+  - name: picglot-availability
     rules:
       - alert: ApiDown
         expr: up{component="api"} == 0
@@ -10,7 +10,7 @@ groups:
           runbook: docs/operations/incident-response.md
 
       - alert: WorkerOffline
-        expr: lingoimage_worker_heartbeat_age_seconds > 180
+        expr: picglot_worker_heartbeat_age_seconds > 180
         for: 3m
         labels: { severity: critical }
         annotations:
@@ -18,25 +18,25 @@ groups:
           runbook: docs/operations/incident-response.md
 
       - alert: DatabaseUnavailable
-        expr: lingoimage_db_up == 0
+        expr: picglot_db_up == 0
         for: 1m
         labels: { severity: critical }
         annotations:
           summary: "Database health check failing"
 
-  - name: lingoimage-quality
+  - name: picglot-quality
     rules:
       - alert: HighJobErrorRate
         expr: |
-          sum(rate(lingoimage_jobs_total{status="failed"}[10m]))
-            / clamp_min(sum(rate(lingoimage_jobs_total[10m])), 0.001) > 0.15
+          sum(rate(picglot_jobs_total{status="failed"}[10m]))
+            / clamp_min(sum(rate(picglot_jobs_total[10m])), 0.001) > 0.15
         for: 10m
         labels: { severity: warning }
         annotations:
           summary: "More than 15% of jobs are failing"
 
       - alert: QueueBacklogGrowing
-        expr: lingoimage_queue_depth > 200
+        expr: picglot_queue_depth > 200
         for: 10m
         labels: { severity: warning }
         annotations:
@@ -44,7 +44,7 @@ groups:
           runbook: docs/operations/scaling.md
 
       - alert: ProviderFailing
-        expr: lingoimage_provider_circuit_open == 1
+        expr: picglot_provider_circuit_open == 1
         for: 5m
         labels: { severity: warning }
         annotations:
@@ -52,30 +52,30 @@ groups:
           runbook: docs/operations/provider-outage.md
 
       - alert: ProviderCostLimitApproaching
-        expr: lingoimage_provider_daily_cost_usd / clamp_min(lingoimage_provider_daily_cost_limit_usd, 0.01) > 0.8
+        expr: picglot_provider_daily_cost_usd / clamp_min(picglot_provider_daily_cost_limit_usd, 0.01) > 0.8
         for: 15m
         labels: { severity: warning }
         annotations:
           summary: "Provider spend above 80% of the daily cap"
 
-  - name: lingoimage-business
+  - name: picglot-business
     rules:
       - alert: PaymentWebhookFailures
-        expr: increase(lingoimage_payment_webhook_failures_total[15m]) > 3
+        expr: increase(picglot_payment_webhook_failures_total[15m]) > 3
         for: 5m
         labels: { severity: critical }
         annotations:
           summary: "Payment webhooks are failing verification or processing"
 
       - alert: OutboundWebhookFailures
-        expr: increase(lingoimage_webhook_delivery_failures_total[30m]) > 20
+        expr: increase(picglot_webhook_delivery_failures_total[30m]) > 20
         for: 10m
         labels: { severity: warning }
         annotations:
           summary: "Customer webhook deliveries are failing"
 
       - alert: StorageNearCapacity
-        expr: lingoimage_storage_used_bytes / clamp_min(lingoimage_storage_capacity_bytes, 1) > 0.85
+        expr: picglot_storage_used_bytes / clamp_min(picglot_storage_capacity_bytes, 1) > 0.85
         for: 30m
         labels: { severity: warning }
         annotations:

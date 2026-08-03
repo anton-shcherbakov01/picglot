@@ -29,10 +29,10 @@ try {
             npm run dev
         }
         'dev-api' {
-            & (Join-Path $root '.venv\Scripts\uvicorn.exe') lingoimage.main:app --reload --host 0.0.0.0 --port 8000
+            & (Join-Path $root '.venv\Scripts\uvicorn.exe') picglot.main:app --reload --host 0.0.0.0 --port 8000
         }
         'dev-web' {
-            npm run dev --workspace @lingoimage/web
+            npm run dev --workspace @picglot/web
         }
         'lint' {
             & $venvPython -m ruff check apps/api
@@ -40,7 +40,7 @@ try {
             npm run lint
         }
         'typecheck' {
-            & $venvPython -m mypy apps/api/lingoimage
+            & $venvPython -m mypy apps/api/picglot
             npm run typecheck
         }
         'fmt' {
@@ -56,7 +56,7 @@ try {
             npm run test:e2e
         }
         'build' {
-            & $venvPython -m compileall -q apps/api/lingoimage
+            & $venvPython -m compileall -q apps/api/picglot
             npm run build
         }
         'up' {
@@ -69,10 +69,10 @@ try {
             & (Join-Path $root '.venv\Scripts\alembic.exe') -c apps/api/alembic.ini upgrade head
         }
         'seed' {
-            & $venvPython -m lingoimage.cli seed
+            & $venvPython -m picglot.cli seed
         }
         'health' {
-            & $venvPython -m lingoimage.cli health
+            & $venvPython -m picglot.cli health
         }
     }
 }

@@ -1,12 +1,18 @@
-'use client';
+"use client";
 
-import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
 
-import { ApiError, apiFetch, followJob, type AppConfig, type ProjectResponse } from '@/lib/api';
-import { localePath, type Locale } from '@/lib/i18n';
-import type { Messages } from '@/lib/messages';
-import { Editor } from './Editor';
+import {
+  ApiError,
+  apiFetch,
+  followJob,
+  type AppConfig,
+  type ProjectResponse,
+} from "@/lib/api";
+import { localePath, type Locale } from "@/lib/i18n";
+import type { Messages } from "@/lib/messages";
+import { Editor } from "./Editor";
 
 export function ProjectView({
   projectId,
@@ -26,18 +32,21 @@ export function ProjectView({
 
   const load = useCallback(async () => {
     try {
-      const result = await apiFetch<ProjectResponse>(`/api/v1/projects/${projectId}`);
+      const result = await apiFetch<ProjectResponse>(
+        `/api/v1/projects/${projectId}`,
+      );
       setProject(result);
       setError(null);
       return result;
     } catch (failure) {
       const apiError = failure as ApiError;
       if (apiError.status === 401) {
-        router.push(localePath(locale, 'auth/sign-in'));
+        router.push(localePath(locale, "auth/sign-in"));
         return null;
       }
       setError(
-        (messages.errors as Record<string, string>)[apiError.code] ?? apiError.message,
+        (messages.errors as Record<string, string>)[apiError.code] ??
+          apiError.message,
       );
       return null;
     }
@@ -47,9 +56,17 @@ export function ProjectView({
     void (async () => {
       const result = await load();
       // Opening a project mid-run should show live progress, not a stale page.
-      const active = (result as (ProjectResponse & { active_job?: { id: string; status: string } }) | null)
-        ?.active_job;
-      if (active && !['completed', 'partially_completed', 'failed', 'cancelled'].includes(active.status)) {
+      const active = (
+        result as
+          | (ProjectResponse & { active_job?: { id: string; status: string } })
+          | null
+      )?.active_job;
+      if (
+        active &&
+        !["completed", "partially_completed", "failed", "cancelled"].includes(
+          active.status,
+        )
+      ) {
         followJob(active.id, {
           onProgress: (update) => setProgress(update.progress),
           onDone: () => {
@@ -64,7 +81,10 @@ export function ProjectView({
 
   if (error) {
     return (
-      <p role="alert" className="rounded-card border border-danger/40 bg-danger/10 px-4 py-3 text-sm text-danger">
+      <p
+        role="alert"
+        className="rounded-card border border-danger/40 bg-danger/10 px-4 py-3 text-sm text-danger"
+      >
         {error}
       </p>
     );
@@ -92,7 +112,7 @@ export function ProjectView({
         onReload={async () => {
           await load();
         }}
-        onReset={() => router.push(localePath(locale, 'app'))}
+        onReset={() => router.push(localePath(locale, "app"))}
       />
     </>
   );

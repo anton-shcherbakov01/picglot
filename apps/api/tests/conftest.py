@@ -14,7 +14,7 @@ from pathlib import Path
 
 import pytest
 
-WORKDIR = Path(tempfile.mkdtemp(prefix="lingoimage-tests-"))
+WORKDIR = Path(tempfile.mkdtemp(prefix="picglot-tests-"))
 
 os.environ.update(
     {
@@ -40,8 +40,8 @@ os.environ.update(
 
 @pytest.fixture(scope="session", autouse=True)
 def _schema() -> Iterator[None]:
-    from lingoimage.db.base import Base
-    from lingoimage.db.session import dispose_engine, get_engine
+    from picglot.db.base import Base
+    from picglot.db.session import dispose_engine, get_engine
 
     Base.metadata.create_all(get_engine())
     yield
@@ -50,7 +50,7 @@ def _schema() -> Iterator[None]:
 
 @pytest.fixture
 def session() -> Iterator[Session]:  # noqa: F821
-    from lingoimage.db.session import session_scope
+    from picglot.db.session import session_scope
 
     with session_scope() as db:
         yield db
@@ -66,7 +66,7 @@ def client() -> Iterator[TestClient]:  # noqa: F821
     """
     from fastapi.testclient import TestClient
 
-    from lingoimage.main import app
+    from picglot.main import app
 
     test_client = TestClient(app)
     yield test_client
@@ -78,7 +78,7 @@ def sample_image_bytes() -> bytes:
     """A synthetic sign with three lines of text at different sizes."""
     from PIL import Image, ImageDraw
 
-    from lingoimage.vision import fonts
+    from picglot.vision import fonts
 
     image = Image.new("RGB", (1000, 460), (250, 250, 246))
     draw = ImageDraw.Draw(image)
@@ -107,7 +107,7 @@ def sample_table_bytes() -> bytes:
     """A ruled table so table extraction has real grid lines to find."""
     from PIL import Image, ImageDraw
 
-    from lingoimage.vision import fonts
+    from picglot.vision import fonts
 
     image = Image.new("RGB", (760, 320), (255, 255, 255))
     draw = ImageDraw.Draw(image)
@@ -141,7 +141,7 @@ def sample_table_bytes() -> bytes:
 
 @pytest.fixture
 def registered_client(client) -> TestClient:  # noqa: F821
-    from lingoimage.core.ids import ulid
+    from picglot.core.ids import ulid
 
     email = f"user-{ulid()[:10].lower()}@example.com"
     response = client.post(
@@ -162,9 +162,9 @@ def registered_client(client) -> TestClient:  # noqa: F821
 @pytest.fixture
 def pro_client(registered_client) -> TestClient:  # noqa: F821
     """A client whose account is on the Pro plan (full export matrix)."""
-    from lingoimage.db.session import session_scope
-    from lingoimage.services import auth as auth_service
-    from lingoimage.services import credits as credit_service
+    from picglot.db.session import session_scope
+    from picglot.services import auth as auth_service
+    from picglot.services import credits as credit_service
 
     with session_scope() as db:
         user = auth_service.find_user(db, registered_client.user_email)

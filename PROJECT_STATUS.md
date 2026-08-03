@@ -1,9 +1,10 @@
 # PROJECT_STATUS
 
-**LingoImage AI** — 2026-08-03
+**PicGlot** — 2026-08-03
 
-23 000 lines of Python across 88 files, 5 400 lines of TypeScript across 40
-files, 51 database tables, 103 API endpoints, 13 tools, 26 languages.
+25 900 lines of Python across 81 files, 12 700 lines of TypeScript across 71
+files, 51 database tables, 118 API endpoints, 13 tools, 26 languages,
+10 fully translated locales.
 
 Everything below marked ✅ was executed on this machine and its output checked,
 not just written. Everything marked ⚠️ or ❌ says plainly what is missing.
@@ -12,16 +13,16 @@ not just written. Everything marked ⚠️ or ❌ says plainly what is missing.
 
 ## 1. Verification results
 
-| Gate | Command | Result |
-|---|---|---|
-| Python lint | `ruff check apps/api` | ✅ All checks passed |
-| Python format | `ruff format --check apps/api` | ✅ 88 files clean |
-| Python tests | `pytest apps/api/tests` | ✅ **87 passed, 1 skipped** (65 s) |
-| Python typecheck | `mypy apps/api/lingoimage` | ❌ **72 pre-existing errors** — see §3 |
-| TS typecheck | `tsc --noEmit` | ✅ clean (strict, `noUncheckedIndexedAccess`) |
-| Web lint | `next lint --max-warnings 0` | ✅ No warnings or errors |
-| Web build | `next build` | ✅ **226 static pages** generated |
-| API boot | `import lingoimage.main` | ✅ 117 routes, OpenAPI generates |
+| Gate             | Command                        | Result                                             |
+| ---------------- | ------------------------------ | -------------------------------------------------- |
+| Python lint      | `ruff check apps/api`          | ✅ All checks passed                               |
+| Python format    | `ruff format --check apps/api` | ✅ 88 files clean                                  |
+| Python tests     | `pytest apps/api/tests`        | ✅ **92 passed, 1 skipped** (54 s)                 |
+| Python typecheck | `mypy apps/api/picglot`        | ❌ **72 pre-existing errors** in 23 files — see §3 |
+| TS typecheck     | `tsc --noEmit`                 | ✅ clean (strict, `noUncheckedIndexedAccess`)      |
+| Web lint         | `next lint --max-warnings 0`   | ✅ No warnings or errors                           |
+| Web build        | `next build`                   | ✅ **236 static pages** generated                  |
+| API boot         | `import picglot.main`          | ✅ 118 routes, OpenAPI generates                   |
 
 The one skip is `test_concurrent_charges_never_oversell`: the guarantee comes
 from `SELECT … FOR UPDATE`, which SQLite does not have. It is marked
@@ -33,18 +34,18 @@ wrong reason.
 Not mocks — the suite runs the real pipeline against SQLite, local storage and
 the inline queue, which execute the same application code as production.
 
-* A guest uploads a PNG, RapidOCR recognises it, and the recognised text
+- A guest uploads a PNG, RapidOCR recognises it, and the recognised text
   contains the words that were drawn into the image.
-* Translation is applied and a rendered image is produced.
-* Layout analysis identifies the heading and returns blocks in reading order.
-* Eight export formats are produced and their magic bytes checked.
-* **The searchable PDF is re-opened with PyMuPDF and its invisible text layer
+- Translation is applied and a rendered image is produced.
+- Layout analysis identifies the heading and returns blocks in reading order.
+- Eight export formats are produced and their magic bytes checked.
+- **The searchable PDF is re-opened with PyMuPDF and its invisible text layer
   read back** — the feature is verified from the artefact, not from the code path.
-* A ruled table is detected, its cells typed as numbers, and XLSX exported.
-* Charging the same job three times debits once; refunds are capped; the wallet
+- A ruled table is detected, its cells typed as numbers, and XLSX exported.
+- Charging the same job three times debits once; refunds are capped; the wallet
   always equals the ledger sum.
-* Another account gets 404 (not 403) on someone else's project.
-* Fake MIME types, disguised executables and traversal filenames are refused;
+- Another account gets 404 (not 403) on someone else's project.
+- Fake MIME types, disguised executables and traversal filenames are refused;
   PDF JavaScript is stripped.
 
 ---
@@ -53,27 +54,29 @@ the inline queue, which execute the same application code as production.
 
 ### Processing engine ✅
 
-| Stage | Implementation |
-|---|---|
-| Preprocess | EXIF orientation, metadata stripping, Hough-line deskew, perspective correction, shadow flattening, CLAHE, denoise, sharpen, adaptive threshold, orientation detection, bomb guards |
-| Recognise | Provider chain with fallback: RapidOCR (bundled ONNX, offline), Tesseract, Google Vision, Azure AI Vision, AWS Textract, Yandex Vision, multimodal LLM |
-| Normalise | Artefact removal, hyphenation repair, context-guarded O↔0 / l↔1 repair, URL/email protection, per-correction revert, raw OCR preserved separately |
-| Layout | Line→paragraph grouping, column detection via vertical gutters, length-weighted heading detection, ink/paper colour sampling, reading order, region typing |
-| Translate | DeepL, Google, Yandex, Azure, LLM, offline Argos, test echo. Glossary → TM → fuzzy → cache → provider, with placeholder masking |
-| Remove text | Auto strategy from *surrounding* texture: solid fill, Telea, Navier-Stokes, honest translucent plate; brush/eraser hooks; quality score |
-| Typeset | Binary-search fit on real glyph metrics, CJK line-break rules, RTL shaping + reordering, vertical CJK, outline/shadow, overflow reported not clipped |
-| Tables | Ruled (grid recovery) and unruled (position clustering), cell typing incl. EU/US number formats, ambiguity flagged |
-| Quality | Seven weighted signals, every factor listed with the blocks that caused it; explicitly labelled confidence, not measured accuracy |
+| Stage       | Implementation                                                                                                                                                                      |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Preprocess  | EXIF orientation, metadata stripping, Hough-line deskew, perspective correction, shadow flattening, CLAHE, denoise, sharpen, adaptive threshold, orientation detection, bomb guards |
+| Recognise   | Provider chain with fallback: RapidOCR (bundled ONNX, offline), Tesseract, Google Vision, Azure AI Vision, AWS Textract, Yandex Vision, multimodal LLM                              |
+| Normalise   | Artefact removal, hyphenation repair, context-guarded O↔0 / l↔1 repair, URL/email protection, per-correction revert, raw OCR preserved separately                                   |
+| Layout      | Line→paragraph grouping, column detection via vertical gutters, length-weighted heading detection, ink/paper colour sampling, reading order, region typing                          |
+| Translate   | DeepL, Google, Yandex, Azure, LLM, offline Argos, test echo. Glossary → TM → fuzzy → cache → provider, with placeholder masking                                                     |
+| Remove text | Auto strategy from _surrounding_ texture: solid fill, Telea, Navier-Stokes, honest translucent plate; brush/eraser hooks; quality score                                             |
+| Typeset     | Binary-search fit on real glyph metrics, CJK line-break rules, RTL shaping + reordering, vertical CJK, outline/shadow, overflow reported not clipped                                |
+| Tables      | Ruled (grid recovery) and unruled (position clustering), cell typing incl. EU/US number formats, ambiguity flagged                                                                  |
+| Quality     | Seven weighted signals, every factor listed with the blocks that caused it; explicitly labelled confidence, not measured accuracy                                                   |
 
 Fonts: 236 files discovered on this machine, **all 12 advertised scripts covered**
 (Latin, Cyrillic, Arabic, Hebrew, Han ×2, Kana, Hangul, Devanagari, Thai,
 Georgian, Armenian) — verified by test, with cmap coverage checked per string.
 
 ### Exports ✅
+
 PNG, JPG, WEBP, PDF, searchable PDF, bilingual PDF, DOCX, XLSX, TXT, Markdown,
 CSV, JSON, ZIP. Re-exporting identical settings reuses the artefact and is free.
 
 ### Platform ✅
+
 Auth (password, magic link, Google OAuth, TOTP 2FA + backup codes, sessions,
 lockout), guest sessions that convert to accounts without losing work, projects
 with soft delete and trash, jobs with staged progress over SSE, an append-only
@@ -84,18 +87,20 @@ first-party analytics with a server-side allow-list, and a lifecycle worker that
 enforces retention.
 
 ### Web app ✅
-226 prerendered pages: home, 13 tool pages, format and language-pair landing
+
+236 prerendered pages: home, 13 tool pages, format and language-pair landing
 pages, pricing, API docs, supported languages, status, blog, contact, five legal
-pages, security, auth flows, dashboard, project editor, admin panel, share view
-— across 10 locales, with sitemap, robots, manifest, structured data, hreflang,
-dark mode and a keyboard-navigable editor whose block list doubles as the
-accessible alternative to the image overlay.
+pages, security, auth flows, dashboard, account area, project editor, admin
+panel, share view — across 10 locales, with sitemap, robots, manifest,
+structured data, hreflang, dark mode and a keyboard-navigable editor whose block
+list doubles as the accessible alternative to the image overlay.
 
 **All ten locales are fully translated** (`en ru es de fr pt tr id pl uk`);
 `MISSING_TRANSLATIONS` in `apps/web/src/lib/messages.ts` is now empty, and the
 `Messages` type makes a dropped or misspelled key a compile error.
 
 ### Admin UI ✅
+
 `/{locale}/admin` — dashboard (volume, success/error rates, job duration
 percentiles, revenue, provider cost, storage), users (search, detail, credit
 adjustment, suspend/reactivate), jobs (filter, timeline, provider calls, retry,
@@ -106,12 +111,43 @@ caller's admin role. Every mutating action prompts for the reason the API
 requires and records it in the audit trail.
 
 ### Editor undo/redo ✅
+
 100-step history. Because block edits are server-authoritative with optimistic
 version locking, undo replays an inverse `PATCH` rather than rewinding local
 state; a new edit discards the redo branch, and a stale version surfaces the
 same conflict message as any other concurrent edit.
 
+### Account area ✅
+
+`/{locale}/app/account` — usage and the full credit ledger, billing (plans,
+subscription, cancel, invoices, provider-hosted checkout), API keys, webhooks
+(create, rotate secret, delivery log, replay), glossaries, translation memory,
+profile, security (password, TOTP 2FA with backup codes, active sessions,
+sign out everywhere) and data (JSON export, retention, account deletion).
+Client-rendered and `noindex`. One-time secrets — API keys, webhook secrets,
+backup codes — stay on screen until dismissed, because re-fetching never
+shows them again.
+
+### Batch ✅
+
+`POST /api/v1/batch` accepts many files, validates **all** of them before
+creating anything, then fans out to one child job per file under a parent batch
+job. The UI at `/{locale}/batch` takes a drop of files or a folder, shows
+per-file status from the children rather than local bookkeeping, and offers the
+assembled ZIP (with `report.csv` inside) plus retry-failed-only when some files
+did not make it.
+
+### Localised SEO slugs ✅
+
+`ru` publishes five tools under Russian paths (`/ru/perevod-po-foto`,
+`/tekst-s-kartinki`, `/foto-v-word`, `/foto-v-excel`, `/perevod-pdf`). The map
+lives in `LOCALIZED_SLUGS` and is served through `/api/v1/config`, so the
+backend stays the single source of truth. It is a **replacement**, not an
+addition: the English path redirects, hreflang follows each locale's own slug,
+and startup assertions plus `test_seo.py` guard against slug collisions.
+
 ### PWA ✅
+
 Service worker caches the app shell and immutable `/_next/static/` assets, and
 explicitly never caches `/api/`, `/app/`, `/share/` or `/admin` — results and
 share links stay off disk.
@@ -121,36 +157,47 @@ share links stay off disk.
 ## 3. Gaps — stated plainly
 
 ### ⚠️ Docker Compose was not executed
+
 Docker Desktop's engine was not running on this machine, so the compose stack,
 the Dockerfiles and the nginx config are **written but not executed**. Everything
 they orchestrate was verified natively instead (API, workers via the inline
 queue, migrations, seed, full pipeline, exports). Expect the usual first-run
 friction: image build times and any base-image drift.
 
-### ⚠️ Account sub-pages are API-only
-Billing, API keys, webhooks, glossary, translation memory, team and session
-management all have working endpoints; the dashboard currently renders projects
-and credits. The remaining screens are UI work against endpoints that already
-function.
+### ❌ Team / workspace has no API
 
-### ⚠️ Batch UI
-The batch service, child-job fan-out, ZIP assembly and CSV report are
-implemented; the drag-a-folder interface is not.
+`Workspace`, `WorkspaceMember` and `WorkspaceInvitation` exist as tables, and
+jobs and wallets are already workspace-aware, but **no router exposes them** —
+there is no endpoint to create a workspace, invite a member, change a role or
+transfer ownership. The account area therefore has no Team tab: building one
+would mean building the backend first. This is the largest remaining gap
+against the master prompt (§9.3, §17).
+
+### ⚠️ The editor is DOM-based, not canvas
+
+The master prompt asks for a Konva/Fabric canvas. The editor renders each block
+as a real focusable DOM element instead, which is what makes the keyboard and
+screen-reader path work without a separate fallback. It has zoom and 100-step
+undo/redo, but **not** pan, a before/after slider, freehand brush/eraser,
+polygon vertex editing or rotation handles — those need the canvas rewrite.
 
 ### ⚠️ Playwright E2E is smoke-level
+
 `apps/web/e2e/smoke.spec.ts` covers page rendering, the locale redirect, the
 theme toggle and the auth forms. The full upload → translate → export journey
 is still covered only at the HTTP level in `apps/api/tests/test_pipeline.py`,
 which needs no browser or file fixtures.
 
 ### ⚠️ Backend mypy is not clean
+
 `ruff check`, `ruff format --check`, `tsc --noEmit`, `next lint` and `pytest`
-all pass. `mypy apps/api/lingoimage` reports **72 pre-existing errors across 23
+all pass. `mypy apps/api/picglot` reports **72 pre-existing errors across 23
 files** — mostly missing third-party stubs (celery, sentry_sdk, opentelemetry)
 plus a handful of real `str | None` argument mismatches in `pipeline.py`,
 `batch.py`, `jobs.py` and `account.py`. `make typecheck` therefore fails today.
 
 ### ❌ Golden fixture corpus
+
 `tests/golden/` holds only a README explaining why it is empty. The suite
 generates its fixtures programmatically (synthetic signs and ruled tables) —
 deliberate, since committing third-party documents would be a licensing
@@ -158,10 +205,12 @@ problem, but a curated corpus of real-world photographs is what would catch
 regressions in the preprocessing heuristics.
 
 ### ❌ Advanced inpainting model
+
 The hook (`vision/advanced_inpaint.py`) and configuration exist; no model is
 bundled. The classical strategies are what runs.
 
 ### ❌ Docker Compose still not executed
+
 Unchanged from the note above: the compose stack has never been run on this
 machine. The first-run instructions in
 `docs/operations/hosting-quickstart.md` were derived by reading the compose
@@ -182,36 +231,36 @@ Without Docker:
 ```bash
 python -m venv .venv
 .venv/Scripts/pip install -e "apps/api[dev,ocr]"
-.venv/Scripts/python -m lingoimage.cli health
+.venv/Scripts/python -m picglot.cli health
 ```
 
 Set `QUEUE_BACKEND=inline` and `STORAGE_BACKEND=local` to run with neither Redis
 nor MinIO.
 
-| URL | What |
-|---|---|
-| http://localhost:3000 | Web app |
-| http://localhost:8000/docs | Swagger UI |
-| http://localhost:8000/health/ready | Readiness |
-| http://localhost:8025 | Mailpit (captured email) |
-| http://localhost:9001 | MinIO console |
+| URL                                | What                     |
+| ---------------------------------- | ------------------------ |
+| http://localhost:3000              | Web app                  |
+| http://localhost:8000/docs         | Swagger UI               |
+| http://localhost:8000/health/ready | Readiness                |
+| http://localhost:8025              | Mailpit (captured email) |
+| http://localhost:9001              | MinIO console            |
 
 ### Demo credentials
 
 Created by `make seed`, **only** when `SEED_ENABLED=true`, and refused outright
 in production by the config validator:
 
-| Role | Email | Password |
-|---|---|---|
-| Superadmin | `admin@lingoimage.example` | `Sup3r!Seed-2026` |
-| Demo user (Pro) | `demo@lingoimage.example` | `Tr1al!Seed-2026` |
+| Role            | Email                   | Password          |
+| --------------- | ----------------------- | ----------------- |
+| Superadmin      | `admin@picglot.example` | `Sup3r!Seed-2026` |
+| Demo user (Pro) | `demo@picglot.example`  | `Tr1al!Seed-2026` |
 
 Seeding was executed and verified: 4 plans, 8 feature flags, **61 SEO pages**
 (tool, format and language-pair landing pages in `en` and `ru`), 3 blog posts and
 both accounts, in 0.25 s.
 
 Both come from `.env`. Change them, or use
-`python -m lingoimage.cli create-admin`.
+`python -m picglot.cli create-admin`.
 
 ---
 
@@ -220,28 +269,28 @@ Both come from `.env`. Change them, or use
 **None to run it.** A fresh install recognises text, edits and exports using the
 bundled RapidOCR models with no accounts at all.
 
-| Capability | Needs | Without it |
-|---|---|---|
-| Translation | A provider key (DeepL / Google / Yandex / Azure / LLM) **or** offline Argos models | OCR, editing and exports work; the UI states plainly that translation needs configuration |
-| Payments | Stripe or YooKassa keys + webhook secret | `BILLING_ENABLED=false`; everything else works |
-| Email | SMTP or Resend | Mailpit captures mail locally |
-| Handwriting (best quality) | An LLM key | Falls back to Tesseract, with lower confidence honestly reported |
-| Cloud OCR | Per-provider key **and** its `*_ENABLED` flag | Local engines are used |
-| Error tracking | Sentry DSN | Structured logs only |
+| Capability                 | Needs                                                                              | Without it                                                                                |
+| -------------------------- | ---------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| Translation                | A provider key (DeepL / Google / Yandex / Azure / LLM) **or** offline Argos models | OCR, editing and exports work; the UI states plainly that translation needs configuration |
+| Payments                   | Stripe or YooKassa keys + webhook secret                                           | `BILLING_ENABLED=false`; everything else works                                            |
+| Email                      | SMTP or Resend                                                                     | Mailpit captures mail locally                                                             |
+| Handwriting (best quality) | An LLM key                                                                         | Falls back to Tesseract, with lower confidence honestly reported                          |
+| Cloud OCR                  | Per-provider key **and** its `*_ENABLED` flag                                      | Local engines are used                                                                    |
+| Error tracking             | Sentry DSN                                                                         | Structured logs only                                                                      |
 
 ---
 
 ## 6. Documentation
 
-| Path | Contents |
-|---|---|
-| `README.md` | Setup, commands, configuration, testing |
-| `apps/api/README.md` | Backend package layout |
+| Path                                   | Contents                                                                         |
+| -------------------------------------- | -------------------------------------------------------------------------------- |
+| `README.md`                            | Setup, commands, configuration, testing                                          |
+| `apps/api/README.md`                   | Backend package layout                                                           |
 | `docs/architecture/system-overview.md` | Context, containers, sequence and deletion diagrams (Mermaid), failure behaviour |
-| `docs/security/threat-model.md` | 16 threats with the control and the test that covers each |
-| `docs/operations/deployment.md` | Single-server and managed paths, production checklist |
-| `docs/architecture-decisions/` | Four ADRs: package layout, OCR strategy, credit ledger, migrations |
-| `http://localhost:8000/docs` | Live OpenAPI 3 / Swagger UI |
+| `docs/security/threat-model.md`        | 16 threats with the control and the test that covers each                        |
+| `docs/operations/deployment.md`        | Single-server and managed paths, production checklist                            |
+| `docs/architecture-decisions/`         | Four ADRs: package layout, OCR strategy, credit ledger, migrations               |
+| `http://localhost:8000/docs`           | Live OpenAPI 3 / Swagger UI                                                      |
 
 ---
 
@@ -277,7 +326,7 @@ These need accounts, money or a lawyer — they cannot be done in code:
 - [ ] Prometheus scraping `/metrics`, alerts routed somewhere a human reads
 - [ ] Object storage public access blocked
 - [ ] Legal pages reviewed
-- [ ] `python -m lingoimage.cli health` green
+- [ ] `python -m picglot.cli health` green
 - [ ] One real file processed end to end through the production URL
 
 The configuration validator enforces the first five and refuses to start

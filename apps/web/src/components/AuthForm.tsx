@@ -1,15 +1,22 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 
-import { track } from '@/lib/analytics';
-import { ApiError, apiFetch } from '@/lib/api';
-import { localePath, type Locale } from '@/lib/i18n';
-import type { Messages } from '@/lib/messages';
+import { track } from "@/lib/analytics";
+import { ApiError, apiFetch } from "@/lib/api";
+import { localePath, type Locale } from "@/lib/i18n";
+import type { Messages } from "@/lib/messages";
 
-type Action = 'sign-in' | 'sign-up' | 'forgot' | 'reset' | 'verify' | 'magic' | 'two-factor';
+type Action =
+  | "sign-in"
+  | "sign-up"
+  | "forgot"
+  | "reset"
+  | "verify"
+  | "magic"
+  | "two-factor";
 
 interface AuthResponse {
   user: { id: string; email: string } | null;
@@ -29,12 +36,12 @@ export function AuthForm({
 }) {
   const router = useRouter();
   const search = useSearchParams();
-  const token = search.get('token') ?? '';
+  const token = search.get("token") ?? "";
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
-  const [code, setCode] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
+  const [code, setCode] = useState("");
   const [pendingToken, setPendingToken] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -43,18 +50,24 @@ export function AuthForm({
   // One-time links land here with ?token=… and complete without any typing.
   useEffect(() => {
     if (!token) return;
-    if (action === 'verify') {
+    if (action === "verify") {
       void run(async () => {
-        await apiFetch('/api/v1/auth/verify-email', { method: 'POST', json: { token } });
-        setNotice('Email confirmed. You can sign in now.');
-      });
-    }
-    if (action === 'magic') {
-      void run(async () => {
-        const result = await apiFetch<AuthResponse>('/api/v1/auth/magic-link/verify', {
-          method: 'POST',
+        await apiFetch("/api/v1/auth/verify-email", {
+          method: "POST",
           json: { token },
         });
+        setNotice("Email confirmed. You can sign in now.");
+      });
+    }
+    if (action === "magic") {
+      void run(async () => {
+        const result = await apiFetch<AuthResponse>(
+          "/api/v1/auth/magic-link/verify",
+          {
+            method: "POST",
+            json: { token },
+          },
+        );
         finish(result);
       });
     }
@@ -87,7 +100,7 @@ export function AuthForm({
       setPendingToken(result.pending_token);
       return;
     }
-    router.push(localePath(locale, 'app'));
+    router.push(localePath(locale, "app"));
     router.refresh();
   }
 
@@ -96,49 +109,58 @@ export function AuthForm({
     void run(async () => {
       if (pendingToken) {
         finish(
-          await apiFetch<AuthResponse>('/api/v1/auth/2fa/verify', {
-            method: 'POST',
+          await apiFetch<AuthResponse>("/api/v1/auth/2fa/verify", {
+            method: "POST",
             json: { code, pending_token: pendingToken },
           }),
         );
         return;
       }
       switch (action) {
-        case 'sign-up': {
-          track('signup_started');
-          const result = await apiFetch<AuthResponse>('/api/v1/auth/register', {
-            method: 'POST',
-            json: { email, password, name: name || null, locale, accept_terms: true },
+        case "sign-up": {
+          track("signup_started");
+          const result = await apiFetch<AuthResponse>("/api/v1/auth/register", {
+            method: "POST",
+            json: {
+              email,
+              password,
+              name: name || null,
+              locale,
+              accept_terms: true,
+            },
           });
-          track('signup_completed');
+          track("signup_completed");
           finish(result);
           break;
         }
-        case 'sign-in':
+        case "sign-in":
           finish(
-            await apiFetch<AuthResponse>('/api/v1/auth/login', {
-              method: 'POST',
+            await apiFetch<AuthResponse>("/api/v1/auth/login", {
+              method: "POST",
               json: { email, password },
             }),
           );
           break;
-        case 'forgot':
-          await apiFetch('/api/v1/auth/forgot-password', {
-            method: 'POST',
+        case "forgot":
+          await apiFetch("/api/v1/auth/forgot-password", {
+            method: "POST",
             json: { email },
           });
           setNotice(messages.auth.magicLinkSent);
           break;
-        case 'magic':
-          await apiFetch('/api/v1/auth/magic-link', { method: 'POST', json: { email } });
+        case "magic":
+          await apiFetch("/api/v1/auth/magic-link", {
+            method: "POST",
+            json: { email },
+          });
           setNotice(messages.auth.magicLinkSent);
           break;
-        case 'reset':
-          await apiFetch('/api/v1/auth/reset-password', {
-            method: 'POST',
+        case "reset":
+          await apiFetch("/api/v1/auth/reset-password", {
+            method: "POST",
             json: { token, password },
           });
-          setNotice('Password updated. You can sign in now.');
+          setNotice("Password updated. You can sign in now.");
           break;
         default:
           break;
@@ -148,28 +170,36 @@ export function AuthForm({
 
   const title = pendingToken
     ? messages.auth.twoFactorTitle
-    : action === 'sign-up'
+    : action === "sign-up"
       ? messages.auth.signUpTitle
-      : action === 'forgot' || action === 'reset'
+      : action === "forgot" || action === "reset"
         ? messages.auth.resetTitle
-        : action === 'verify'
+        : action === "verify"
           ? messages.auth.verifyTitle
           : messages.auth.signInTitle;
 
-  const showEmail = !pendingToken && ['sign-in', 'sign-up', 'forgot', 'magic'].includes(action);
-  const showPassword = !pendingToken && ['sign-in', 'sign-up', 'reset'].includes(action);
+  const showEmail =
+    !pendingToken && ["sign-in", "sign-up", "forgot", "magic"].includes(action);
+  const showPassword =
+    !pendingToken && ["sign-in", "sign-up", "reset"].includes(action);
 
   return (
     <div className="card p-6 sm:p-8">
       <h1 className="text-xl font-semibold">{title}</h1>
 
       {error && (
-        <p role="alert" className="mt-4 rounded-lg border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger">
+        <p
+          role="alert"
+          className="mt-4 rounded-lg border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger"
+        >
           {error}
         </p>
       )}
       {notice && (
-        <p role="status" className="mt-4 rounded-lg border border-ok/40 bg-ok/10 px-3 py-2 text-sm text-ok">
+        <p
+          role="status"
+          className="mt-4 rounded-lg border border-ok/40 bg-ok/10 px-3 py-2 text-sm text-ok"
+        >
           {notice}
         </p>
       )}
@@ -189,15 +219,19 @@ export function AuthForm({
               onChange={(event) => setCode(event.target.value)}
               required
             />
-            <p className="mt-1 text-xs text-muted">{messages.auth.twoFactorHint}</p>
+            <p className="mt-1 text-xs text-muted">
+              {messages.auth.twoFactorHint}
+            </p>
           </div>
         )}
 
-        {action === 'sign-up' && (
+        {action === "sign-up" && (
           <div>
             <label className="label" htmlFor="name">
-              {messages.auth.name}{' '}
-              <span className="font-normal text-muted">({messages.common.optional})</span>
+              {messages.auth.name}{" "}
+              <span className="font-normal text-muted">
+                ({messages.common.optional})
+              </span>
             </label>
             <input
               id="name"
@@ -235,14 +269,18 @@ export function AuthForm({
               id="password"
               type="password"
               className="input"
-              autoComplete={action === 'sign-in' ? 'current-password' : 'new-password'}
+              autoComplete={
+                action === "sign-in" ? "current-password" : "new-password"
+              }
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               required
-              minLength={action === 'sign-in' ? undefined : 10}
-              aria-describedby={action === 'sign-in' ? undefined : 'password-hint'}
+              minLength={action === "sign-in" ? undefined : 10}
+              aria-describedby={
+                action === "sign-in" ? undefined : "password-hint"
+              }
             />
-            {action !== 'sign-in' && (
+            {action !== "sign-in" && (
               <p id="password-hint" className="mt-1 text-xs text-muted">
                 {messages.auth.passwordHint}
               </p>
@@ -254,38 +292,50 @@ export function AuthForm({
           <button type="submit" className="btn-primary" disabled={busy}>
             {busy
               ? messages.common.loading
-              : action === 'sign-up'
+              : action === "sign-up"
                 ? messages.auth.submitSignUp
                 : messages.auth.submitSignIn}
           </button>
         )}
       </form>
 
-      {action === 'sign-up' && (
+      {action === "sign-up" && (
         <p className="mt-4 text-xs text-muted">{messages.auth.terms}</p>
       )}
 
       <div className="mt-6 grid gap-2 text-sm">
-        {action === 'sign-in' && (
+        {action === "sign-in" && (
           <>
-            <Link href={localePath(locale, 'auth/magic')} className="text-accent hover:underline">
+            <Link
+              href={localePath(locale, "auth/magic")}
+              className="text-accent hover:underline"
+            >
               {messages.auth.magicLink}
             </Link>
-            <Link href={localePath(locale, 'auth/forgot')} className="text-accent hover:underline">
+            <Link
+              href={localePath(locale, "auth/forgot")}
+              className="text-accent hover:underline"
+            >
               {messages.auth.forgot}
             </Link>
             <p className="text-muted">
-              {messages.auth.noAccount}{' '}
-              <Link href={localePath(locale, 'auth/sign-up')} className="text-accent hover:underline">
+              {messages.auth.noAccount}{" "}
+              <Link
+                href={localePath(locale, "auth/sign-up")}
+                className="text-accent hover:underline"
+              >
                 {messages.nav.signUp}
               </Link>
             </p>
           </>
         )}
-        {action !== 'sign-in' && (
+        {action !== "sign-in" && (
           <p className="text-muted">
-            {messages.auth.haveAccount}{' '}
-            <Link href={localePath(locale, 'auth/sign-in')} className="text-accent hover:underline">
+            {messages.auth.haveAccount}{" "}
+            <Link
+              href={localePath(locale, "auth/sign-in")}
+              className="text-accent hover:underline"
+            >
               {messages.nav.signIn}
             </Link>
           </p>

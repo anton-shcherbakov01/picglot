@@ -7,11 +7,11 @@ from logging.config import fileConfig
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 
-from lingoimage.core.config import settings
+from picglot.core.config import settings
 
 # Importing the models module registers every table on Base.metadata.
-from lingoimage.db import models  # noqa: F401
-from lingoimage.db.base import Base
+from picglot.db import models  # noqa: F401
+from picglot.db.base import Base
 
 config = context.config
 if config.config_file_name is not None:

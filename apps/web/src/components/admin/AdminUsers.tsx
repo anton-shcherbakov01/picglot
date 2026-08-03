@@ -1,12 +1,12 @@
-'use client';
+"use client";
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from "react";
 
-import { ApiError, apiFetch } from '@/lib/api';
-import { formatMoney, formatNumber } from '@/lib/format';
-import type { Locale } from '@/lib/i18n';
+import { ApiError, apiFetch } from "@/lib/api";
+import { formatMoney, formatNumber } from "@/lib/format";
+import type { Locale } from "@/lib/i18n";
 
-import { ErrorNote, Timestamp, useReasonPrompt } from './AdminPanel';
+import { ErrorNote, Timestamp, useReasonPrompt } from "./AdminPanel";
 
 interface UserRow {
   id: string;
@@ -36,7 +36,12 @@ interface UserDetail {
     status: string;
     created_at: string;
   };
-  credits: { balance: number; granted: number; spent: number; ledger_sum: number };
+  credits: {
+    balance: number;
+    granted: number;
+    spent: number;
+    ledger_sum: number;
+  };
   projects: number;
   jobs: { id: string; type: string; status: string; created_at: string }[];
   payments: {
@@ -56,7 +61,7 @@ export function AdminUsers({
   locale: Locale;
   onError: (failure: unknown) => boolean;
 }) {
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState("");
   const [list, setList] = useState<UserList | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [detail, setDetail] = useState<UserDetail | null>(null);
@@ -65,8 +70,8 @@ export function AdminUsers({
 
   const load = useCallback(async () => {
     try {
-      const query = new URLSearchParams({ limit: '25' });
-      if (search) query.set('search', search);
+      const query = new URLSearchParams({ limit: "25" });
+      if (search) query.set("search", search);
       setList(await apiFetch<UserList>(`/api/v1/admin/users?${query}`));
       setError(null);
     } catch (failure) {
@@ -90,18 +95,20 @@ export function AdminUsers({
   };
 
   const adjustCredits = async (id: string) => {
-    const raw = window.prompt('Credit adjustment (positive to grant, negative to deduct):');
+    const raw = window.prompt(
+      "Credit adjustment (positive to grant, negative to deduct):",
+    );
     if (raw === null) return;
     const delta = Number(raw);
     if (!Number.isInteger(delta) || delta === 0) {
-      window.alert('Enter a non-zero whole number.');
+      window.alert("Enter a non-zero whole number.");
       return;
     }
-    const reason = askReason('adjust credits');
+    const reason = askReason("adjust credits");
     if (!reason) return;
     try {
       await apiFetch(`/api/v1/admin/users/${id}/credits`, {
-        method: 'POST',
+        method: "POST",
         json: { delta, reason },
       });
       await openDetail(id);
@@ -110,12 +117,12 @@ export function AdminUsers({
     }
   };
 
-  const setStatus = async (id: string, status: 'active' | 'suspended') => {
+  const setStatus = async (id: string, status: "active" | "suspended") => {
     const reason = askReason(`set status to ${status}`);
     if (!reason) return;
     try {
       await apiFetch(`/api/v1/admin/users/${id}/status`, {
-        method: 'POST',
+        method: "POST",
         json: { status, reason },
       });
       await Promise.all([load(), openDetail(id)]);
@@ -150,23 +157,34 @@ export function AdminUsers({
           </thead>
           <tbody>
             {list?.items.map((row) => (
-              <tr key={row.id} className="border-b border-border/50 last:border-0">
+              <tr
+                key={row.id}
+                className="border-b border-border/50 last:border-0"
+              >
                 <td className="p-3">
                   {row.email}
-                  {!row.verified && <span className="ml-2 chip text-xs">unverified</span>}
+                  {!row.verified && (
+                    <span className="ml-2 chip text-xs">unverified</span>
+                  )}
                 </td>
                 <td className="p-3">{row.plan_code}</td>
                 <td className="p-3">
-                  <span className={row.status === 'suspended' ? 'text-danger' : ''}>
+                  <span
+                    className={row.status === "suspended" ? "text-danger" : ""}
+                  >
                     {row.status}
                   </span>
                 </td>
-                <td className="p-3">{row.admin_role ?? '—'}</td>
+                <td className="p-3">{row.admin_role ?? "—"}</td>
                 <td className="p-3">
                   <Timestamp iso={row.created_at} locale={locale} />
                 </td>
                 <td className="p-3 text-right">
-                  <button type="button" className="btn-ghost text-xs" onClick={() => void openDetail(row.id)}>
+                  <button
+                    type="button"
+                    className="btn-ghost text-xs"
+                    onClick={() => void openDetail(row.id)}
+                  >
                     Open
                   </button>
                 </td>
@@ -210,7 +228,7 @@ export function AdminUsers({
             <div className="mt-4 grid gap-4">
               <div className="grid gap-2 sm:grid-cols-2">
                 <Field label="Email" value={detail.user.email} />
-                <Field label="Name" value={detail.user.name ?? '—'} />
+                <Field label="Name" value={detail.user.name ?? "—"} />
                 <Field label="Plan" value={detail.user.plan_code} />
                 <Field label="Status" value={detail.user.status} />
                 <Field label="Projects" value={String(detail.projects)} />
@@ -234,11 +252,11 @@ export function AdminUsers({
                 >
                   Adjust credits
                 </button>
-                {detail.user.status === 'suspended' ? (
+                {detail.user.status === "suspended" ? (
                   <button
                     type="button"
                     className="btn-secondary text-xs"
-                    onClick={() => void setStatus(detail.user.id, 'active')}
+                    onClick={() => void setStatus(detail.user.id, "active")}
                   >
                     Reactivate
                   </button>
@@ -246,7 +264,7 @@ export function AdminUsers({
                   <button
                     type="button"
                     className="btn-secondary text-xs"
-                    onClick={() => void setStatus(detail.user.id, 'suspended')}
+                    onClick={() => void setStatus(detail.user.id, "suspended")}
                   >
                     Suspend
                   </button>
@@ -264,7 +282,9 @@ export function AdminUsers({
                       <Timestamp iso={job.created_at} locale={locale} />
                     </li>
                   ))}
-                  {detail.jobs.length === 0 && <li className="text-muted">None.</li>}
+                  {detail.jobs.length === 0 && (
+                    <li className="text-muted">None.</li>
+                  )}
                 </ul>
               </div>
 
@@ -274,12 +294,19 @@ export function AdminUsers({
                   {detail.payments.map((payment) => (
                     <li key={payment.id} className="flex justify-between gap-3">
                       <span>
-                        {formatMoney(payment.amount_minor, payment.currency, locale)} · {payment.status}
+                        {formatMoney(
+                          payment.amount_minor,
+                          payment.currency,
+                          locale,
+                        )}{" "}
+                        · {payment.status}
                       </span>
                       <Timestamp iso={payment.created_at} locale={locale} />
                     </li>
                   ))}
-                  {detail.payments.length === 0 && <li className="text-muted">None.</li>}
+                  {detail.payments.length === 0 && (
+                    <li className="text-muted">None.</li>
+                  )}
                 </ul>
               </div>
 

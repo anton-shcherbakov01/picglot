@@ -1,4 +1,4 @@
-# LingoImage AI
+# PicGlot
 
 Translate text on photos, screenshots and in documents, keeping the original
 layout, colours and position.
@@ -19,37 +19,37 @@ upload → validate → preprocess → detect → recognise → normalise → la
        → translate → remove original text → typeset translation → export
 ```
 
-* **Preprocessing** — EXIF orientation, deskew via Hough line analysis,
+- **Preprocessing** — EXIF orientation, deskew via Hough line analysis,
   perspective correction, shadow flattening, CLAHE contrast, orientation
   detection (0/90/180/270).
-* **Recognition** — provider chain with automatic fallback: RapidOCR (bundled
+- **Recognition** — provider chain with automatic fallback: RapidOCR (bundled
   ONNX models, works offline), Tesseract, Google Vision, Azure AI Vision, AWS
   Textract, Yandex Vision, or a multimodal LLM for handwriting and hard pages.
-* **Layout reconstruction** — lines are regrouped into paragraphs, columns are
-  found from vertical gutters, headings are detected against a *length-weighted*
+- **Layout reconstruction** — lines are regrouped into paragraphs, columns are
+  found from vertical gutters, headings are detected against a _length-weighted_
   body size, hyphenated line breaks are repaired, ink and paper colours are
   sampled from the image.
-* **Translation** — DeepL, Google, Yandex, Azure, an LLM, or offline Argos
+- **Translation** — DeepL, Google, Yandex, Azure, an LLM, or offline Argos
   models. Glossary → translation memory → fuzzy match → cache → provider, with
   URLs, emails, product codes and template variables masked before they leave.
-* **Removing the original text** — the strategy is chosen from how textured the
-  background *around* each block is: flat fill, Telea inpainting, Navier-Stokes
+- **Removing the original text** — the strategy is chosen from how textured the
+  background _around_ each block is: flat fill, Telea inpainting, Navier-Stokes
   inpainting, or an honest translucent plate on photographic backgrounds.
-* **Typesetting** — font size is binary-searched against real glyph metrics
+- **Typesetting** — font size is binary-searched against real glyph metrics
   (never an average character width), with script-aware wrapping, CJK line-break
   rules, RTL shaping and reordering, and a warning when text genuinely does not fit.
-* **Exports** — PNG, JPG, WEBP, PDF, searchable PDF (verified invisible text
+- **Exports** — PNG, JPG, WEBP, PDF, searchable PDF (verified invisible text
   layer), bilingual PDF, DOCX, XLSX with typed cells, TXT, Markdown, CSV, JSON, ZIP.
 
 ## Requirements
 
-| | Minimum | Notes |
-|---|---|---|
-| Python | 3.11 | 3.12 in the Docker images |
-| Node | 20.11 | 22 in the Docker images |
-| PostgreSQL | 15 | 17 in `docker-compose.yml` |
-| Redis | 7 | optional in development — degrades to an in-process fallback |
-| Object storage | any S3 API | MinIO locally |
+|                | Minimum    | Notes                                                        |
+| -------------- | ---------- | ------------------------------------------------------------ |
+| Python         | 3.11       | 3.12 in the Docker images                                    |
+| Node           | 20.11      | 22 in the Docker images                                      |
+| PostgreSQL     | 15         | 17 in `docker-compose.yml`                                   |
+| Redis          | 7          | optional in development — degrades to an in-process fallback |
+| Object storage | any S3 API | MinIO locally                                                |
 
 Docker Desktop (or Docker Engine + compose v2) is enough to run everything.
 
@@ -83,8 +83,8 @@ npm run setup
 ```bash
 python -m venv .venv
 .venv/Scripts/pip install -e "apps/api[dev,ocr]"
-.venv/Scripts/python -m lingoimage.cli health
-.venv/Scripts/uvicorn lingoimage.main:app --reload
+.venv/Scripts/python -m picglot.cli health
+.venv/Scripts/uvicorn picglot.main:app --reload
 ```
 
 With `QUEUE_BACKEND=inline` and `STORAGE_BACKEND=local` you need neither Redis
@@ -93,27 +93,27 @@ code path as the Celery workers.
 
 ## Commands
 
-| Command | What it does |
-|---|---|
-| `make setup` | Create the virtualenv, install Python and Node dependencies, create `.env` |
-| `make dev` | Infrastructure in Docker, app processes locally with hot reload |
-| `make up` / `make down` | Start / stop the full Docker stack |
-| `make migrate` | Apply Alembic migrations |
-| `make seed` | Plans, feature flags, SEO content, blog posts, demo accounts |
-| `make health` | Check database, Redis, storage, OCR, translation, email, fonts |
-| `make lint` / `make typecheck` | Ruff + ESLint, mypy + tsc |
-| `make test` / `make test-e2e` | pytest and Playwright |
-| `make build` | Production build |
-| `make backup` / `make restore` | Postgres and object storage |
+| Command                        | What it does                                                               |
+| ------------------------------ | -------------------------------------------------------------------------- |
+| `make setup`                   | Create the virtualenv, install Python and Node dependencies, create `.env` |
+| `make dev`                     | Infrastructure in Docker, app processes locally with hot reload            |
+| `make up` / `make down`        | Start / stop the full Docker stack                                         |
+| `make migrate`                 | Apply Alembic migrations                                                   |
+| `make seed`                    | Plans, feature flags, SEO content, blog posts, demo accounts               |
+| `make health`                  | Check database, Redis, storage, OCR, translation, email, fonts             |
+| `make lint` / `make typecheck` | Ruff + ESLint, mypy + tsc                                                  |
+| `make test` / `make test-e2e`  | pytest and Playwright                                                      |
+| `make build`                   | Production build                                                           |
+| `make backup` / `make restore` | Postgres and object storage                                                |
 
-`python -m lingoimage.cli --help` lists the operational commands
+`python -m picglot.cli --help` lists the operational commands
 (`health`, `seed`, `create-admin`, `openapi`, `lifecycle`,
 `install-language-pack`, `config`).
 
 ## Configuration
 
 Everything is environment-driven and validated at startup —
-`apps/api/lingoimage/core/config.py` is the single source of truth, and
+`apps/api/picglot/core/config.py` is the single source of truth, and
 `.env.example` documents every variable. In production the validator refuses to
 start on a development `SECRET_KEY`, `DEBUG=true`, insecure cookies, a local
 storage backend, a missing payment webhook secret, or `SEED_ENABLED=true`, and
@@ -128,7 +128,7 @@ hard-coded in business logic.
 A fresh install performs recognition, layout analysis, editing and every export
 with no keys at all, using the bundled RapidOCR models. Translation needs either
 a provider key or the offline Argos models
-(`python -m lingoimage.cli install-language-pack en ru`); until one is present
+(`python -m picglot.cli install-language-pack en ru`); until one is present
 the interface says so plainly instead of returning untranslated text.
 
 Set `LOCAL_ONLY_PROCESSING=true` to forbid every external provider outright.
@@ -136,7 +136,7 @@ Set `LOCAL_ONLY_PROCESSING=true` to forbid every external provider outright.
 ## Repository layout
 
 ```
-apps/api/        FastAPI service, vision pipeline, workers  (package: lingoimage)
+apps/api/        FastAPI service, vision pipeline, workers  (package: picglot)
 apps/web/        Next.js 15 App Router front end
 infra/           Dockerfiles, nginx, Prometheus/Grafana
 docs/            architecture, ADRs, API, operations, security, SEO, testing
@@ -145,7 +145,24 @@ tests/           shared fixtures, golden files, load tests
 ```
 
 Backend detail: [`apps/api/README.md`](apps/api/README.md).
-Architecture: [`docs/architecture/system-overview.md`](docs/architecture/system-overview.md).
+
+## Documentation
+
+| Document                                                                                                                                                                            | What it covers                                                     |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| [`product/product-requirements.md`](docs/product/product-requirements.md)                                                                                                           | What the product is, who for, and the non-negotiables              |
+| [`architecture/system-overview.md`](docs/architecture/system-overview.md)                                                                                                           | Context, containers and sequence diagrams                          |
+| [`architecture/data-flow.md`](docs/architecture/data-flow.md)                                                                                                                       | Where every artefact is written and for how long                   |
+| [`architecture/security-boundaries.md`](docs/architecture/security-boundaries.md)                                                                                                   | Where trust changes hands and what is enforced                     |
+| [`architecture-decisions/`](docs/architecture-decisions/)                                                                                                                           | Four ADRs: package layout, OCR strategy, credit ledger, migrations |
+| [`api/public-api.md`](docs/api/public-api.md)                                                                                                                                       | Auth, rate limits, OpenAPI and the Postman collection              |
+| [`operations/hosting-quickstart.md`](docs/operations/hosting-quickstart.md)                                                                                                         | Shortest path onto a server                                        |
+| [`operations/deployment.md`](docs/operations/deployment.md)                                                                                                                         | Single-server and managed paths, production checklist              |
+| [`operations/backups.md`](docs/operations/backups.md) · [`restore.md`](docs/operations/restore.md)                                                                                  | Making backups, and using them when it matters                     |
+| [`operations/scaling.md`](docs/operations/scaling.md) · [`incident-response.md`](docs/operations/incident-response.md) · [`provider-outage.md`](docs/operations/provider-outage.md) | Running it under load and when things break                        |
+| [`security/threat-model.md`](docs/security/threat-model.md) · [`privacy-model.md`](docs/security/privacy-model.md) · [`llm-safety.md`](docs/security/llm-safety.md)                 | Threats, personal data, and treating documents as untrusted        |
+| [`seo/seo-architecture.md`](docs/seo/seo-architecture.md)                                                                                                                           | Landing pages, localised slugs, hreflang                           |
+| [`testing/test-strategy.md`](docs/testing/test-strategy.md)                                                                                                                         | What the suite proves, and the gaps it does not hide               |
 
 ## Testing
 
@@ -166,15 +183,15 @@ application code as production, with no mocked internals.
 
 ## Security and privacy
 
-* Uploads are identified by magic bytes, not extension; executables and
+- Uploads are identified by magic bytes, not extension; executables and
   disguised files are refused, PDFs are stripped of JavaScript and auto-actions.
-* Storage keys are random, buckets are private, downloads go through short-lived
+- Storage keys are random, buckets are private, downloads go through short-lived
   signed URLs.
-* Passwords use Argon2id; sessions, API keys and share tokens are stored only as
+- Passwords use Argon2id; sessions, API keys and share tokens are stored only as
   keyed hashes.
-* Document text never reaches logs or analytics — the log processor drops those
+- Document text never reaches logs or analytics — the log processor drops those
   keys and the analytics endpoint enforces a property allow-list.
-* Document content is untrusted input to any LLM: it is delimited, the system
+- Document content is untrusted input to any LLM: it is delimited, the system
   prompt forbids following instructions found inside it, no tools are exposed
   and the reply must satisfy a strict schema.
 

@@ -1,9 +1,9 @@
-import type { Metadata } from 'next';
-import { notFound } from 'next/navigation';
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 
-import { serverFetch } from '@/lib/api';
-import { formatDate } from '@/lib/format';
-import { absoluteUrl, isLocale, localePath, type Locale } from '@/lib/i18n';
+import { serverFetch } from "@/lib/api";
+import { formatDate } from "@/lib/format";
+import { absoluteUrl, isLocale, localePath, type Locale } from "@/lib/i18n";
 
 interface Post {
   slug: string;
@@ -17,7 +17,9 @@ interface Post {
 }
 
 async function loadPost(locale: string, slug: string) {
-  return serverFetch<Post>(`/api/v1/content/blog/${locale}/${slug}`, { revalidate: 900 });
+  return serverFetch<Post>(`/api/v1/content/blog/${locale}/${slug}`, {
+    revalidate: 900,
+  });
 }
 
 export async function generateMetadata({
@@ -34,7 +36,7 @@ export async function generateMetadata({
     description: post.excerpt,
     alternates: { canonical: absoluteUrl(localePath(locale, `blog/${slug}`)) },
     openGraph: {
-      type: 'article',
+      type: "article",
       title: post.title,
       description: post.excerpt,
       publishedTime: post.published_at ?? undefined,
@@ -53,17 +55,17 @@ function renderMarkdown(markdown: string) {
   const blocks = markdown.split(/\n\n+/);
   return blocks.map((block, index) => {
     const trimmed = block.trim();
-    if (trimmed.startsWith('### ')) {
+    if (trimmed.startsWith("### ")) {
       return <h3 key={index}>{trimmed.slice(4)}</h3>;
     }
-    if (trimmed.startsWith('## ')) {
+    if (trimmed.startsWith("## ")) {
       return <h2 key={index}>{trimmed.slice(3)}</h2>;
     }
-    if (trimmed.startsWith('- ')) {
+    if (trimmed.startsWith("- ")) {
       return (
         <ul key={index}>
-          {trimmed.split('\n').map((line, lineIndex) => (
-            <li key={lineIndex}>{line.replace(/^- /, '')}</li>
+          {trimmed.split("\n").map((line, lineIndex) => (
+            <li key={lineIndex}>{line.replace(/^- /, "")}</li>
           ))}
         </ul>
       );
@@ -90,21 +92,23 @@ export default async function BlogPost({
         type="application/ld+json"
         dangerouslySetInnerHTML={{
           __html: JSON.stringify({
-            '@context': 'https://schema.org',
-            '@type': 'Article',
+            "@context": "https://schema.org",
+            "@type": "Article",
             headline: post.title,
             description: post.excerpt,
             datePublished: post.published_at,
-            author: { '@type': 'Organization', name: post.author_name },
+            author: { "@type": "Organization", name: post.author_name },
           }),
         }}
       />
       <h1 className="text-3xl font-bold">{post.title}</h1>
       <p className="mt-2 text-sm text-muted">
-        {post.published_at ? formatDate(post.published_at, typed) : ''} ·{' '}
+        {post.published_at ? formatDate(post.published_at, typed) : ""} ·{" "}
         {post.reading_minutes} min · {post.author_name}
       </p>
-      <div className="prose-content mt-8">{renderMarkdown(post.body_markdown)}</div>
+      <div className="prose-content mt-8">
+        {renderMarkdown(post.body_markdown)}
+      </div>
     </article>
   );
 }

@@ -6,12 +6,12 @@ import threading
 
 import pytest
 
-from lingoimage.core.errors import AppError, ErrorCode
-from lingoimage.db.models import Job, User
-from lingoimage.db.session import session_scope
-from lingoimage.domain import credits as rules
-from lingoimage.domain.enums import LedgerReason, ToolType
-from lingoimage.services import credits as service
+from picglot.core.errors import AppError, ErrorCode
+from picglot.db.models import Job, User
+from picglot.db.session import session_scope
+from picglot.domain import credits as rules
+from picglot.domain.enums import LedgerReason, ToolType
+from picglot.services import credits as service
 
 
 # --------------------------------------------------------------------------- #
@@ -61,7 +61,7 @@ def test_partial_success_refunds_the_failed_pages():
 # --------------------------------------------------------------------------- #
 @pytest.fixture
 def wallet_user():
-    from lingoimage.core.ids import ulid
+    from picglot.core.ids import ulid
 
     with session_scope() as db:
         user = User(email=f"ledger-{ulid()[:10].lower()}@example.test", plan_code="pro")
@@ -129,7 +129,7 @@ def test_balance_cannot_go_negative(wallet_user):
 
 def test_refunding_a_payment_may_go_negative_deliberately(wallet_user):
     """Credits already spent cannot be un-spent; a negative balance is honest."""
-    from lingoimage.db.models import Payment
+    from picglot.db.models import Payment
 
     user_id, _ = wallet_user
     with session_scope() as db:
@@ -169,7 +169,7 @@ def test_concurrent_charges_never_oversell(wallet_user):
     with a global lock), so the test is skipped there rather than passing for
     the wrong reason.
     """
-    from lingoimage.db.session import get_engine
+    from picglot.db.session import get_engine
 
     if get_engine().dialect.name != "postgresql":
         pytest.skip("row-level locking requires PostgreSQL")

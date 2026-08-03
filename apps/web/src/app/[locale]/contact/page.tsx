@@ -1,8 +1,8 @@
-import type { Metadata } from 'next';
-import { notFound } from 'next/navigation';
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 
-import { ContactForm } from '@/components/ContactForm';
-import { absoluteUrl, isLocale, localePath, type Locale } from '@/lib/i18n';
+import { ContactForm } from "@/components/ContactForm";
+import { absoluteUrl, isLocale, localePath, type Locale } from "@/lib/i18n";
 
 export async function generateMetadata({
   params,
@@ -12,8 +12,8 @@ export async function generateMetadata({
   const { locale } = await params;
   if (!isLocale(locale)) return {};
   return {
-    title: locale === 'ru' ? 'Связаться с нами' : 'Contact us',
-    alternates: { canonical: absoluteUrl(localePath(locale, 'contact')) },
+    title: locale === "ru" ? "Связаться с нами" : "Contact us",
+    alternates: { canonical: absoluteUrl(localePath(locale, "contact")) },
   };
 }
 

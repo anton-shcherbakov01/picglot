@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from "react";
 
-import { ApiError, apiFetch } from '@/lib/api';
+import { ApiError, apiFetch } from "@/lib/api";
 
 interface ShareView {
   project: {
@@ -17,13 +17,18 @@ interface ShareView {
   permission: string;
   can_download: boolean;
   watermark: boolean;
-  pages: { page_number: number; width: number; height: number; image_url: string | null }[];
+  pages: {
+    page_number: number;
+    width: number;
+    height: number;
+    image_url: string | null;
+  }[];
   expires_at: string | null;
 }
 
 export function SharedProject({ token }: { token: string }) {
   const [view, setView] = useState<ShareView | null>(null);
-  const [password, setPassword] = useState('');
+  const [password, setPassword] = useState("");
   const [needsPassword, setNeedsPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(true);
@@ -33,18 +38,22 @@ export function SharedProject({ token }: { token: string }) {
       setBusy(true);
       setError(null);
       try {
-        const query = secret ? `?password=${encodeURIComponent(secret)}` : '';
+        const query = secret ? `?password=${encodeURIComponent(secret)}` : "";
         setView(await apiFetch<ShareView>(`/api/v1/share/${token}${query}`));
         setNeedsPassword(false);
       } catch (failure) {
         const apiError = failure as ApiError;
-        if (apiError.code === 'unauthenticated' || apiError.code === 'invalid_credentials') {
+        if (
+          apiError.code === "unauthenticated" ||
+          apiError.code === "invalid_credentials"
+        ) {
           setNeedsPassword(true);
-          if (apiError.code === 'invalid_credentials') setError('Incorrect password.');
-        } else if (apiError.code === 'token_expired') {
-          setError('This link has expired.');
-        } else if (apiError.code === 'not_found') {
-          setError('This link is not valid or has been revoked.');
+          if (apiError.code === "invalid_credentials")
+            setError("Incorrect password.");
+        } else if (apiError.code === "token_expired") {
+          setError("This link has expired.");
+        } else if (apiError.code === "not_found") {
+          setError("This link is not valid or has been revoked.");
         } else {
           setError(apiError.message);
         }
@@ -62,7 +71,7 @@ export function SharedProject({ token }: { token: string }) {
   const download = async () => {
     try {
       const result = await apiFetch<{ url: string }>(
-        `/api/v1/share/${token}/download${password ? `?password=${encodeURIComponent(password)}` : ''}`,
+        `/api/v1/share/${token}/download${password ? `?password=${encodeURIComponent(password)}` : ""}`,
       );
       window.location.href = result.url;
     } catch (failure) {
@@ -79,7 +88,9 @@ export function SharedProject({ token }: { token: string }) {
           void load(password);
         }}
       >
-        <h1 className="text-lg font-semibold">This link is password protected</h1>
+        <h1 className="text-lg font-semibold">
+          This link is password protected
+        </h1>
         {error && (
           <p role="alert" className="mt-3 text-sm text-danger">
             {error}
@@ -109,7 +120,9 @@ export function SharedProject({ token }: { token: string }) {
     return (
       <div className="card p-10 text-center">
         <h1 className="text-xl font-semibold">Not available</h1>
-        <p className="mt-2 text-muted">{error ?? 'This link cannot be opened.'}</p>
+        <p className="mt-2 text-muted">
+          {error ?? "This link cannot be opened."}
+        </p>
       </div>
     );
   }
@@ -120,10 +133,10 @@ export function SharedProject({ token }: { token: string }) {
         <h1 className="text-2xl font-bold">{view.project.name}</h1>
         <p className="mt-1 text-sm text-muted">
           {view.project.page_count} page(s)
-          {view.owner ? ` · shared by ${view.owner}` : ''}
+          {view.owner ? ` · shared by ${view.owner}` : ""}
           {view.expires_at
             ? ` · link expires ${new Date(view.expires_at).toLocaleDateString()}`
-            : ''}
+            : ""}
         </p>
       </header>
 
@@ -138,19 +151,26 @@ export function SharedProject({ token }: { token: string }) {
               className="w-full rounded-card border border-border"
             />
           ) : (
-            <div key={page.page_number} className="skeleton h-64 rounded-card" />
+            <div
+              key={page.page_number}
+              className="skeleton h-64 rounded-card"
+            />
           ),
         )}
       </div>
 
       {view.can_download && (
-        <button type="button" className="btn-primary mt-6" onClick={() => void download()}>
+        <button
+          type="button"
+          className="btn-primary mt-6"
+          onClick={() => void download()}
+        >
           Download
         </button>
       )}
 
       <p className="mt-8 text-center text-xs text-muted">
-        Shared with LingoImage AI · this page is not indexed
+        Shared with PicGlot · this page is not indexed
       </p>
     </>
   );

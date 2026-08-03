@@ -1,10 +1,16 @@
-import type { Metadata } from 'next';
-import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import type { Metadata } from "next";
+import Link from "next/link";
+import { notFound } from "next/navigation";
 
-import { serverFetch } from '@/lib/api';
-import { formatDate } from '@/lib/format';
-import { absoluteUrl, alternates, isLocale, localePath, type Locale } from '@/lib/i18n';
+import { serverFetch } from "@/lib/api";
+import { formatDate } from "@/lib/format";
+import {
+  absoluteUrl,
+  alternates,
+  isLocale,
+  localePath,
+  type Locale,
+} from "@/lib/i18n";
 
 interface Post {
   slug: string;
@@ -23,14 +29,17 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
   if (!isLocale(locale)) return {};
-  const { languages } = alternates('/blog');
+  const { languages } = alternates("/blog");
   return {
-    title: locale === 'ru' ? 'Блог' : 'Blog',
+    title: locale === "ru" ? "Блог" : "Blog",
     description:
-      locale === 'ru'
-        ? 'Как работает распознавание, перевод и вёрстка текста на изображениях.'
-        : 'How recognition, translation and typesetting of text in images actually work.',
-    alternates: { canonical: absoluteUrl(localePath(locale, 'blog')), languages },
+      locale === "ru"
+        ? "Как работает распознавание, перевод и вёрстка текста на изображениях."
+        : "How recognition, translation and typesetting of text in images actually work.",
+    alternates: {
+      canonical: absoluteUrl(localePath(locale, "blog")),
+      languages,
+    },
   };
 }
 
@@ -49,11 +58,13 @@ export default async function BlogIndex({
 
   return (
     <div className="container-page max-w-3xl py-12">
-      <h1 className="text-3xl font-bold">{typed === 'ru' ? 'Блог' : 'Blog'}</h1>
+      <h1 className="text-3xl font-bold">{typed === "ru" ? "Блог" : "Blog"}</h1>
 
       {!posts || posts.length === 0 ? (
         <p className="mt-6 text-muted">
-          {typed === 'ru' ? 'Пока нет опубликованных статей.' : 'No posts published yet.'}
+          {typed === "ru"
+            ? "Пока нет опубликованных статей."
+            : "No posts published yet."}
         </p>
       ) : (
         <ul className="mt-8 grid gap-4">
@@ -67,8 +78,8 @@ export default async function BlogIndex({
               </Link>
               <p className="mt-2 text-sm text-muted">{post.excerpt}</p>
               <p className="mt-3 text-xs text-muted">
-                {post.published_at ? formatDate(post.published_at, typed) : ''} ·{' '}
-                {post.reading_minutes} min · {post.author_name}
+                {post.published_at ? formatDate(post.published_at, typed) : ""}{" "}
+                · {post.reading_minutes} min · {post.author_name}
               </p>
             </li>
           ))}

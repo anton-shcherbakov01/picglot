@@ -2,11 +2,11 @@
 
 ## What is backed up
 
-| Component | Method | Where |
-|---|---|---|
-| PostgreSQL | `pg_dump --format=custom` | `scripts/backup-loop.sh` (production container, automatic) or `scripts/backup.sh` (on demand) |
-| Object storage | `mc mirror` from the S3-compatible bucket | `scripts/backup.sh` only — the automatic container has no S3 client |
-| Configuration | `.env` key names only, values redacted | Both scripts, for recovering the *shape* of the config, never secrets |
+| Component      | Method                                    | Where                                                                                         |
+| -------------- | ----------------------------------------- | --------------------------------------------------------------------------------------------- |
+| PostgreSQL     | `pg_dump --format=custom`                 | `scripts/backup-loop.sh` (production container, automatic) or `scripts/backup.sh` (on demand) |
+| Object storage | `mc mirror` from the S3-compatible bucket | `scripts/backup.sh` only — the automatic container has no S3 client                           |
+| Configuration  | `.env` key names only, values redacted    | Both scripts, for recovering the _shape_ of the config, never secrets                         |
 
 ## Automatic backups (production)
 
@@ -38,7 +38,7 @@ script sources `.env` itself).
 ## Restore
 
 ```bash
-./scripts/restore.sh ./backups/20260803T120000Z/postgres_lingoimage.dump
+./scripts/restore.sh ./backups/20260803T120000Z/postgres_picglot.dump
 # or point it at a directory and it picks the newest *.dump:
 ./scripts/restore.sh ./backups
 ```
@@ -55,7 +55,7 @@ drill:
 2. `git clone` the repo, `cp .env.example .env` (fill in real values).
 3. `docker compose up -d postgres`.
 4. `./scripts/restore.sh <a real dump copied over>`.
-5. `python -m lingoimage.cli health` — must be green.
+5. `python -m picglot.cli health` — must be green.
 6. Open the app, confirm a known project loads with its expected content.
 7. Record how long the whole drill took; that number is your real RTO.
 

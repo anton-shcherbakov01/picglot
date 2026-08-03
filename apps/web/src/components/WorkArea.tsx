@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   ApiError,
@@ -10,14 +10,14 @@ import {
   type AppConfig,
   type JobResponse,
   type ProjectResponse,
-} from '@/lib/api';
-import { formatBytes, sizeBucket } from '@/lib/format';
-import type { Locale } from '@/lib/i18n';
-import { format, type Messages } from '@/lib/messages';
-import { track } from '@/lib/analytics';
-import { Editor } from './Editor';
+} from "@/lib/api";
+import { formatBytes, sizeBucket } from "@/lib/format";
+import type { Locale } from "@/lib/i18n";
+import { format, type Messages } from "@/lib/messages";
+import { track } from "@/lib/analytics";
+import { Editor } from "./Editor";
 
-type Phase = 'idle' | 'uploading' | 'processing' | 'done' | 'error';
+type Phase = "idle" | "uploading" | "processing" | "done" | "error";
 
 interface Props {
   locale: Locale;
@@ -36,16 +36,17 @@ export function WorkArea({
   defaultSource,
   defaultTarget,
 }: Props) {
-  const tool = config.tools.find((item) => item.slug === toolSlug) ?? config.tools[0];
-  const [phase, setPhase] = useState<Phase>('idle');
+  const tool =
+    config.tools.find((item) => item.slug === toolSlug) ?? config.tools[0];
+  const [phase, setPhase] = useState<Phase>("idle");
   const [file, setFile] = useState<File | null>(null);
   const [uploadFraction, setUploadFraction] = useState(0);
   const [job, setJob] = useState<Partial<JobResponse> | null>(null);
   const [project, setProject] = useState<ProjectResponse | null>(null);
   const [error, setError] = useState<ApiError | null>(null);
-  const [source, setSource] = useState(defaultSource ?? 'auto');
+  const [source, setSource] = useState(defaultSource ?? "auto");
   const [target, setTarget] = useState(
-    defaultTarget ?? (locale === 'ru' ? 'ru' : 'en'),
+    defaultTarget ?? (locale === "ru" ? "ru" : "en"),
   );
   const [dragging, setDragging] = useState(false);
 
@@ -57,9 +58,10 @@ export function WorkArea({
   const translates = tool?.translates ?? false;
   // Memoised: a fresh `[]` fallback each render would invalidate `validate`.
   const accepts = useMemo(() => tool?.accepts ?? [], [tool]);
-  const acceptAttr = accepts.map((ext) => `.${ext}`).join(',');
+  const acceptAttr = accepts.map((ext) => `.${ext}`).join(",");
   const maxBytes = Number(
-    (config.limits.max_upload_bytes as Record<string, number> | undefined)?.guest ?? 10485760,
+    (config.limits.max_upload_bytes as Record<string, number> | undefined)
+      ?.guest ?? 10485760,
   );
 
   useEffect(() => () => stopFollowRef.current?.(), []);
@@ -67,23 +69,25 @@ export function WorkArea({
   // Ctrl/Cmd+V anywhere on the page starts a job — the screenshot workflow.
   useEffect(() => {
     const onPaste = (event: ClipboardEvent) => {
-      if (phase === 'uploading' || phase === 'processing') return;
+      if (phase === "uploading" || phase === "processing") return;
       const item = Array.from(event.clipboardData?.items ?? []).find((entry) =>
-        entry.type.startsWith('image/'),
+        entry.type.startsWith("image/"),
       );
       const pasted = item?.getAsFile();
       if (pasted) {
         event.preventDefault();
-        void start(new File([pasted], `pasted-${Date.now()}.png`, { type: pasted.type }));
+        void start(
+          new File([pasted], `pasted-${Date.now()}.png`, { type: pasted.type }),
+        );
       }
     };
-    window.addEventListener('paste', onPaste);
-    return () => window.removeEventListener('paste', onPaste);
+    window.addEventListener("paste", onPaste);
+    return () => window.removeEventListener("paste", onPaste);
   });
 
   const reset = () => {
     stopFollowRef.current?.();
-    setPhase('idle');
+    setPhase("idle");
     setFile(null);
     setJob(null);
     setProject(null);
@@ -94,17 +98,17 @@ export function WorkArea({
   /** Client-side pre-check so an obviously wrong file never costs an upload. */
   const validate = useCallback(
     (candidate: File): ApiError | null => {
-      const extension = candidate.name.split('.').pop()?.toLowerCase() ?? '';
+      const extension = candidate.name.split(".").pop()?.toLowerCase() ?? "";
       if (accepts.length && !accepts.includes(extension)) {
         return new ApiError({
-          code: 'unsupported_file_type',
+          code: "unsupported_file_type",
           message: messages.errors.unsupported_file_type,
           status: 415,
         });
       }
       if (candidate.size > maxBytes) {
         return new ApiError({
-          code: 'file_too_large',
+          code: "file_too_large",
           message: messages.errors.file_too_large,
           status: 413,
         });
@@ -119,17 +123,17 @@ export function WorkArea({
       const invalid = validate(candidate);
       if (invalid) {
         setError(invalid);
-        setPhase('error');
+        setPhase("error");
         return;
       }
 
       setFile(candidate);
       setError(null);
-      setPhase('uploading');
+      setPhase("uploading");
       setUploadFraction(0);
       abortRef.current = new AbortController();
 
-      track('upload_started', {
+      track("upload_started", {
         tool: toolSlug,
         file_type: candidate.type,
         file_size_bucket: sizeBucket(candidate.size),
@@ -140,7 +144,7 @@ export function WorkArea({
           candidate,
           {
             tool: tool?.type ?? toolSlug,
-            source_language: source === 'auto' ? null : source,
+            source_language: source === "auto" ? null : source,
             target_language: translates ? target : null,
             translate: translates,
             export_formats: [],
@@ -150,40 +154,46 @@ export function WorkArea({
             signal: abortRef.current.signal,
           },
         );
-        track('upload_completed', { tool: toolSlug });
+        track("upload_completed", { tool: toolSlug });
         setJob(created);
-        setPhase('processing');
+        setPhase("processing");
 
         stopFollowRef.current = followJob(created.id, {
-          onProgress: (update) => setJob((current) => ({ ...current, ...update })),
+          onProgress: (update) =>
+            setJob((current) => ({ ...current, ...update })),
           onDone: async (finished) => {
             setJob(finished);
-            track('processing_completed', {
+            track("processing_completed", {
               tool: toolSlug,
               pages: finished.pages_completed,
             });
             if (finished.project_id) {
               try {
                 setProject(
-                  await apiFetch<ProjectResponse>(`/api/v1/projects/${finished.project_id}`),
+                  await apiFetch<ProjectResponse>(
+                    `/api/v1/projects/${finished.project_id}`,
+                  ),
                 );
               } catch (loadError) {
                 setError(loadError as ApiError);
               }
             }
-            setPhase('done');
+            setPhase("done");
           },
           onError: (failure) => {
-            track('processing_failed', { tool: toolSlug, error_code: failure.code });
+            track("processing_failed", {
+              tool: toolSlug,
+              error_code: failure.code,
+            });
             setError(failure);
-            setPhase('error');
+            setPhase("error");
           },
         });
       } catch (uploadError) {
         const failure = uploadError as ApiError;
-        track('upload_failed', { tool: toolSlug, error_code: failure.code });
+        track("upload_failed", { tool: toolSlug, error_code: failure.code });
         setError(failure);
-        setPhase(failure.code === 'cancelled' ? 'idle' : 'error');
+        setPhase(failure.code === "cancelled" ? "idle" : "error");
       }
     },
     [source, target, toolSlug, translates, tool, validate],
@@ -194,7 +204,7 @@ export function WorkArea({
     stopFollowRef.current?.();
     if (job?.id) {
       try {
-        await apiFetch(`/api/v1/jobs/${job.id}/cancel`, { method: 'POST' });
+        await apiFetch(`/api/v1/jobs/${job.id}/cancel`, { method: "POST" });
       } catch {
         /* the job may already have finished */
       }
@@ -203,28 +213,30 @@ export function WorkArea({
   };
 
   // ---------------------------------------------------------------- render
-  if (phase === 'done' && project) {
+  if (phase === "done" && project) {
     return (
       <Editor
         messages={messages}
         config={config}
         project={project}
         onReload={async () => {
-          setProject(await apiFetch<ProjectResponse>(`/api/v1/projects/${project.id}`));
+          setProject(
+            await apiFetch<ProjectResponse>(`/api/v1/projects/${project.id}`),
+          );
         }}
         onReset={reset}
       />
     );
   }
 
-  if (phase === 'uploading' || phase === 'processing') {
+  if (phase === "uploading" || phase === "processing") {
     return (
       <ProgressPanel
         messages={messages}
         phase={phase}
         uploadFraction={uploadFraction}
         job={job}
-        fileName={file?.name ?? ''}
+        fileName={file?.name ?? ""}
         onCancel={cancel}
       />
     );
@@ -232,7 +244,9 @@ export function WorkArea({
 
   return (
     <div className="grid gap-4">
-      {error && <ErrorBanner messages={messages} error={error} onRetry={reset} />}
+      {error && (
+        <ErrorBanner messages={messages} error={error} onRetry={reset} />
+      )}
 
       {translates && (
         <div className="grid gap-3 sm:grid-cols-2">
@@ -283,8 +297,9 @@ export function WorkArea({
           role="status"
           className="rounded-lg border border-warn/40 bg-warn/10 px-4 py-3 text-sm text-warn"
         >
-          Translation is not configured on this installation yet. Recognition, editing and
-          exports work; translating needs a provider key or the offline models.
+          Translation is not configured on this installation yet. Recognition,
+          editing and exports work; translating needs a provider key or the
+          offline models.
         </p>
       )}
 
@@ -301,19 +316,25 @@ export function WorkArea({
           if (dropped) void start(dropped);
         }}
         className={`rounded-card border-2 border-dashed p-8 text-center transition-colors sm:p-12 ${
-          dragging ? 'border-accent bg-accent/5' : 'border-border bg-surface'
+          dragging ? "border-accent bg-accent/5" : "border-border bg-surface"
         }`}
       >
         <div aria-hidden className="mb-3 text-4xl">
-          {dragging ? '📥' : '🖼️'}
+          {dragging ? "📥" : "🖼️"}
         </div>
         <p className="text-lg font-semibold">
           {dragging ? messages.upload.dragActive : messages.upload.dropTitle}
         </p>
-        <p className="mt-1 text-sm text-muted">{messages.upload.dropSubtitle}</p>
+        <p className="mt-1 text-sm text-muted">
+          {messages.upload.dropSubtitle}
+        </p>
 
         <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
-          <button type="button" className="btn-primary" onClick={() => inputRef.current?.click()}>
+          <button
+            type="button"
+            className="btn-primary"
+            onClick={() => inputRef.current?.click()}
+          >
             {messages.upload.browse}
           </button>
           <button
@@ -334,7 +355,7 @@ export function WorkArea({
           onChange={(event) => {
             const chosen = event.target.files?.[0];
             if (chosen) void start(chosen);
-            event.target.value = '';
+            event.target.value = "";
           }}
         />
         <input
@@ -346,13 +367,15 @@ export function WorkArea({
           onChange={(event) => {
             const chosen = event.target.files?.[0];
             if (chosen) void start(chosen);
-            event.target.value = '';
+            event.target.value = "";
           }}
         />
 
         <p className="mt-5 text-xs text-muted">
-          {format(messages.upload.maxSize, { size: formatBytes(maxBytes, locale) })} ·{' '}
-          {accepts.map((ext) => ext.toUpperCase()).join(', ')}
+          {format(messages.upload.maxSize, {
+            size: formatBytes(maxBytes, locale),
+          })}{" "}
+          · {accepts.map((ext) => ext.toUpperCase()).join(", ")}
         </p>
         <p className="mt-1 text-xs text-muted">{messages.upload.privacy}</p>
       </div>
@@ -375,13 +398,15 @@ function ProgressPanel({
   fileName: string;
   onCancel: () => void;
 }) {
-  const stage = (job?.stage ?? job?.status ?? 'queued') as keyof Messages['processing'];
+  const stage = (job?.stage ??
+    job?.status ??
+    "queued") as keyof Messages["processing"];
   const label =
-    phase === 'uploading'
+    phase === "uploading"
       ? messages.upload.uploading
       : ((messages.processing[stage] as string) ?? messages.processing.queued);
   const percent =
-    phase === 'uploading'
+    phase === "uploading"
       ? Math.round(uploadFraction * 100)
       : Math.round((job?.progress ?? 0) * 100);
 
@@ -441,10 +466,12 @@ function ErrorBanner({
       className="rounded-card border border-danger/40 bg-danger/10 p-4 text-sm text-danger"
     >
       <p className="font-semibold">{localized}</p>
-      {typeof error.details.limit_mb === 'number' && (
-        <p className="mt-1 opacity-90">Limit: {String(error.details.limit_mb)} MB</p>
+      {typeof error.details.limit_mb === "number" && (
+        <p className="mt-1 opacity-90">
+          Limit: {String(error.details.limit_mb)} MB
+        </p>
       )}
-      {typeof error.details.remaining_pages === 'number' && (
+      {typeof error.details.remaining_pages === "number" && (
         <p className="mt-1 opacity-90">
           {format(messages.upload.remaining, {
             count: String(error.details.remaining_pages),

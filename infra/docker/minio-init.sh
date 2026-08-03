@@ -1,8 +1,8 @@
 #!/bin/sh
-# Creates the private bucket and lifecycle rules used by LingoImage AI.
+# Creates the private bucket and lifecycle rules used by PicGlot.
 set -eu
 
-BUCKET="${S3_BUCKET:-lingoimage}"
+BUCKET="${S3_BUCKET:-picglot}"
 
 mc alias set local http://minio:9000 "${S3_ACCESS_KEY_ID}" "${S3_SECRET_ACCESS_KEY}"
 

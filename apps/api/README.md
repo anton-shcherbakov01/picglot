@@ -1,4 +1,4 @@
-# `lingoimage` — API and processing engine
+# `picglot` — API and processing engine
 
 Single installable Python package shared by the FastAPI service and the Celery
 workers. Keeping one package (rather than three that import each other) means
@@ -6,7 +6,7 @@ the models, provider adapters and vision pipeline cannot drift between the web
 tier and the workers.
 
 ```
-lingoimage/
+picglot/
   core/       configuration, errors, logging, security, metrics, rate limiting
   domain/     languages, tools, enums, credit rules, plans
   db/         declarative models, session handling, seed data
@@ -23,8 +23,8 @@ lingoimage/
 ```bash
 python -m venv .venv
 .venv/bin/pip install -e "apps/api[dev,ocr]"
-.venv/bin/uvicorn lingoimage.main:app --reload
+.venv/bin/uvicorn picglot.main:app --reload
 ```
 
-Run `python -m lingoimage.cli health` to check that the database, Redis, object
+Run `python -m picglot.cli health` to check that the database, Redis, object
 storage and the configured providers are reachable.

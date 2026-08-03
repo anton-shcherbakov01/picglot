@@ -1,16 +1,21 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from "react";
 
-import { ApiError, apiFetch } from '@/lib/api';
+import { ApiError, apiFetch } from "@/lib/api";
 
-import { ErrorNote } from './AdminPanel';
+import { ErrorNote } from "./AdminPanel";
 
 interface ProvidersData {
   health: Record<string, Record<string, unknown>>;
   usage_24h: Record<
     string,
-    { calls: number; cost_usd: number; avg_latency_ms: number; success_rate: number }
+    {
+      calls: number;
+      cost_usd: number;
+      avg_latency_ms: number;
+      success_rate: number;
+    }
   >;
   configuration: {
     kind: string;
@@ -24,13 +29,17 @@ interface ProvidersData {
   }[];
 }
 
-export function AdminProviders({ onError }: { onError: (failure: unknown) => boolean }) {
+export function AdminProviders({
+  onError,
+}: {
+  onError: (failure: unknown) => boolean;
+}) {
   const [data, setData] = useState<ProvidersData | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    apiFetch<ProvidersData>('/api/v1/admin/providers')
+    apiFetch<ProvidersData>("/api/v1/admin/providers")
       .then((result) => {
         if (!cancelled) setData(result);
       })
@@ -64,29 +73,41 @@ export function AdminProviders({ onError }: { onError: (failure: unknown) => boo
           </thead>
           <tbody>
             {data.configuration.map((row) => (
-              <tr key={`${row.kind}-${row.name}`} className="border-b border-border/50 last:border-0">
+              <tr
+                key={`${row.kind}-${row.name}`}
+                className="border-b border-border/50 last:border-0"
+              >
                 <td className="p-3">{row.kind}</td>
                 <td className="p-3">{row.name}</td>
-                <td className="p-3">{row.enabled ? 'yes' : 'no'}</td>
+                <td className="p-3">{row.enabled ? "yes" : "no"}</td>
                 <td className="p-3">{row.priority}</td>
                 <td className="p-3">
-                  <span className={row.health_status === 'unavailable' ? 'text-danger' : ''}>
-                    {row.health_status ?? '—'}
+                  <span
+                    className={
+                      row.health_status === "unavailable" ? "text-danger" : ""
+                    }
+                  >
+                    {row.health_status ?? "—"}
                   </span>
                   {row.health_detail && (
-                    <span className="block text-xs text-muted">{row.health_detail}</span>
+                    <span className="block text-xs text-muted">
+                      {row.health_detail}
+                    </span>
                   )}
                 </td>
                 <td className="p-3">
-                  {row.daily_cost_limit_usd === null ? '—' : `$${row.daily_cost_limit_usd}`}
+                  {row.daily_cost_limit_usd === null
+                    ? "—"
+                    : `$${row.daily_cost_limit_usd}`}
                 </td>
-                <td className="p-3">{row.has_secrets ? 'set' : 'none'}</td>
+                <td className="p-3">{row.has_secrets ? "set" : "none"}</td>
               </tr>
             ))}
             {data.configuration.length === 0 && (
               <tr>
                 <td className="p-4 text-muted" colSpan={7}>
-                  No provider rows configured — the priority lists in `.env` are in force.
+                  No provider rows configured — the priority lists in `.env` are
+                  in force.
                 </td>
               </tr>
             )}
@@ -108,13 +129,18 @@ export function AdminProviders({ onError }: { onError: (failure: unknown) => boo
           </thead>
           <tbody>
             {Object.entries(data.usage_24h).map(([provider, stats]) => (
-              <tr key={provider} className="border-b border-border/50 last:border-0">
+              <tr
+                key={provider}
+                className="border-b border-border/50 last:border-0"
+              >
                 <td className="p-3">{provider}</td>
                 <td className="p-3">{stats.calls}</td>
                 <td className="p-3">${stats.cost_usd.toFixed(4)}</td>
                 <td className="p-3">{stats.avg_latency_ms}ms</td>
                 <td className="p-3">
-                  <span className={stats.success_rate < 0.9 ? 'text-danger' : ''}>
+                  <span
+                    className={stats.success_rate < 0.9 ? "text-danger" : ""}
+                  >
                     {(stats.success_rate * 100).toFixed(1)}%
                   </span>
                 </td>

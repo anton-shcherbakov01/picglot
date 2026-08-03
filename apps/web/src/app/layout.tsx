@@ -1,29 +1,29 @@
-import type { Metadata, Viewport } from 'next';
-import './globals.css';
+import type { Metadata, Viewport } from "next";
+import "./globals.css";
 
-const BRAND = process.env.NEXT_PUBLIC_BRAND_NAME ?? 'LingoImage AI';
+const BRAND = process.env.NEXT_PUBLIC_BRAND_NAME ?? "PicGlot";
 
 export const metadata: Metadata = {
   title: { default: BRAND, template: `%s · ${BRAND}` },
   applicationName: BRAND,
-  manifest: '/manifest.webmanifest',
+  manifest: "/manifest.webmanifest",
   icons: {
     icon: [
-      { url: '/favicon.svg', type: 'image/svg+xml' },
-      { url: '/favicon.ico', sizes: '32x32' },
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/favicon.ico", sizes: "32x32" },
     ],
-    apple: '/icons/apple-touch-icon.png',
+    apple: "/icons/apple-touch-icon.png",
   },
   formatDetection: { telephone: false },
 };
 
 export const viewport: Viewport = {
-  width: 'device-width',
+  width: "device-width",
   initialScale: 1,
   maximumScale: 5,
   themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#fafafb' },
-    { media: '(prefers-color-scheme: dark)', color: '#0c0e12' },
+    { media: "(prefers-color-scheme: light)", color: "#fafafb" },
+    { media: "(prefers-color-scheme: dark)", color: "#0c0e12" },
   ],
 };
 
@@ -49,7 +49,11 @@ if ('serviceWorker' in navigator) {
   });
 }`;
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html suppressHydrationWarning>
       <head>

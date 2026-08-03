@@ -5,7 +5,7 @@ from __future__ import annotations
 import fitz
 import pytest
 
-from lingoimage.workers import dispatch
+from picglot.workers import dispatch
 
 
 def _process(client, image_bytes: bytes, options: str) -> dict:
@@ -172,10 +172,10 @@ def test_unsupported_and_malicious_uploads_are_refused(client, sample_image_byte
 
 
 def _export_bytes(export_id: str) -> bytes:
-    from lingoimage.db.models import Export
-    from lingoimage.db.session import session_scope
-    from lingoimage.services import projects as project_service
-    from lingoimage.services import storage
+    from picglot.db.models import Export
+    from picglot.db.session import session_scope
+    from picglot.services import projects as project_service
+    from picglot.services import storage
 
     with session_scope() as db:
         export = db.get(Export, export_id)

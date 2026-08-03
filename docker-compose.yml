@@ -5,7 +5,7 @@
 #   docker compose up -d postgres redis minio mailpit   -> infra only
 #   docker compose --profile monitoring up -d           -> + Prometheus/Grafana
 
-name: lingoimage
+name: picglot
 
 x-api-env: &api-env
   ENVIRONMENT: ${ENVIRONMENT:-development}
@@ -13,15 +13,15 @@ x-api-env: &api-env
   LOG_LEVEL: ${LOG_LEVEL:-INFO}
   LOG_FORMAT: ${LOG_FORMAT:-console}
   SECRET_KEY: ${SECRET_KEY:-dev-insecure-secret-key-change-me-in-production-0000000000000000}
-  DATABASE_URL: postgresql+psycopg://lingo:lingo@postgres:5432/lingoimage
+  DATABASE_URL: postgresql+psycopg://picglot:picglot@postgres:5432/picglot
   REDIS_URL: redis://redis:6379/0
   QUEUE_BACKEND: ${QUEUE_BACKEND:-celery}
   STORAGE_BACKEND: s3
   S3_ENDPOINT_URL: http://minio:9000
   S3_PUBLIC_ENDPOINT_URL: ${S3_PUBLIC_ENDPOINT_URL:-http://localhost:9000}
-  S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-lingoimage}
-  S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:-lingoimage-dev-secret}
-  S3_BUCKET: ${S3_BUCKET:-lingoimage}
+  S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-picglot}
+  S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:-picglot-dev-secret}
+  S3_BUCKET: ${S3_BUCKET:-picglot}
   S3_FORCE_PATH_STYLE: "true"
   S3_USE_SSL: "false"
   EMAIL_PROVIDER: smtp
@@ -44,9 +44,9 @@ x-api-env: &api-env
   YOOKASSA_SECRET_KEY: ${YOOKASSA_SECRET_KEY:-}
   SENTRY_DSN: ${SENTRY_DSN:-}
   SEED_ENABLED: ${SEED_ENABLED:-true}
-  SEED_ADMIN_EMAIL: ${SEED_ADMIN_EMAIL:-admin@lingoimage.example}
+  SEED_ADMIN_EMAIL: ${SEED_ADMIN_EMAIL:-admin@picglot.example}
   SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:-Sup3r!Seed-2026}
-  SEED_DEMO_EMAIL: ${SEED_DEMO_EMAIL:-demo@lingoimage.example}
+  SEED_DEMO_EMAIL: ${SEED_DEMO_EMAIL:-demo@picglot.example}
   SEED_DEMO_PASSWORD: ${SEED_DEMO_PASSWORD:-Tr1al!Seed-2026}
 
 x-worker-base: &worker-base
@@ -56,7 +56,7 @@ x-worker-base: &worker-base
   restart: unless-stopped
   environment: *api-env
   volumes:
-    - worker-tmp:/tmp/lingoimage
+    - worker-tmp:/tmp/picglot
   depends_on:
     postgres:
       condition: service_healthy
@@ -70,16 +70,16 @@ services:
     image: postgres:17-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: lingo
-      POSTGRES_PASSWORD: lingo
-      POSTGRES_DB: lingoimage
+      POSTGRES_USER: picglot
+      POSTGRES_PASSWORD: picglot
+      POSTGRES_DB: picglot
       POSTGRES_INITDB_ARGS: "--data-checksums"
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U lingo -d lingoimage"]
+      test: ["CMD-SHELL", "pg_isready -U picglot -d picglot"]
       interval: 5s
       timeout: 5s
       retries: 20
@@ -107,8 +107,8 @@ services:
     restart: unless-stopped
     command: ["server", "/data", "--console-address", ":9001"]
     environment:
-      MINIO_ROOT_USER: ${S3_ACCESS_KEY_ID:-lingoimage}
-      MINIO_ROOT_PASSWORD: ${S3_SECRET_ACCESS_KEY:-lingoimage-dev-secret}
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY_ID:-picglot}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_ACCESS_KEY:-picglot-dev-secret}
     ports:
       - "${MINIO_PORT:-9000}:9000"
       - "${MINIO_CONSOLE_PORT:-9001}:9001"
@@ -127,9 +127,9 @@ services:
         condition: service_healthy
     entrypoint: ["/bin/sh", "/init/minio-init.sh"]
     environment:
-      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-lingoimage}
-      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:-lingoimage-dev-secret}
-      S3_BUCKET: ${S3_BUCKET:-lingoimage}
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-picglot}
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:-picglot-dev-secret}
+      S3_BUCKET: ${S3_BUCKET:-picglot}
     volumes:
       - ./infra/docker/minio-init.sh:/init/minio-init.sh:ro
     restart: "no"
@@ -156,7 +156,7 @@ services:
     ports:
       - "${API_PORT:-8000}:8000"
     volumes:
-      - worker-tmp:/tmp/lingoimage
+      - worker-tmp:/tmp/picglot
     depends_on:
       postgres:
         condition: service_healthy
@@ -174,9 +174,9 @@ services:
 
   worker-cpu:
     <<: *worker-base
-    command: ["celery", "-A", "lingoimage.workers.celery_app", "worker", "-Q", "cpu", "-c", "2", "-l", "info", "--max-tasks-per-child", "40"]
+    command: ["celery", "-A", "picglot.workers.celery_app", "worker", "-Q", "cpu", "-c", "2", "-l", "info", "--max-tasks-per-child", "40"]
     healthcheck:
-      test: ["CMD", "celery", "-A", "lingoimage.workers.celery_app", "inspect", "ping", "-d", "celery@$$HOSTNAME"]
+      test: ["CMD", "celery", "-A", "picglot.workers.celery_app", "inspect", "ping", "-d", "celery@$$HOSTNAME"]
       interval: 30s
       timeout: 15s
       retries: 5
@@ -188,7 +188,7 @@ services:
 
   worker-export:
     <<: *worker-base
-    command: ["celery", "-A", "lingoimage.workers.celery_app", "worker", "-Q", "export,notifications", "-c", "2", "-l", "info"]
+    command: ["celery", "-A", "picglot.workers.celery_app", "worker", "-Q", "export,notifications", "-c", "2", "-l", "info"]
     deploy:
       resources:
         limits:
@@ -196,13 +196,13 @@ services:
 
   worker-beat:
     <<: *worker-base
-    command: ["celery", "-A", "lingoimage.workers.celery_app", "beat", "-l", "info"]
+    command: ["celery", "-A", "picglot.workers.celery_app", "beat", "-l", "info"]
 
   # GPU worker: enable with `docker compose --profile gpu up -d`
   worker-gpu:
     <<: *worker-base
     profiles: ["gpu"]
-    command: ["celery", "-A", "lingoimage.workers.celery_app", "worker", "-Q", "gpu", "-c", "1", "-l", "info"]
+    command: ["celery", "-A", "picglot.workers.celery_app", "worker", "-Q", "gpu", "-c", "1", "-l", "info"]
     environment:
       <<: *api-env
       QUEUE_GPU_ENABLED: "true"
@@ -222,7 +222,7 @@ services:
       args:
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
         NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-http://localhost:3000}
-        NEXT_PUBLIC_BRAND_NAME: ${NEXT_PUBLIC_BRAND_NAME:-LingoImage AI}
+        NEXT_PUBLIC_BRAND_NAME: ${NEXT_PUBLIC_BRAND_NAME:-PicGlot}
     restart: unless-stopped
     environment:
       NODE_ENV: production

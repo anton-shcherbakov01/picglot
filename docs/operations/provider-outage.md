@@ -5,9 +5,9 @@ Azure, AWS Textract, Yandex, or the LLM provider.
 
 ## Detection
 
-* `lingoimage_provider_circuit_open{provider="..."}` = 1 in Prometheus.
-* `GET /health/providers` reports the provider as `unavailable`.
-* Job failure rate rising for jobs that route through that provider.
+- `picglot_provider_circuit_open{provider="..."}` = 1 in Prometheus.
+- `GET /health/providers` reports the provider as `unavailable`.
+- Job failure rate rising for jobs that route through that provider.
 
 ## Automatic behaviour — nothing to do, by design
 
@@ -31,7 +31,7 @@ Azure, AWS Textract, Yandex, or the LLM provider.
 3. If **all** OCR is down and you need to keep serving requests: set
    `LOCAL_ONLY_PROCESSING=true` — this forces RapidOCR/Argos-only and refuses
    external providers outright rather than silently queueing failures.
-4. Watch `lingoimage_jobs_total{status="failed"}` and the refund rate; a
+4. Watch `picglot_jobs_total{status="failed"}` and the refund rate; a
    spike confirms the fallback chain is (or isn't) covering the gap.
 5. When the provider recovers, restore its priority/position and confirm
    `/health/providers` reports it healthy before removing any temporary

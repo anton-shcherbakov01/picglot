@@ -6,8 +6,8 @@ import time
 
 import pytest
 
-from lingoimage.core.errors import AppError, ErrorCode
-from lingoimage.core.security import (
+from picglot.core.errors import AppError, ErrorCode
+from picglot.core.security import (
     hash_password,
     hash_token,
     sign_webhook,
@@ -15,8 +15,8 @@ from lingoimage.core.security import (
     verify_password,
     verify_webhook_signature,
 )
-from lingoimage.services import files as file_service
-from lingoimage.workers import dispatch
+from picglot.services import files as file_service
+from picglot.workers import dispatch
 
 
 # --------------------------------------------------------------------------- #
@@ -25,7 +25,7 @@ from lingoimage.workers import dispatch
 def test_a_user_cannot_read_another_users_project(client, sample_image_bytes):
     from fastapi.testclient import TestClient
 
-    from lingoimage.main import app
+    from picglot.main import app
 
     owner = client
     response = owner.post(
@@ -133,7 +133,7 @@ def test_oversized_images_are_rejected_before_decoding():
 
     from PIL import Image
 
-    from lingoimage.core.config import settings
+    from picglot.core.config import settings
 
     buffer = io.BytesIO()
     Image.new("RGB", (200, 200), (255, 255, 255)).save(buffer, "PNG")
@@ -151,7 +151,7 @@ def test_oversized_images_are_rejected_before_decoding():
 def test_pdf_javascript_is_stripped_on_upload():
     import fitz
 
-    from lingoimage.vision import pdf as pdf_tools
+    from picglot.vision import pdf as pdf_tools
 
     document = fitz.open()
     document.new_page()
@@ -228,7 +228,7 @@ def test_forged_and_replayed_webhooks_are_rejected():
 
 
 def test_webhook_urls_pointing_at_internal_hosts_are_refused():
-    from lingoimage.services import webhooks
+    from picglot.services import webhooks
 
     for url in [
         "http://localhost:8000/hook",

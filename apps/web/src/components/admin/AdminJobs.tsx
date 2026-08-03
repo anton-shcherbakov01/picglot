@@ -1,12 +1,12 @@
-'use client';
+"use client";
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from "react";
 
-import { ApiError, apiFetch } from '@/lib/api';
-import { formatNumber } from '@/lib/format';
-import type { Locale } from '@/lib/i18n';
+import { ApiError, apiFetch } from "@/lib/api";
+import { formatNumber } from "@/lib/format";
+import type { Locale } from "@/lib/i18n";
 
-import { ErrorNote, Timestamp, useReasonPrompt } from './AdminPanel';
+import { ErrorNote, Timestamp, useReasonPrompt } from "./AdminPanel";
 
 interface JobRow {
   id: string;
@@ -27,7 +27,12 @@ interface JobList {
 
 interface JobDetail {
   job: JobRow;
-  timeline: { stage: string; progress: number; at: string; data: Record<string, unknown> }[];
+  timeline: {
+    stage: string;
+    progress: number;
+    at: string;
+    data: Record<string, unknown>;
+  }[];
   provider_calls: {
     kind: string;
     provider: string;
@@ -42,13 +47,13 @@ interface JobDetail {
 }
 
 const STATUSES = [
-  '',
-  'queued',
-  'running',
-  'completed',
-  'partially_completed',
-  'failed',
-  'cancelled',
+  "",
+  "queued",
+  "running",
+  "completed",
+  "partially_completed",
+  "failed",
+  "cancelled",
 ];
 
 export function AdminJobs({
@@ -58,8 +63,8 @@ export function AdminJobs({
   locale: Locale;
   onError: (failure: unknown) => boolean;
 }) {
-  const [status, setStatus] = useState('');
-  const [errorCode, setErrorCode] = useState('');
+  const [status, setStatus] = useState("");
+  const [errorCode, setErrorCode] = useState("");
   const [list, setList] = useState<JobList | null>(null);
   const [detail, setDetail] = useState<JobDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -67,9 +72,9 @@ export function AdminJobs({
 
   const load = useCallback(async () => {
     try {
-      const query = new URLSearchParams({ limit: '25' });
-      if (status) query.set('job_status', status);
-      if (errorCode) query.set('error_code', errorCode);
+      const query = new URLSearchParams({ limit: "25" });
+      if (status) query.set("job_status", status);
+      if (errorCode) query.set("error_code", errorCode);
       setList(await apiFetch<JobList>(`/api/v1/admin/jobs?${query}`));
       setError(null);
     } catch (failure) {
@@ -93,7 +98,7 @@ export function AdminJobs({
 
   const retry = async (id: string) => {
     try {
-      await apiFetch(`/api/v1/admin/jobs/${id}/retry`, { method: 'POST' });
+      await apiFetch(`/api/v1/admin/jobs/${id}/retry`, { method: "POST" });
       await load();
     } catch (failure) {
       if (!onError(failure)) setError((failure as ApiError).message);
@@ -101,17 +106,20 @@ export function AdminJobs({
   };
 
   const refund = async (id: string) => {
-    const reason = askReason('refund job');
+    const reason = askReason("refund job");
     if (!reason) return;
-    const raw = window.prompt('Amount in credits (leave blank to refund the full charge):', '');
+    const raw = window.prompt(
+      "Amount in credits (leave blank to refund the full charge):",
+      "",
+    );
     const amount = raw && raw.trim() ? Number(raw) : null;
     if (amount !== null && (!Number.isInteger(amount) || amount <= 0)) {
-      window.alert('Enter a positive whole number, or leave blank.');
+      window.alert("Enter a positive whole number, or leave blank.");
       return;
     }
     try {
       await apiFetch(`/api/v1/admin/jobs/${id}/refund`, {
-        method: 'POST',
+        method: "POST",
         json: amount === null ? { reason } : { reason, amount },
       });
       await load();
@@ -137,7 +145,7 @@ export function AdminJobs({
           >
             {STATUSES.map((value) => (
               <option key={value} value={value}>
-                {value || 'any'}
+                {value || "any"}
               </option>
             ))}
           </select>
@@ -170,27 +178,46 @@ export function AdminJobs({
           </thead>
           <tbody>
             {list?.items.map((row) => (
-              <tr key={row.id} className="border-b border-border/50 last:border-0">
+              <tr
+                key={row.id}
+                className="border-b border-border/50 last:border-0"
+              >
                 <td className="p-3">{row.type}</td>
                 <td className="p-3">
-                  <span className={row.status === 'failed' ? 'text-danger' : ''}>{row.status}</span>
+                  <span
+                    className={row.status === "failed" ? "text-danger" : ""}
+                  >
+                    {row.status}
+                  </span>
                 </td>
-                <td className="p-3">{row.error_code ?? '—'}</td>
+                <td className="p-3">{row.error_code ?? "—"}</td>
                 <td className="p-3">
-                  {row.pages_completed ?? 0}/{row.pages_total ?? '?'}
+                  {row.pages_completed ?? 0}/{row.pages_total ?? "?"}
                 </td>
                 <td className="p-3">
                   <Timestamp iso={row.created_at} locale={locale} />
                 </td>
                 <td className="p-3 text-right">
                   <div className="flex justify-end gap-1">
-                    <button type="button" className="btn-ghost text-xs" onClick={() => void openDetail(row.id)}>
+                    <button
+                      type="button"
+                      className="btn-ghost text-xs"
+                      onClick={() => void openDetail(row.id)}
+                    >
                       Detail
                     </button>
-                    <button type="button" className="btn-ghost text-xs" onClick={() => void retry(row.id)}>
+                    <button
+                      type="button"
+                      className="btn-ghost text-xs"
+                      onClick={() => void retry(row.id)}
+                    >
                       Retry
                     </button>
-                    <button type="button" className="btn-ghost text-xs" onClick={() => void refund(row.id)}>
+                    <button
+                      type="button"
+                      className="btn-ghost text-xs"
+                      onClick={() => void refund(row.id)}
+                    >
                       Refund
                     </button>
                   </div>
@@ -217,28 +244,38 @@ export function AdminJobs({
         <div className="card p-5">
           <div className="flex items-start justify-between gap-4">
             <h2 className="text-sm font-semibold">Job {detail.job.id}</h2>
-            <button type="button" className="btn-ghost text-xs" onClick={() => setDetail(null)}>
+            <button
+              type="button"
+              className="btn-ghost text-xs"
+              onClick={() => setDetail(null)}
+            >
               Close
             </button>
           </div>
 
           {detail.internal_error_reference && (
             <p className="mt-3 text-xs text-muted">
-              Internal error reference: <code>{detail.internal_error_reference}</code>
+              Internal error reference:{" "}
+              <code>{detail.internal_error_reference}</code>
             </p>
           )}
 
           <h3 className="mt-4 text-xs uppercase text-muted">Timeline</h3>
           <ul className="mt-2 grid gap-1 text-sm">
             {detail.timeline.map((event, index) => (
-              <li key={`${event.stage}-${index}`} className="flex justify-between gap-3">
+              <li
+                key={`${event.stage}-${index}`}
+                className="flex justify-between gap-3"
+              >
                 <span>
                   {event.stage} · {Math.round(event.progress * 100)}%
                 </span>
                 <Timestamp iso={event.at} locale={locale} />
               </li>
             ))}
-            {detail.timeline.length === 0 && <li className="text-muted">No events.</li>}
+            {detail.timeline.length === 0 && (
+              <li className="text-muted">No events.</li>
+            )}
           </ul>
 
           <h3 className="mt-4 text-xs uppercase text-muted">Provider calls</h3>
@@ -247,16 +284,19 @@ export function AdminJobs({
               <li key={index} className="flex flex-wrap justify-between gap-3">
                 <span>
                   {call.kind} · {call.provider}
-                  {call.model ? ` (${call.model})` : ''} · {call.units} {call.unit_kind}
+                  {call.model ? ` (${call.model})` : ""} · {call.units}{" "}
+                  {call.unit_kind}
                 </span>
-                <span className={call.success ? 'text-muted' : 'text-danger'}>
+                <span className={call.success ? "text-muted" : "text-danger"}>
                   ${call.cost_usd.toFixed(4)}
-                  {call.latency_ms !== null ? ` · ${call.latency_ms}ms` : ''}
-                  {call.success ? '' : ' · failed'}
+                  {call.latency_ms !== null ? ` · ${call.latency_ms}ms` : ""}
+                  {call.success ? "" : " · failed"}
                 </span>
               </li>
             ))}
-            {detail.provider_calls.length === 0 && <li className="text-muted">None recorded.</li>}
+            {detail.provider_calls.length === 0 && (
+              <li className="text-muted">None recorded.</li>
+            )}
           </ul>
         </div>
       )}

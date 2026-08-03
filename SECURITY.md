@@ -12,8 +12,8 @@ within 5.
 
 ## Scope
 
-* The web application, API, workers, and the data they store.
-* Out of scope: self-XSS, social engineering, and anything requiring
+- The web application, API, workers, and the data they store.
+- Out of scope: self-XSS, social engineering, and anything requiring
   physical access to infrastructure.
 
 ## What's already covered

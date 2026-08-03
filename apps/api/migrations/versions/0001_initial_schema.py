@@ -18,8 +18,8 @@ from collections.abc import Sequence
 import sqlalchemy as sa
 from alembic import op
 
-from lingoimage.db.base import Base
-from lingoimage.db import models  # noqa: F401  (registers the tables)
+from picglot.db.base import Base
+from picglot.db import models  # noqa: F401  (registers the tables)
 
 revision: str = "0001"
 down_revision: str | None = None

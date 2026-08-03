@@ -1,19 +1,19 @@
-import type { Metadata } from 'next';
-import { notFound } from 'next/navigation';
-import { Suspense } from 'react';
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { Suspense } from "react";
 
-import { AuthForm } from '@/components/AuthForm';
-import { absoluteUrl, isLocale, localePath, type Locale } from '@/lib/i18n';
-import { getMessages } from '@/lib/messages';
+import { AuthForm } from "@/components/AuthForm";
+import { absoluteUrl, isLocale, localePath, type Locale } from "@/lib/i18n";
+import { getMessages } from "@/lib/messages";
 
 const ACTIONS = [
-  'sign-in',
-  'sign-up',
-  'forgot',
-  'reset',
-  'verify',
-  'magic',
-  'two-factor',
+  "sign-in",
+  "sign-up",
+  "forgot",
+  "reset",
+  "verify",
+  "magic",
+  "two-factor",
 ] as const;
 type Action = (typeof ACTIONS)[number];
 
@@ -30,12 +30,16 @@ export async function generateMetadata({
   if (!isLocale(locale)) return {};
   const messages = getMessages(locale);
   const title =
-    action === 'sign-up' ? messages.auth.signUpTitle : messages.auth.signInTitle;
+    action === "sign-up"
+      ? messages.auth.signUpTitle
+      : messages.auth.signInTitle;
   return {
     title,
     // Auth screens have no business in a search index.
     robots: { index: false, follow: false },
-    alternates: { canonical: absoluteUrl(localePath(locale, `auth/${action}`)) },
+    alternates: {
+      canonical: absoluteUrl(localePath(locale, `auth/${action}`)),
+    },
   };
 }
 
@@ -56,7 +60,11 @@ export default async function AuthPage({
         {/* AuthForm reads ?token= from the URL, so it needs a boundary to be
             statically prerenderable. */}
         <Suspense fallback={<div className="skeleton h-80 rounded-card" />}>
-          <AuthForm locale={typed} messages={messages} action={action as Action} />
+          <AuthForm
+            locale={typed}
+            messages={messages}
+            action={action as Action}
+          />
         </Suspense>
       </div>
     </div>

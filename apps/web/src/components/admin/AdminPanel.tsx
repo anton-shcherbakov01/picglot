@@ -1,19 +1,24 @@
-'use client';
+"use client";
 
-import { useCallback, useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
-import { ApiError, apiFetch } from '@/lib/api';
-import { formatBytes, formatDate, formatMoney, formatNumber } from '@/lib/format';
-import { localePath, type Locale } from '@/lib/i18n';
+import { ApiError, apiFetch } from "@/lib/api";
+import {
+  formatBytes,
+  formatDate,
+  formatMoney,
+  formatNumber,
+} from "@/lib/format";
+import { localePath, type Locale } from "@/lib/i18n";
 
-import { AdminAudit } from './AdminAudit';
-import { AdminFlags } from './AdminFlags';
-import { AdminJobs } from './AdminJobs';
-import { AdminProviders } from './AdminProviders';
-import { AdminStatus } from './AdminStatus';
-import { AdminTickets } from './AdminTickets';
-import { AdminUsers } from './AdminUsers';
+import { AdminAudit } from "./AdminAudit";
+import { AdminFlags } from "./AdminFlags";
+import { AdminJobs } from "./AdminJobs";
+import { AdminProviders } from "./AdminProviders";
+import { AdminStatus } from "./AdminStatus";
+import { AdminTickets } from "./AdminTickets";
+import { AdminUsers } from "./AdminUsers";
 
 /**
  * Staff panel over the existing admin API.
@@ -24,27 +29,27 @@ import { AdminUsers } from './AdminUsers';
  */
 
 const SECTIONS = [
-  'dashboard',
-  'users',
-  'jobs',
-  'providers',
-  'flags',
-  'tickets',
-  'status',
-  'audit',
+  "dashboard",
+  "users",
+  "jobs",
+  "providers",
+  "flags",
+  "tickets",
+  "status",
+  "audit",
 ] as const;
 
 export type AdminSection = (typeof SECTIONS)[number];
 
 const LABELS: Record<AdminSection, string> = {
-  dashboard: 'Dashboard',
-  users: 'Users',
-  jobs: 'Jobs',
-  providers: 'Providers',
-  flags: 'Feature flags',
-  tickets: 'Support',
-  status: 'Status',
-  audit: 'Audit log',
+  dashboard: "Dashboard",
+  users: "Users",
+  jobs: "Jobs",
+  providers: "Providers",
+  flags: "Feature flags",
+  tickets: "Support",
+  status: "Status",
+  audit: "Audit log",
 };
 
 interface DashboardData {
@@ -70,14 +75,14 @@ interface DashboardData {
 
 export function AdminPanel({ locale }: { locale: Locale }) {
   const router = useRouter();
-  const [section, setSection] = useState<AdminSection>('dashboard');
+  const [section, setSection] = useState<AdminSection>("dashboard");
   const [denied, setDenied] = useState(false);
 
   const onError = useCallback(
     (failure: unknown) => {
       const error = failure as ApiError;
       if (error.status === 401) {
-        router.push(localePath(locale, 'auth/sign-in'));
+        router.push(localePath(locale, "auth/sign-in"));
         return true;
       }
       if (error.status === 403) {
@@ -95,8 +100,8 @@ export function AdminPanel({ locale }: { locale: Locale }) {
         <div className="card mx-auto max-w-md p-8 text-center">
           <h1 className="text-xl font-semibold">Not authorised</h1>
           <p className="mt-2 text-sm text-muted">
-            This account does not have an admin role. If that is wrong, ask a superadmin to grant
-            one.
+            This account does not have an admin role. If that is wrong, ask a
+            superadmin to grant one.
           </p>
         </div>
       </div>
@@ -107,17 +112,20 @@ export function AdminPanel({ locale }: { locale: Locale }) {
     <div className="container-page py-8">
       <h1 className="text-2xl font-bold">Admin</h1>
 
-      <nav className="mt-6 flex flex-wrap gap-1 border-b border-border" aria-label="Admin sections">
+      <nav
+        className="mt-6 flex flex-wrap gap-1 border-b border-border"
+        aria-label="Admin sections"
+      >
         {SECTIONS.map((item) => (
           <button
             key={item}
             type="button"
             onClick={() => setSection(item)}
-            aria-current={section === item ? 'page' : undefined}
+            aria-current={section === item ? "page" : undefined}
             className={`rounded-t-lg px-3 py-2 text-sm ${
               section === item
-                ? 'border-b-2 border-accent font-medium text-fg'
-                : 'text-muted hover:text-fg'
+                ? "border-b-2 border-accent font-medium text-fg"
+                : "text-muted hover:text-fg"
             }`}
           >
             {LABELS[item]}
@@ -126,14 +134,22 @@ export function AdminPanel({ locale }: { locale: Locale }) {
       </nav>
 
       <div className="mt-6">
-        {section === 'dashboard' && <AdminDashboard locale={locale} onError={onError} />}
-        {section === 'users' && <AdminUsers locale={locale} onError={onError} />}
-        {section === 'jobs' && <AdminJobs locale={locale} onError={onError} />}
-        {section === 'providers' && <AdminProviders onError={onError} />}
-        {section === 'flags' && <AdminFlags onError={onError} />}
-        {section === 'tickets' && <AdminTickets locale={locale} onError={onError} />}
-        {section === 'status' && <AdminStatus onError={onError} />}
-        {section === 'audit' && <AdminAudit locale={locale} onError={onError} />}
+        {section === "dashboard" && (
+          <AdminDashboard locale={locale} onError={onError} />
+        )}
+        {section === "users" && (
+          <AdminUsers locale={locale} onError={onError} />
+        )}
+        {section === "jobs" && <AdminJobs locale={locale} onError={onError} />}
+        {section === "providers" && <AdminProviders onError={onError} />}
+        {section === "flags" && <AdminFlags onError={onError} />}
+        {section === "tickets" && (
+          <AdminTickets locale={locale} onError={onError} />
+        )}
+        {section === "status" && <AdminStatus onError={onError} />}
+        {section === "audit" && (
+          <AdminAudit locale={locale} onError={onError} />
+        )}
       </div>
     </div>
   );
@@ -195,31 +211,59 @@ function AdminDashboard({
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Stat label="New users" value={formatNumber(data.users.new, locale)} />
-        <Stat label="Active users" value={formatNumber(data.users.active, locale)} />
+        <Stat
+          label="Active users"
+          value={formatNumber(data.users.active, locale)}
+        />
         <Stat label="Jobs" value={formatNumber(data.jobs.total, locale)} />
-        <Stat label="Queue depth" value={formatNumber(data.jobs.queue_depth, locale)} />
+        <Stat
+          label="Queue depth"
+          value={formatNumber(data.jobs.queue_depth, locale)}
+        />
         <Stat
           label="Success rate"
-          value={data.jobs.success_rate === null ? '—' : `${(data.jobs.success_rate * 100).toFixed(1)}%`}
+          value={
+            data.jobs.success_rate === null
+              ? "—"
+              : `${(data.jobs.success_rate * 100).toFixed(1)}%`
+          }
         />
         <Stat
           label="Error rate"
-          value={data.jobs.error_rate === null ? '—' : `${(data.jobs.error_rate * 100).toFixed(1)}%`}
+          value={
+            data.jobs.error_rate === null
+              ? "—"
+              : `${(data.jobs.error_rate * 100).toFixed(1)}%`
+          }
         />
-        <Stat label="Pages processed" value={formatNumber(data.volume.pages, locale)} />
+        <Stat
+          label="Pages processed"
+          value={formatNumber(data.volume.pages, locale)}
+        />
         <Stat
           label="Translated characters"
           value={formatNumber(data.volume.translation_characters, locale)}
         />
         <Stat
           label="Revenue"
-          value={formatMoney(data.money.revenue_minor, data.money.currency, locale)}
+          value={formatMoney(
+            data.money.revenue_minor,
+            data.money.currency,
+            locale,
+          )}
         />
         <Stat
           label="Refunds"
-          value={formatMoney(data.money.refunds_minor, data.money.currency, locale)}
+          value={formatMoney(
+            data.money.refunds_minor,
+            data.money.currency,
+            locale,
+          )}
         />
-        <Stat label="Provider cost" value={`$${data.money.provider_cost_usd.toFixed(2)}`} />
+        <Stat
+          label="Provider cost"
+          value={`$${data.money.provider_cost_usd.toFixed(2)}`}
+        />
         <Stat
           label="Job duration p95"
           value={`${duration.p95}s`}
@@ -246,9 +290,11 @@ function AdminDashboard({
         <dl className="mt-3 grid gap-2 sm:grid-cols-3">
           {Object.entries(data.storage).map(([key, value]) => (
             <div key={key}>
-              <dt className="text-xs uppercase text-muted">{key.replace(/_/g, ' ')}</dt>
+              <dt className="text-xs uppercase text-muted">
+                {key.replace(/_/g, " ")}
+              </dt>
               <dd className="text-sm">
-                {typeof value === 'number' && key.includes('bytes')
+                {typeof value === "number" && key.includes("bytes")
                   ? formatBytes(value, locale)
                   : String(value)}
               </dd>
@@ -260,7 +306,15 @@ function AdminDashboard({
   );
 }
 
-export function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
+export function Stat({
+  label,
+  value,
+  hint,
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+}) {
   return (
     <div className="card p-4">
       <div className="text-xs uppercase tracking-wide text-muted">{label}</div>
@@ -282,7 +336,11 @@ export function ErrorNote({ message }: { message: string }) {
 }
 
 export function Timestamp({ iso, locale }: { iso: string; locale: Locale }) {
-  return <span className="whitespace-nowrap text-xs text-muted">{formatDate(iso, locale)}</span>;
+  return (
+    <span className="whitespace-nowrap text-xs text-muted">
+      {formatDate(iso, locale)}
+    </span>
+  );
 }
 
 /**
@@ -291,10 +349,12 @@ export function Timestamp({ iso, locale }: { iso: string; locale: Locale }) {
  */
 export function useReasonPrompt() {
   return useCallback((action: string): string | null => {
-    const reason = window.prompt(`Reason for "${action}" (at least 5 characters, recorded in the audit log):`);
+    const reason = window.prompt(
+      `Reason for "${action}" (at least 5 characters, recorded in the audit log):`,
+    );
     if (reason === null) return null;
     if (reason.trim().length < 5) {
-      window.alert('A reason of at least 5 characters is required.');
+      window.alert("A reason of at least 5 characters is required.");
       return null;
     }
     return reason.trim();

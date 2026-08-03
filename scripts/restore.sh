@@ -13,8 +13,8 @@ if [ -f ".env" ]; then
   set +a
 fi
 
-DB_NAME="${POSTGRES_DB:-lingoimage}"
-DB_USER="${POSTGRES_USER:-lingo}"
+DB_NAME="${POSTGRES_DB:-picglot}"
+DB_USER="${POSTGRES_USER:-picglot}"
 
 if [ -f "${TARGET}" ]; then
   DUMP="${TARGET}"
@@ -40,4 +40,4 @@ docker compose "${COMPOSE_FILES[@]}" exec -T postgres pg_restore \
   --clean --if-exists --no-owner \
   < "${DUMP}"
 
-echo "[restore] Done. Run 'python -m lingoimage.cli health' to verify."
+echo "[restore] Done. Run 'python -m picglot.cli health' to verify."

@@ -1,12 +1,19 @@
-import type { Metadata } from 'next';
-import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import type { Metadata } from "next";
+import Link from "next/link";
+import { notFound } from "next/navigation";
 
-import { toolTitle } from '@/components/Header';
-import { WorkArea } from '@/components/WorkArea';
-import { serverFetch, type AppConfig, type SeoPageResponse } from '@/lib/api';
-import { absoluteUrl, alternates, isLocale, localePath, type Locale } from '@/lib/i18n';
-import { getMessages } from '@/lib/messages';
+import { toolTitle } from "@/components/Header";
+import { WorkArea } from "@/components/WorkArea";
+import { serverFetch, type AppConfig, type SeoPageResponse } from "@/lib/api";
+import {
+  absoluteUrl,
+  alternates,
+  isLocale,
+  localePath,
+  toolSlugFor,
+  type Locale,
+} from "@/lib/i18n";
+import { getMessages } from "@/lib/messages";
 
 export async function generateMetadata({
   params,
@@ -16,17 +23,23 @@ export async function generateMetadata({
   const { locale } = await params;
   if (!isLocale(locale)) return {};
   const messages = getMessages(locale);
-  const { languages } = alternates('/');
+  const { languages } = alternates("/");
 
   return {
-    title: `${messages.home.h1} — LingoImage AI`,
+    title: `${messages.home.h1} — PicGlot`,
     description: messages.home.subtitle,
     alternates: { canonical: absoluteUrl(localePath(locale)), languages },
     openGraph: {
       title: messages.home.h1,
       description: messages.home.subtitle,
       url: absoluteUrl(localePath(locale)),
-      images: [{ url: absoluteUrl(`/og/${locale}/home.png`), width: 1200, height: 630 }],
+      images: [
+        {
+          url: absoluteUrl(`/og/${locale}/home.png`),
+          width: 1200,
+          height: 630,
+        },
+      ],
     },
   };
 }
@@ -41,7 +54,9 @@ export default async function HomePage({
   const typed = locale as Locale;
   const messages = getMessages(typed);
 
-  const config = await serverFetch<AppConfig>('/api/v1/config', { revalidate: 600 });
+  const config = await serverFetch<AppConfig>("/api/v1/config", {
+    revalidate: 600,
+  });
   const seo = await serverFetch<SeoPageResponse>(
     `/api/v1/content/page?path=/image-translator&locale=${locale}`,
     { revalidate: 900 },
@@ -50,7 +65,9 @@ export default async function HomePage({
   if (!config) {
     return (
       <div className="container-page py-20 text-center">
-        <h1 className="text-2xl font-semibold">{messages.errors.maintenance}</h1>
+        <h1 className="text-2xl font-semibold">
+          {messages.errors.maintenance}
+        </h1>
       </div>
     );
   }
@@ -58,36 +75,36 @@ export default async function HomePage({
   const faq = seo?.faq ?? [];
 
   const structuredData = {
-    '@context': 'https://schema.org',
-    '@graph': [
+    "@context": "https://schema.org",
+    "@graph": [
       {
-        '@type': 'Organization',
-        '@id': absoluteUrl('/#organization'),
-        name: 'LingoImage AI',
-        url: absoluteUrl('/'),
+        "@type": "Organization",
+        "@id": absoluteUrl("/#organization"),
+        name: "PicGlot",
+        url: absoluteUrl("/"),
       },
       {
-        '@type': 'WebApplication',
-        name: 'LingoImage AI',
-        applicationCategory: 'UtilitiesApplication',
-        operatingSystem: 'Any',
+        "@type": "WebApplication",
+        name: "PicGlot",
+        applicationCategory: "UtilitiesApplication",
+        operatingSystem: "Any",
         url: absoluteUrl(localePath(typed)),
         description: messages.home.subtitle,
         offers: {
-          '@type': 'Offer',
-          price: '0',
-          priceCurrency: 'USD',
-          description: 'Free tier with monthly credits',
+          "@type": "Offer",
+          price: "0",
+          priceCurrency: "USD",
+          description: "Free tier with monthly credits",
         },
       },
       ...(faq.length
         ? [
             {
-              '@type': 'FAQPage',
+              "@type": "FAQPage",
               mainEntity: faq.map((item) => ({
-                '@type': 'Question',
+                "@type": "Question",
                 name: item.q,
-                acceptedAnswer: { '@type': 'Answer', text: item.a },
+                acceptedAnswer: { "@type": "Answer", text: item.a },
               })),
             },
           ]
@@ -135,13 +152,25 @@ export default async function HomePage({
           {config.tools.map((tool) => (
             <li key={tool.slug}>
               <Link
-                href={localePath(typed, tool.slug)}
+                href={localePath(
+                  typed,
+                  toolSlugFor(typed, tool.slug, tool.localized_slugs),
+                )}
                 className="block h-full rounded-card border border-border bg-surface p-4 transition-colors hover:border-accent"
               >
-                <span className="font-semibold">{toolTitle(tool.slug, typed)}</span>
+                <span className="font-semibold">
+                  {toolTitle(tool.slug, typed)}
+                </span>
                 <span className="mt-1 block text-sm text-muted">
-                  {tool.accepts.slice(0, 5).map((ext) => ext.toUpperCase()).join(', ')} →{' '}
-                  {tool.exports.slice(0, 3).map((ext) => ext.toUpperCase()).join(', ')}
+                  {tool.accepts
+                    .slice(0, 5)
+                    .map((ext) => ext.toUpperCase())
+                    .join(", ")}{" "}
+                  →{" "}
+                  {tool.exports
+                    .slice(0, 3)
+                    .map((ext) => ext.toUpperCase())
+                    .join(", ")}
                 </span>
               </Link>
             </li>
@@ -169,7 +198,10 @@ export default async function HomePage({
         </ol>
       </section>
 
-      <section className="container-page py-12" aria-labelledby="security-heading">
+      <section
+        className="container-page py-12"
+        aria-labelledby="security-heading"
+      >
         <div className="card p-6 sm:p-8">
           <h2 id="security-heading" className="text-2xl font-semibold">
             {messages.home.securityHeading}
@@ -185,7 +217,7 @@ export default async function HomePage({
             ))}
           </ul>
           <Link
-            href={localePath(typed, 'security')}
+            href={localePath(typed, "security")}
             className="btn-secondary mt-6 inline-flex"
           >
             {messages.nav.security}
@@ -201,7 +233,9 @@ export default async function HomePage({
           <div className="mt-6 grid gap-3">
             {faq.map((item) => (
               <details key={item.q} className="card p-4">
-                <summary className="cursor-pointer font-medium">{item.q}</summary>
+                <summary className="cursor-pointer font-medium">
+                  {item.q}
+                </summary>
                 <p className="mt-2 text-sm text-muted">{item.a}</p>
               </details>
             ))}
@@ -211,7 +245,9 @@ export default async function HomePage({
 
       <section className="container-page pb-20">
         <div className="card p-6 text-center sm:p-10">
-          <h2 className="text-2xl font-semibold">{messages.home.secondaryCta}</h2>
+          <h2 className="text-2xl font-semibold">
+            {messages.home.secondaryCta}
+          </h2>
           <div className="mx-auto mt-6 max-w-2xl">
             <WorkArea
               locale={typed}

@@ -8,12 +8,13 @@
  */
 
 export const API_URL = (
-  process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000'
-).replace(/\/$/, '');
+  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"
+).replace(/\/$/, "");
 
-const INTERNAL_API_URL = (
-  process.env.API_INTERNAL_URL ?? API_URL
-).replace(/\/$/, '');
+const INTERNAL_API_URL = (process.env.API_INTERNAL_URL ?? API_URL).replace(
+  /\/$/,
+  "",
+);
 
 export class ApiError extends Error {
   readonly code: string;
@@ -31,7 +32,7 @@ export class ApiError extends Error {
     requestId?: string;
   }) {
     super(init.message);
-    this.name = 'ApiError';
+    this.name = "ApiError";
     this.code = init.code;
     this.status = init.status;
     this.retryable = init.retryable ?? false;
@@ -41,11 +42,11 @@ export class ApiError extends Error {
 }
 
 function readCookie(name: string): string | undefined {
-  if (typeof document === 'undefined') return undefined;
+  if (typeof document === "undefined") return undefined;
   return document.cookie
-    .split('; ')
+    .split("; ")
     .find((row) => row.startsWith(`${name}=`))
-    ?.split('=')[1];
+    ?.split("=")[1];
 }
 
 async function toError(response: Response): Promise<ApiError> {
@@ -57,8 +58,8 @@ async function toError(response: Response): Promise<ApiError> {
   }
   const error = payload.error ?? {};
   return new ApiError({
-    code: String(error.code ?? 'internal_error'),
-    message: String(error.message ?? 'Something went wrong.'),
+    code: String(error.code ?? "internal_error"),
+    message: String(error.message ?? "Something went wrong."),
     status: response.status,
     retryable: Boolean(error.retryable),
     details: (error.details as Record<string, unknown>) ?? {},
@@ -71,15 +72,16 @@ export async function apiFetch<T>(
   init: RequestInit & { json?: unknown } = {},
 ): Promise<T> {
   const headers = new Headers(init.headers);
-  if (init.json !== undefined) headers.set('Content-Type', 'application/json');
+  if (init.json !== undefined) headers.set("Content-Type", "application/json");
 
-  const csrf = readCookie('lingo_csrf');
-  if (csrf && init.method && init.method !== 'GET') headers.set('X-CSRF-Token', csrf);
+  const csrf = readCookie("picglot_csrf");
+  if (csrf && init.method && init.method !== "GET")
+    headers.set("X-CSRF-Token", csrf);
 
   const response = await fetch(`${API_URL}${path}`, {
     ...init,
     headers,
-    credentials: 'include',
+    credentials: "include",
     body: init.json !== undefined ? JSON.stringify(init.json) : init.body,
   });
 
@@ -115,19 +117,49 @@ export function uploadAndProcess(
     signal?: AbortSignal;
   } = {},
 ): Promise<JobResponse> {
-  return new Promise((resolve, reject) => {
-    const form = new FormData();
-    form.append('file', file);
-    form.append('options', JSON.stringify(options));
+  const form = new FormData();
+  form.append("file", file);
+  form.append("options", JSON.stringify(options));
+  return xhrUpload("/api/v1/process", form, handlers);
+}
 
+/**
+ * Multi-file upload. The server creates one parent batch job that fans out to
+ * a child job per file, so one bad file fails alone.
+ */
+export function uploadBatch(
+  files: File[],
+  options: Record<string, unknown>,
+  handlers: {
+    onProgress?: (fraction: number) => void;
+    signal?: AbortSignal;
+  } = {},
+): Promise<JobResponse> {
+  const form = new FormData();
+  for (const file of files) form.append("files", file);
+  form.append("options", JSON.stringify(options));
+  return xhrUpload("/api/v1/batch", form, handlers);
+}
+
+/** XHR rather than fetch, because only XHR reports upload progress. */
+function xhrUpload(
+  path: string,
+  form: FormData,
+  handlers: {
+    onProgress?: (fraction: number) => void;
+    signal?: AbortSignal;
+  } = {},
+): Promise<JobResponse> {
+  return new Promise((resolve, reject) => {
     const request = new XMLHttpRequest();
-    request.open('POST', `${API_URL}/api/v1/process`);
+    request.open("POST", `${API_URL}${path}`);
     request.withCredentials = true;
-    const csrf = readCookie('lingo_csrf');
-    if (csrf) request.setRequestHeader('X-CSRF-Token', csrf);
+    const csrf = readCookie("picglot_csrf");
+    if (csrf) request.setRequestHeader("X-CSRF-Token", csrf);
 
     request.upload.onprogress = (event) => {
-      if (event.lengthComputable) handlers.onProgress?.(event.loaded / event.total);
+      if (event.lengthComputable)
+        handlers.onProgress?.(event.loaded / event.total);
     };
     request.onload = () => {
       let payload: Record<string, unknown> = {};
@@ -142,8 +174,8 @@ export function uploadAndProcess(
         const error = (payload.error ?? {}) as Record<string, unknown>;
         reject(
           new ApiError({
-            code: String(error.code ?? 'internal_error'),
-            message: String(error.message ?? 'Upload failed.'),
+            code: String(error.code ?? "internal_error"),
+            message: String(error.message ?? "Upload failed."),
             status: request.status,
             retryable: Boolean(error.retryable),
             details: (error.details as Record<string, unknown>) ?? {},
@@ -153,11 +185,23 @@ export function uploadAndProcess(
       }
     };
     request.onerror = () =>
-      reject(new ApiError({ code: 'network_error', message: 'Network error.', status: 0 }));
+      reject(
+        new ApiError({
+          code: "network_error",
+          message: "Network error.",
+          status: 0,
+        }),
+      );
     request.onabort = () =>
-      reject(new ApiError({ code: 'cancelled', message: 'Upload cancelled.', status: 0 }));
+      reject(
+        new ApiError({
+          code: "cancelled",
+          message: "Upload cancelled.",
+          status: 0,
+        }),
+      );
 
-    handlers.signal?.addEventListener('abort', () => request.abort());
+    handlers.signal?.addEventListener("abort", () => request.abort());
     request.send(form);
   });
 }
@@ -171,7 +215,9 @@ export function uploadAndProcess(
 export function followJob(
   jobId: string,
   handlers: {
-    onProgress: (job: Partial<JobResponse> & { progress: number; status: string }) => void;
+    onProgress: (
+      job: Partial<JobResponse> & { progress: number; status: string },
+    ) => void;
     onDone: (job: JobResponse) => void;
     onError: (error: ApiError) => void;
   },
@@ -185,11 +231,11 @@ export function followJob(
     try {
       const job = await apiFetch<JobResponse>(`/api/v1/jobs/${jobId}`);
       stop();
-      if (job.status === 'failed') {
+      if (job.status === "failed") {
         handlers.onError(
           new ApiError({
-            code: job.error?.code ?? 'internal_error',
-            message: job.error?.message ?? 'Processing failed.',
+            code: job.error?.code ?? "internal_error",
+            message: job.error?.message ?? "Processing failed.",
             status: 500,
             retryable: job.error?.retryable ?? false,
           }),
@@ -222,18 +268,18 @@ export function followJob(
     if (pollTimer) clearTimeout(pollTimer);
   };
 
-  if (typeof EventSource !== 'undefined') {
+  if (typeof EventSource !== "undefined") {
     source = new EventSource(`${API_URL}/api/v1/jobs/${jobId}/events`, {
       withCredentials: true,
     });
-    source.addEventListener('progress', (event) => {
+    source.addEventListener("progress", (event) => {
       try {
         handlers.onProgress(JSON.parse((event as MessageEvent).data));
       } catch {
         /* keep streaming */
       }
     });
-    source.addEventListener('done', () => void finish());
+    source.addEventListener("done", () => void finish());
     source.onerror = () => {
       source?.close();
       source = null;
@@ -247,14 +293,14 @@ export function followJob(
 }
 
 const TERMINAL = new Set([
-  'completed',
-  'partially_completed',
-  'failed',
-  'cancelled',
+  "completed",
+  "partially_completed",
+  "failed",
+  "cancelled",
 ]);
 
 // --------------------------------------------------------------------------
-// Shared response shapes (kept in step with apps/api/lingoimage/schemas.py)
+// Shared response shapes (kept in step with apps/api/picglot/schemas.py)
 // --------------------------------------------------------------------------
 export interface JobResponse {
   id: string;
@@ -269,7 +315,12 @@ export interface JobResponse {
   credits_charged: number;
   credits_refunded: number;
   cost_estimate: { total_credits?: number; breakdown?: unknown[] };
-  error: { code: string; message: string; retryable: boolean; reference?: string } | null;
+  error: {
+    code: string;
+    message: string;
+    retryable: boolean;
+    reference?: string;
+  } | null;
   output: Record<string, unknown>;
 }
 
@@ -289,7 +340,11 @@ export interface RegionResponse {
   style: Record<string, unknown>;
   skip_translation: boolean;
   version: number;
-  translation: { provider?: string | null; source?: string | null; alternatives: string[] } | null;
+  translation: {
+    provider?: string | null;
+    source?: string | null;
+    alternatives: string[];
+  } | null;
 }
 
 export interface PageResponse {
@@ -335,7 +390,12 @@ export interface ProjectResponse {
   page_count: number;
   quality_score: number | null;
   quality_band: string | null;
-  quality_reasons: { key: string; score: number; detail: string; region_ids: string[] }[];
+  quality_reasons: {
+    key: string;
+    score: number;
+    detail: string;
+    region_ids: string[];
+  }[];
   document_version: number;
   created_at: string;
   updated_at: string;
@@ -368,6 +428,8 @@ export interface AppConfig {
     icon: string;
     i18n_key: string;
     credit_multiplier: number;
+    /** Locale -> slug, for locales publishing this tool under their own slug. */
+    localized_slugs?: Record<string, string>;
   }[];
   languages: {
     code: string;

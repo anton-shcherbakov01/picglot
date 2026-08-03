@@ -1,11 +1,11 @@
-'use client';
+"use client";
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from "react";
 
-import { ApiError, apiFetch } from '@/lib/api';
-import type { Locale } from '@/lib/i18n';
+import { ApiError, apiFetch } from "@/lib/api";
+import type { Locale } from "@/lib/i18n";
 
-import { ErrorNote, Timestamp } from './AdminPanel';
+import { ErrorNote, Timestamp } from "./AdminPanel";
 
 interface AuditRow {
   id: string;
@@ -26,15 +26,17 @@ export function AdminAudit({
   locale: Locale;
   onError: (failure: unknown) => boolean;
 }) {
-  const [action, setAction] = useState('');
+  const [action, setAction] = useState("");
   const [rows, setRows] = useState<AuditRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
-      const query = new URLSearchParams({ limit: '50' });
-      if (action) query.set('action', action);
-      const result = await apiFetch<{ items: AuditRow[] }>(`/api/v1/admin/audit?${query}`);
+      const query = new URLSearchParams({ limit: "50" });
+      if (action) query.set("action", action);
+      const result = await apiFetch<{ items: AuditRow[] }>(
+        `/api/v1/admin/audit?${query}`,
+      );
       setRows(result.items);
       setError(null);
     } catch (failure) {
@@ -72,25 +74,36 @@ export function AdminAudit({
           </thead>
           <tbody>
             {rows?.map((row) => (
-              <tr key={row.id} className="border-b border-border/50 last:border-0 align-top">
+              <tr
+                key={row.id}
+                className="border-b border-border/50 last:border-0 align-top"
+              >
                 <td className="p-3">
                   <Timestamp iso={row.created_at} locale={locale} />
                 </td>
                 <td className="p-3">
-                  {row.actor_role ?? '—'}
+                  {row.actor_role ?? "—"}
                   {row.actor_user_id && (
-                    <span className="block text-xs text-muted">{row.actor_user_id}</span>
+                    <span className="block text-xs text-muted">
+                      {row.actor_user_id}
+                    </span>
                   )}
                 </td>
                 <td className="p-3">{row.action}</td>
                 <td className="p-3">
-                  {row.target_type ?? '—'}
-                  {row.target_id && <span className="block text-xs text-muted">{row.target_id}</span>}
+                  {row.target_type ?? "—"}
+                  {row.target_id && (
+                    <span className="block text-xs text-muted">
+                      {row.target_id}
+                    </span>
+                  )}
                 </td>
                 <td className="p-3">
-                  {row.reason ?? '—'}
+                  {row.reason ?? "—"}
                   {Object.keys(row.data).length > 0 && (
-                    <code className="mt-1 block text-xs text-muted">{JSON.stringify(row.data)}</code>
+                    <code className="mt-1 block text-xs text-muted">
+                      {JSON.stringify(row.data)}
+                    </code>
                   )}
                 </td>
               </tr>

@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   ApiError,
@@ -10,11 +10,11 @@ import {
   type PageResponse,
   type ProjectResponse,
   type RegionResponse,
-} from '@/lib/api';
-import { track } from '@/lib/analytics';
-import type { Messages } from '@/lib/messages';
+} from "@/lib/api";
+import { track } from "@/lib/analytics";
+import type { Messages } from "@/lib/messages";
 
-type View = 'result' | 'original' | 'compare';
+type View = "result" | "original" | "compare";
 
 /** One reversible block edit. Values are whatever the API accepted for those keys. */
 interface HistoryEntry {
@@ -40,11 +40,19 @@ interface Props {
  * element, so keyboard navigation and screen readers work without a parallel
  * accessibility tree, and text editing uses ordinary inputs.
  */
-export function Editor({ messages, config, project, onReload, onReset }: Props) {
+export function Editor({
+  messages,
+  config,
+  project,
+  onReload,
+  onReset,
+}: Props) {
   // Memoised: a fresh `[]` each render would re-run every dependent hook.
   const pages = useMemo(() => project.pages ?? [], [project.pages]);
   const [pageIndex, setPageIndex] = useState(0);
-  const [view, setView] = useState<View>(project.target_language ? 'result' : 'original');
+  const [view, setView] = useState<View>(
+    project.target_language ? "result" : "original",
+  );
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -56,7 +64,8 @@ export function Editor({ messages, config, project, onReload, onReset }: Props) 
   const [historyIndex, setHistoryIndex] = useState(0);
 
   const page: PageResponse | undefined = pages[pageIndex];
-  const selected = page?.regions.find((region) => region.id === selectedId) ?? null;
+  const selected =
+    page?.regions.find((region) => region.id === selectedId) ?? null;
   const imageWrapRef = useRef<HTMLDivElement>(null);
 
   const plainText = useMemo(
@@ -66,13 +75,15 @@ export function Editor({ messages, config, project, onReload, onReset }: Props) 
           [...item.regions]
             .sort((a, b) => a.reading_order - b.reading_order)
             .map((region) =>
-              view === 'original'
+              view === "original"
                 ? (region.normalized_text ?? region.source_text)
-                : (region.translated_text ?? region.normalized_text ?? region.source_text),
+                : (region.translated_text ??
+                  region.normalized_text ??
+                  region.source_text),
             ),
         )
         .filter(Boolean)
-        .join('\n'),
+        .join("\n"),
     [pages, view],
   );
 
@@ -80,18 +91,18 @@ export function Editor({ messages, config, project, onReload, onReset }: Props) 
     const warn = (event: BeforeUnloadEvent) => {
       if (!dirty) return;
       event.preventDefault();
-      event.returnValue = '';
+      event.returnValue = "";
     };
-    window.addEventListener('beforeunload', warn);
-    return () => window.removeEventListener('beforeunload', warn);
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
   }, [dirty]);
 
   useEffect(() => {
-    track('editor_opened', { tool: project.tool_type });
+    track("editor_opened", { tool: project.tool_type });
   }, [project.tool_type]);
 
   const imageUrl =
-    view === 'original'
+    view === "original"
       ? (page?.original_url ?? page?.preview_url)
       : (page?.rendered_url ?? page?.preview_url ?? page?.original_url);
 
@@ -102,7 +113,7 @@ export function Editor({ messages, config, project, onReload, onReset }: Props) 
       setError(null);
       try {
         await apiFetch(`/api/v1/projects/${project.id}/regions/${region.id}`, {
-          method: 'PATCH',
+          method: "PATCH",
           json: { ...changes, version: region.version },
         });
         setDirty(true);
@@ -111,9 +122,10 @@ export function Editor({ messages, config, project, onReload, onReset }: Props) 
       } catch (failure) {
         const apiError = failure as ApiError;
         setError(
-          apiError.code === 'version_conflict'
+          apiError.code === "version_conflict"
             ? messages.editor.conflict
-            : ((messages.errors as Record<string, string>)[apiError.code] ?? apiError.message),
+            : ((messages.errors as Record<string, string>)[apiError.code] ??
+                apiError.message),
         );
         return false;
       } finally {
@@ -123,38 +135,51 @@ export function Editor({ messages, config, project, onReload, onReset }: Props) 
     [project.id, onReload, messages],
   );
 
-  const patchRegion = async (region: RegionResponse, changes: Record<string, unknown>) => {
+  const patchRegion = async (
+    region: RegionResponse,
+    changes: Record<string, unknown>,
+  ) => {
     const before = Object.fromEntries(
-      Object.keys(changes).map((key) => [key, (region as unknown as Record<string, unknown>)[key]]),
+      Object.keys(changes).map((key) => [
+        key,
+        (region as unknown as Record<string, unknown>)[key],
+      ]),
     );
     if (!(await sendPatch(region, changes))) return;
 
     // A new edit discards any redo branch, exactly like a text editor.
     setHistory((entries) =>
-      [...entries.slice(0, historyIndex), { regionId: region.id, before, after: changes }].slice(
-        -HISTORY_LIMIT,
-      ),
+      [
+        ...entries.slice(0, historyIndex),
+        { regionId: region.id, before, after: changes },
+      ].slice(-HISTORY_LIMIT),
     );
     setHistoryIndex((index) => Math.min(index + 1, HISTORY_LIMIT));
-    track('region_edited', { tool: project.tool_type });
+    track("region_edited", { tool: project.tool_type });
   };
 
   /** Undo/redo replay inverse patches against the server — there is no local document to rewind. */
   const findRegion = useCallback(
     (regionId: string) =>
-      pages.flatMap((item) => item.regions).find((region) => region.id === regionId) ?? null,
+      pages
+        .flatMap((item) => item.regions)
+        .find((region) => region.id === regionId) ?? null,
     [pages],
   );
 
   const step = async (direction: -1 | 1) => {
-    const entry = direction === -1 ? history[historyIndex - 1] : history[historyIndex];
+    const entry =
+      direction === -1 ? history[historyIndex - 1] : history[historyIndex];
     if (!entry) return;
     const region = findRegion(entry.regionId);
     if (!region) {
       setError(messages.editor.conflict);
       return;
     }
-    if (!(await sendPatch(region, direction === -1 ? entry.before : entry.after))) return;
+    if (
+      !(await sendPatch(region, direction === -1 ? entry.before : entry.after))
+    )
+      return;
     setHistoryIndex((index) => index + direction);
   };
 
@@ -162,13 +187,14 @@ export function Editor({ messages, config, project, onReload, onReset }: Props) 
     setBusy(true);
     setError(null);
     try {
-      await apiFetch(path, { method: 'POST', json: body ?? {} });
+      await apiFetch(path, { method: "POST", json: body ?? {} });
       await onReload();
       setDirty(false);
     } catch (failure) {
       const apiError = failure as ApiError;
       setError(
-        (messages.errors as Record<string, string>)[apiError.code] ?? apiError.message,
+        (messages.errors as Record<string, string>)[apiError.code] ??
+          apiError.message,
       );
     } finally {
       setBusy(false);
@@ -179,32 +205,40 @@ export function Editor({ messages, config, project, onReload, onReset }: Props) 
     setBusy(true);
     setError(null);
     try {
-      track('export_started', { tool: project.tool_type, format: formatName });
+      track("export_started", { tool: project.tool_type, format: formatName });
       const result = await apiFetch<ExportResponse>(
         `/api/v1/projects/${project.id}/exports`,
-        { method: 'POST', json: { format: formatName } },
+        { method: "POST", json: { format: formatName } },
       );
       if (result.download_url) {
         window.location.href = result.download_url;
-        track('export_completed', { tool: project.tool_type, format: formatName });
+        track("export_completed", {
+          tool: project.tool_type,
+          format: formatName,
+        });
       }
     } catch (failure) {
       const apiError = failure as ApiError;
       setError(
-        (messages.errors as Record<string, string>)[apiError.code] ?? apiError.message,
+        (messages.errors as Record<string, string>)[apiError.code] ??
+          apiError.message,
       );
     } finally {
       setBusy(false);
     }
   };
 
-  const toolExports =
-    config.tools.find((item) => item.slug === project.tool_type)?.exports ?? ['txt'];
+  const toolExports = config.tools.find(
+    (item) => item.slug === project.tool_type,
+  )?.exports ?? ["txt"];
 
   return (
     <div className="grid gap-4">
       {error && (
-        <p role="alert" className="rounded-lg border border-danger/40 bg-danger/10 px-4 py-3 text-sm text-danger">
+        <p
+          role="alert"
+          className="rounded-lg border border-danger/40 bg-danger/10 px-4 py-3 text-sm text-danger"
+        >
           {error}
         </p>
       )}
@@ -212,20 +246,26 @@ export function Editor({ messages, config, project, onReload, onReset }: Props) 
       <QualityBadge messages={messages} project={project} />
 
       <div className="flex flex-wrap items-center gap-2">
-        <div role="group" aria-label={messages.result.compare} className="flex rounded-lg border border-border p-0.5">
-          {(['result', 'original', 'compare'] as View[]).map((option) => (
+        <div
+          role="group"
+          aria-label={messages.result.compare}
+          className="flex rounded-lg border border-border p-0.5"
+        >
+          {(["result", "original", "compare"] as View[]).map((option) => (
             <button
               key={option}
               type="button"
               aria-pressed={view === option}
               onClick={() => setView(option)}
               className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-                view === option ? 'bg-accent text-accent-fg' : 'text-muted hover:text-fg'
+                view === option
+                  ? "bg-accent text-accent-fg"
+                  : "text-muted hover:text-fg"
               }`}
             >
-              {option === 'result'
+              {option === "result"
                 ? messages.result.translated
-                : option === 'original'
+                : option === "original"
                   ? messages.result.original
                   : messages.result.compare}
             </button>
@@ -253,14 +293,30 @@ export function Editor({ messages, config, project, onReload, onReset }: Props) 
           >
             ↷
           </button>
-          <button type="button" className="btn-ghost px-2" onClick={() => setZoom((z) => Math.max(0.25, z - 0.25))} aria-label={messages.editor.zoomOut}>
+          <button
+            type="button"
+            className="btn-ghost px-2"
+            onClick={() => setZoom((z) => Math.max(0.25, z - 0.25))}
+            aria-label={messages.editor.zoomOut}
+          >
             −
           </button>
-          <span className="text-xs tabular-nums text-muted">{Math.round(zoom * 100)}%</span>
-          <button type="button" className="btn-ghost px-2" onClick={() => setZoom((z) => Math.min(4, z + 0.25))} aria-label={messages.editor.zoomIn}>
+          <span className="text-xs tabular-nums text-muted">
+            {Math.round(zoom * 100)}%
+          </span>
+          <button
+            type="button"
+            className="btn-ghost px-2"
+            onClick={() => setZoom((z) => Math.min(4, z + 0.25))}
+            aria-label={messages.editor.zoomIn}
+          >
             +
           </button>
-          <button type="button" className="btn-ghost" onClick={() => setZoom(1)}>
+          <button
+            type="button"
+            className="btn-ghost"
+            onClick={() => setZoom(1)}
+          >
             {messages.editor.fit}
           </button>
         </div>
@@ -268,7 +324,7 @@ export function Editor({ messages, config, project, onReload, onReset }: Props) 
 
       <div className="grid gap-4 lg:grid-cols-[1fr_20rem]">
         <div className="card overflow-hidden">
-          {view === 'compare' ? (
+          {view === "compare" ? (
             <div className="grid gap-px bg-border sm:grid-cols-2">
               <figure className="bg-surface p-2">
                 <figcaption className="mb-2 text-xs font-medium text-muted">
@@ -276,7 +332,11 @@ export function Editor({ messages, config, project, onReload, onReset }: Props) 
                 </figcaption>
                 {page?.original_url && (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={page.original_url} alt={messages.result.original} className="w-full" />
+                  <img
+                    src={page.original_url}
+                    alt={messages.result.original}
+                    className="w-full"
+                  />
                 )}
               </figure>
               <figure className="bg-surface p-2">
@@ -286,7 +346,7 @@ export function Editor({ messages, config, project, onReload, onReset }: Props) 
                 {(page?.rendered_url ?? page?.preview_url) && (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    src={page.rendered_url ?? page.preview_url ?? ''}
+                    src={page.rendered_url ?? page.preview_url ?? ""}
                     alt={messages.result.translated}
                     className="w-full"
                   />
@@ -298,7 +358,10 @@ export function Editor({ messages, config, project, onReload, onReset }: Props) 
               <div
                 ref={imageWrapRef}
                 className="relative mx-auto origin-top"
-                style={{ width: `${100 * zoom}%`, maxWidth: zoom > 1 ? 'none' : '100%' }}
+                style={{
+                  width: `${100 * zoom}%`,
+                  maxWidth: zoom > 1 ? "none" : "100%",
+                }}
               >
                 {imageUrl ? (
                   <>
@@ -337,14 +400,20 @@ export function Editor({ messages, config, project, onReload, onReset }: Props) 
                   }}
                   aria-current={index === pageIndex}
                   className={`shrink-0 rounded-lg border p-1 ${
-                    index === pageIndex ? 'border-accent' : 'border-border'
+                    index === pageIndex ? "border-accent" : "border-border"
                   }`}
                 >
                   {item.thumbnail_url ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={item.thumbnail_url} alt="" className="h-16 w-12 object-cover" />
+                    <img
+                      src={item.thumbnail_url}
+                      alt=""
+                      className="h-16 w-12 object-cover"
+                    />
                   ) : (
-                    <span className="grid h-16 w-12 place-items-center text-xs">{item.page_number}</span>
+                    <span className="grid h-16 w-12 place-items-center text-xs">
+                      {item.page_number}
+                    </span>
                   )}
                   <span className="mt-1 block text-center text-[10px] text-muted">
                     {item.page_number}
@@ -368,12 +437,14 @@ export function Editor({ messages, config, project, onReload, onReset }: Props) 
                 )
               }
               onReocr={() =>
-                runAction(`/api/v1/projects/${project.id}/regions/${selected.id}/reocr`)
+                runAction(
+                  `/api/v1/projects/${project.id}/regions/${selected.id}/reocr`,
+                )
               }
               onDelete={async () => {
                 await apiFetch(
                   `/api/v1/projects/${project.id}/regions/${selected.id}`,
-                  { method: 'DELETE' },
+                  { method: "DELETE" },
                 );
                 setSelectedId(null);
                 setDirty(true);
@@ -389,13 +460,17 @@ export function Editor({ messages, config, project, onReload, onReset }: Props) 
           )}
 
           <div className="card p-4">
-            <h2 className="mb-3 text-sm font-semibold">{messages.result.download}</h2>
+            <h2 className="mb-3 text-sm font-semibold">
+              {messages.result.download}
+            </h2>
             {dirty && (
               <button
                 type="button"
                 className="btn-primary mb-3 w-full"
                 disabled={busy}
-                onClick={() => runAction(`/api/v1/projects/${project.id}/rerender`)}
+                onClick={() =>
+                  runAction(`/api/v1/projects/${project.id}/rerender`)
+                }
               >
                 {busy ? messages.editor.applying : messages.editor.apply}
               </button>
@@ -409,7 +484,7 @@ export function Editor({ messages, config, project, onReload, onReset }: Props) 
                   disabled={busy}
                   onClick={() => download(formatName)}
                 >
-                  {formatName.replace('_', ' ').toUpperCase()}
+                  {formatName.replace("_", " ").toUpperCase()}
                 </button>
               ))}
             </div>
@@ -424,7 +499,11 @@ export function Editor({ messages, config, project, onReload, onReset }: Props) 
             >
               {copied ? messages.result.copied : messages.result.copy}
             </button>
-            <button type="button" className="btn-ghost mt-1 w-full" onClick={onReset}>
+            <button
+              type="button"
+              className="btn-ghost mt-1 w-full"
+              onClick={onReset}
+            >
               {messages.result.newFile}
             </button>
           </div>
@@ -459,10 +538,10 @@ function RegionOverlay({
             title={region.normalized_text ?? region.source_text}
             className={`absolute rounded-sm border-2 transition-colors ${
               selectedId === region.id
-                ? 'border-accent bg-accent/15'
+                ? "border-accent bg-accent/15"
                 : uncertain
-                  ? 'border-warn/70 bg-warn/10 hover:bg-warn/20'
-                  : 'border-transparent hover:border-accent/60 hover:bg-accent/10'
+                  ? "border-warn/70 bg-warn/10 hover:bg-warn/20"
+                  : "border-transparent hover:border-accent/60 hover:bg-accent/10"
             }`}
             style={{
               left: `${(box.x / page.width) * 100}%`,
@@ -471,7 +550,9 @@ function RegionOverlay({
               height: `${(box.height / page.height) * 100}%`,
             }}
           >
-            <span className="sr-only">{region.normalized_text ?? region.source_text}</span>
+            <span className="sr-only">
+              {region.normalized_text ?? region.source_text}
+            </span>
           </button>
         );
       })}
@@ -488,7 +569,9 @@ function BlockList({
   page: PageResponse | undefined;
   onSelect: (id: string) => void;
 }) {
-  const regions = [...(page?.regions ?? [])].sort((a, b) => a.reading_order - b.reading_order);
+  const regions = [...(page?.regions ?? [])].sort(
+    (a, b) => a.reading_order - b.reading_order,
+  );
   return (
     <div className="card p-4">
       <h2 className="mb-3 text-sm font-semibold">{messages.editor.blocks}</h2>
@@ -502,7 +585,9 @@ function BlockList({
               className="w-full rounded-lg px-2 py-1.5 text-left hover:bg-raised"
             >
               <span className="line-clamp-2">
-                {region.translated_text ?? region.normalized_text ?? region.source_text}
+                {region.translated_text ??
+                  region.normalized_text ??
+                  region.source_text}
               </span>
               {(region.confidence ?? 1) < 0.75 && (
                 <span className="mt-0.5 block text-[11px] text-warn">
@@ -529,20 +614,33 @@ function BlockPanel({
   messages: Messages;
   region: RegionResponse;
   saving: boolean;
-  onChange: (region: RegionResponse, changes: Record<string, unknown>) => Promise<void>;
+  onChange: (
+    region: RegionResponse,
+    changes: Record<string, unknown>,
+  ) => Promise<void>;
   onRetranslate: () => Promise<void>;
   onReocr: () => Promise<void>;
   onDelete: () => Promise<void>;
 }) {
-  const [sourceText, setSourceText] = useState(region.normalized_text ?? region.source_text);
-  const [translatedText, setTranslatedText] = useState(region.translated_text ?? '');
+  const [sourceText, setSourceText] = useState(
+    region.normalized_text ?? region.source_text,
+  );
+  const [translatedText, setTranslatedText] = useState(
+    region.translated_text ?? "",
+  );
 
   useEffect(() => {
     setSourceText(region.normalized_text ?? region.source_text);
-    setTranslatedText(region.translated_text ?? '');
-  }, [region.id, region.normalized_text, region.source_text, region.translated_text]);
+    setTranslatedText(region.translated_text ?? "");
+  }, [
+    region.id,
+    region.normalized_text,
+    region.source_text,
+    region.translated_text,
+  ]);
 
-  const provenance = region.translation?.source as keyof Messages['editor']['source'] | undefined;
+  const provenance = region.translation?.source as
+    keyof Messages["editor"]["source"] | undefined;
 
   return (
     <div className="card p-4">
@@ -567,7 +665,8 @@ function BlockPanel({
       />
       {region.confidence !== null && (
         <p className="mt-1 text-xs text-muted">
-          {messages.result.quality.factors.ocr_confidence}: {Math.round(region.confidence * 100)}%
+          {messages.result.quality.factors.ocr_confidence}:{" "}
+          {Math.round(region.confidence * 100)}%
         </p>
       )}
 
@@ -582,22 +681,32 @@ function BlockPanel({
             value={translatedText}
             onChange={(event) => setTranslatedText(event.target.value)}
             onBlur={() => {
-              if (translatedText !== (region.translated_text ?? '')) {
+              if (translatedText !== (region.translated_text ?? "")) {
                 void onChange(region, { translated_text: translatedText });
               }
             }}
           />
           {provenance && messages.editor.source[provenance] && (
-            <p className="mt-1 text-xs text-muted">— {messages.editor.source[provenance]}</p>
+            <p className="mt-1 text-xs text-muted">
+              — {messages.editor.source[provenance]}
+            </p>
           )}
         </>
       )}
 
       <div className="mt-4 grid gap-2">
-        <button type="button" className="btn-secondary text-xs" onClick={() => void onRetranslate()}>
+        <button
+          type="button"
+          className="btn-secondary text-xs"
+          onClick={() => void onRetranslate()}
+        >
           {messages.editor.retranslate}
         </button>
-        <button type="button" className="btn-secondary text-xs" onClick={() => void onReocr()}>
+        <button
+          type="button"
+          className="btn-secondary text-xs"
+          onClick={() => void onReocr()}
+        >
           {messages.editor.reocr}
         </button>
         <label className="flex items-center gap-2 text-xs text-muted">
@@ -610,7 +719,11 @@ function BlockPanel({
           />
           {messages.editor.skipTranslation}
         </label>
-        <button type="button" className="btn-ghost text-xs text-danger" onClick={() => void onDelete()}>
+        <button
+          type="button"
+          className="btn-ghost text-xs text-danger"
+          onClick={() => void onDelete()}
+        >
           {messages.editor.delete}
         </button>
       </div>
@@ -622,30 +735,39 @@ function BlockPanel({
   );
 }
 
-function QualityBadge({ messages, project }: { messages: Messages; project: ProjectResponse }) {
+function QualityBadge({
+  messages,
+  project,
+}: {
+  messages: Messages;
+  project: ProjectResponse;
+}) {
   if (!project.quality_band) return null;
-  const band = project.quality_band as keyof Messages['result']['quality'];
+  const band = project.quality_band as keyof Messages["result"]["quality"];
   const tone =
-    project.quality_band === 'high'
-      ? 'border-ok/40 bg-ok/10 text-ok'
-      : project.quality_band === 'medium'
-        ? 'border-border bg-raised text-muted'
-        : 'border-warn/40 bg-warn/10 text-warn';
+    project.quality_band === "high"
+      ? "border-ok/40 bg-ok/10 text-ok"
+      : project.quality_band === "medium"
+        ? "border-border bg-raised text-muted"
+        : "border-warn/40 bg-warn/10 text-warn";
 
   return (
     <details className={`rounded-card border px-4 py-3 text-sm ${tone}`}>
       <summary className="cursor-pointer font-semibold">
         {(messages.result.quality[band] as string) ?? project.quality_band}
       </summary>
-      <p className="mt-2 text-xs opacity-90">{messages.result.quality.explain}</p>
+      <p className="mt-2 text-xs opacity-90">
+        {messages.result.quality.explain}
+      </p>
       {project.quality_reasons.length > 0 && (
         <ul className="mt-2 space-y-1 text-xs opacity-90">
           {project.quality_reasons.map((reason) => (
             <li key={reason.key}>
-              {(messages.result.quality.factors as Record<string, string>)[reason.key] ??
-                reason.key}
+              {(messages.result.quality.factors as Record<string, string>)[
+                reason.key
+              ] ?? reason.key}
               : {Math.round(reason.score * 100)}%
-              {reason.detail ? ` — ${reason.detail}` : ''}
+              {reason.detail ? ` — ${reason.detail}` : ""}
             </li>
           ))}
         </ul>

@@ -2,20 +2,20 @@ global:
   scrape_interval: 15s
   evaluation_interval: 15s
   external_labels:
-    service: lingoimage
+    service: picglot
 
 rule_files:
   - /etc/prometheus/alerts.yml
 
 scrape_configs:
-  - job_name: lingoimage-api
+  - job_name: picglot-api
     metrics_path: /metrics
     static_configs:
       - targets: ["api:8000"]
         labels:
           component: api
 
-  - job_name: lingoimage-workers
+  - job_name: picglot-workers
     metrics_path: /metrics
     static_configs:
       - targets: ["worker-cpu:9100", "worker-export:9100"]

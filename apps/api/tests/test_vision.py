@@ -5,10 +5,10 @@ from __future__ import annotations
 import pytest
 from PIL import Image, ImageDraw
 
-from lingoimage.domain import languages
-from lingoimage.domain.enums import RegionType, TextDirection
-from lingoimage.vision import fonts, layout, normalize, render, tables
-from lingoimage.vision.types import BoundingBox, Region, TextStyle, polygon_rotation
+from picglot.domain import languages
+from picglot.domain.enums import RegionType, TextDirection
+from picglot.vision import fonts, layout, normalize, render, tables
+from picglot.vision.types import BoundingBox, Region, TextStyle, polygon_rotation
 
 
 # --------------------------------------------------------------------------- #

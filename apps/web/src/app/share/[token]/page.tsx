@@ -1,14 +1,14 @@
-import type { Metadata } from 'next';
+import type { Metadata } from "next";
 
-import { SharedProject } from '@/components/SharedProject';
+import { SharedProject } from "@/components/SharedProject";
 
 // A shared result is private-by-link and must never be indexed or cached.
 export const metadata: Metadata = {
-  title: 'Shared result',
+  title: "Shared result",
   robots: { index: false, follow: false, nocache: true },
 };
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 export default async function SharePage({
   params,

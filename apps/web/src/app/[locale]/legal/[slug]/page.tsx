@@ -1,13 +1,21 @@
-import type { Metadata } from 'next';
-import { notFound } from 'next/navigation';
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 
-import { CONTENT_PAGES, findContentPage } from '@/content/legal';
-import { absoluteUrl, alternates, isLocale, localePath, type Locale } from '@/lib/i18n';
+import { CONTENT_PAGES, findContentPage } from "@/content/legal";
+import {
+  absoluteUrl,
+  alternates,
+  isLocale,
+  localePath,
+  type Locale,
+} from "@/lib/i18n";
 
 export function generateStaticParams() {
-  return CONTENT_PAGES.filter((page) => page.slug.startsWith('legal/')).map((page) => ({
-    slug: page.slug.replace('legal/', ''),
-  }));
+  return CONTENT_PAGES.filter((page) => page.slug.startsWith("legal/")).map(
+    (page) => ({
+      slug: page.slug.replace("legal/", ""),
+    }),
+  );
 }
 
 export async function generateMetadata({
@@ -18,12 +26,15 @@ export async function generateMetadata({
   const { locale, slug } = await params;
   const page = findContentPage(`legal/${slug}`);
   if (!isLocale(locale) || !page) return {};
-  const title = locale === 'ru' ? page.title.ru : page.title.en;
+  const title = locale === "ru" ? page.title.ru : page.title.en;
   const { languages } = alternates(`/legal/${slug}`);
   return {
     title,
     description: title,
-    alternates: { canonical: absoluteUrl(localePath(locale, `legal/${slug}`)), languages },
+    alternates: {
+      canonical: absoluteUrl(localePath(locale, `legal/${slug}`)),
+      languages,
+    },
   };
 }
 
@@ -38,20 +49,21 @@ export default async function LegalPage({
   if (!page) notFound();
 
   const typed = locale as Locale;
-  const pick = <T,>(value: { en: T; ru: T }): T => (typed === 'ru' ? value.ru : value.en);
+  const pick = <T,>(value: { en: T; ru: T }): T =>
+    typed === "ru" ? value.ru : value.en;
 
   return (
     <article className="container-page max-w-3xl py-12">
       <h1 className="text-3xl font-bold">{pick(page.title)}</h1>
       <p className="mt-2 text-sm text-muted">
-        {typed === 'ru' ? 'Обновлено' : 'Last updated'}: {page.updated}
+        {typed === "ru" ? "Обновлено" : "Last updated"}: {page.updated}
       </p>
 
       {page.template && (
         <p className="mt-4 rounded-lg border border-warn/40 bg-warn/10 px-4 py-3 text-sm text-warn">
-          {typed === 'ru'
-            ? 'Это шаблон. Он описывает, как сервис работает на самом деле, но перед запуском в production требует проверки юристом вашей юрисдикции.'
-            : 'This is a template. It describes how the service actually behaves, but it must be reviewed by a lawyer for your jurisdiction before production use.'}
+          {typed === "ru"
+            ? "Это шаблон. Он описывает, как сервис работает на самом деле, но перед запуском в production требует проверки юристом вашей юрисдикции."
+            : "This is a template. It describes how the service actually behaves, but it must be reviewed by a lawyer for your jurisdiction before production use."}
         </p>
       )}
 

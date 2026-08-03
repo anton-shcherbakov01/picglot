@@ -8,11 +8,10 @@ labels: bug
 
 **What you expected**
 
-**Steps to reproduce**
-1.
-2.
+**Steps to reproduce** 1. 2.
 
 **Environment**
+
 - Browser / OS:
 - URL / tool used:
 - Request ID, if one was shown (`errors.requestId` in the response):

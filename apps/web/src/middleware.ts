@@ -1,8 +1,9 @@
-import { NextResponse, type NextRequest } from 'next/server';
+import { NextResponse, type NextRequest } from "next/server";
 
-import { DEFAULT_LOCALE, LOCALES, negotiateLocale } from './lib/i18n';
+import { DEFAULT_LOCALE, LOCALES, negotiateLocale } from "./lib/i18n";
 
-const PUBLIC_FILE = /\.(?:png|jpg|jpeg|svg|ico|webp|txt|xml|json|webmanifest|js|css|woff2?)$/;
+const PUBLIC_FILE =
+  /\.(?:png|jpg|jpeg|svg|ico|webp|txt|xml|json|webmanifest|js|css|woff2?)$/;
 
 /**
  * Locale routing.
@@ -15,13 +16,13 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (
-    pathname.startsWith('/_next') ||
-    pathname.startsWith('/api/') ||
-    pathname.startsWith('/share/') ||
-    pathname === '/robots.txt' ||
-    pathname === '/sitemap.xml' ||
-    pathname.startsWith('/sitemaps/') ||
-    pathname === '/manifest.webmanifest' ||
+    pathname.startsWith("/_next") ||
+    pathname.startsWith("/api/") ||
+    pathname.startsWith("/share/") ||
+    pathname === "/robots.txt" ||
+    pathname === "/sitemap.xml" ||
+    pathname.startsWith("/sitemaps/") ||
+    pathname === "/manifest.webmanifest" ||
     PUBLIC_FILE.test(pathname)
   ) {
     return NextResponse.next();
@@ -32,17 +33,17 @@ export function middleware(request: NextRequest) {
   );
   if (hasLocale) return NextResponse.next();
 
-  const cookieLocale = request.cookies.get('locale')?.value;
+  const cookieLocale = request.cookies.get("locale")?.value;
   const locale =
     cookieLocale && (LOCALES as readonly string[]).includes(cookieLocale)
       ? cookieLocale
-      : negotiateLocale(request.headers.get('accept-language'));
+      : negotiateLocale(request.headers.get("accept-language"));
 
   const url = request.nextUrl.clone();
-  url.pathname = `/${locale || DEFAULT_LOCALE}${pathname === '/' ? '' : pathname}`;
+  url.pathname = `/${locale || DEFAULT_LOCALE}${pathname === "/" ? "" : pathname}`;
   return NextResponse.redirect(url, 308);
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image).*)'],
+  matcher: ["/((?!_next/static|_next/image).*)"],
 };

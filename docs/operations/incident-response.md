@@ -2,11 +2,11 @@
 
 ## Severity levels
 
-| Level | Definition | Response |
-|---|---|---|
-| SEV-1 | Service fully down, or data integrity at risk | Immediate |
-| SEV-2 | Degraded — a tool or provider chain failing, users blocked from a workflow | < 30 min |
-| SEV-3 | Minor — single provider down but the fallback chain is covering it | Next business day |
+| Level | Definition                                                                 | Response          |
+| ----- | -------------------------------------------------------------------------- | ----------------- |
+| SEV-1 | Service fully down, or data integrity at risk                              | Immediate         |
+| SEV-2 | Degraded — a tool or provider chain failing, users blocked from a workflow | < 30 min          |
+| SEV-3 | Minor — single provider down but the fallback chain is covering it         | Next business day |
 
 ## Procedure
 

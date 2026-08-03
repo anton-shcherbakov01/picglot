@@ -1,10 +1,16 @@
-import type { Metadata } from 'next';
-import { notFound } from 'next/navigation';
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 
-import { WorkArea } from '@/components/WorkArea';
-import { serverFetch, type AppConfig, type SeoPageResponse } from '@/lib/api';
-import { absoluteUrl, alternates, isLocale, localePath, type Locale } from '@/lib/i18n';
-import { getMessages } from '@/lib/messages';
+import { WorkArea } from "@/components/WorkArea";
+import { serverFetch, type AppConfig, type SeoPageResponse } from "@/lib/api";
+import {
+  absoluteUrl,
+  alternates,
+  isLocale,
+  localePath,
+  type Locale,
+} from "@/lib/i18n";
+import { getMessages } from "@/lib/messages";
 
 /**
  * Language-pair landing pages (`/translate-image/english-to-russian`, etc).
@@ -17,7 +23,7 @@ import { getMessages } from '@/lib/messages';
 async function loadPair(locale: string, pair: string) {
   const path = `/translate-image/${pair}`;
   const [config, seo] = await Promise.all([
-    serverFetch<AppConfig>('/api/v1/config', { revalidate: 600 }),
+    serverFetch<AppConfig>("/api/v1/config", { revalidate: 600 }),
     serverFetch<SeoPageResponse>(
       `/api/v1/content/page?path=${encodeURIComponent(path)}&locale=${locale}`,
       { revalidate: 900 },
@@ -64,28 +70,38 @@ export default async function LanguagePairPage({
   const { config, seo } = await loadPair(locale, pair);
   if (!config || !seo) notFound();
 
-  const toolSlug = seo.tool_slug ?? 'image-translator';
+  const toolSlug = seo.tool_slug ?? "image-translator";
   const spec = config.tools.find((item) => item.slug === toolSlug);
   if (!spec) notFound();
 
   const structuredData = {
-    '@context': 'https://schema.org',
-    '@graph': [
+    "@context": "https://schema.org",
+    "@graph": [
       {
-        '@type': 'BreadcrumbList',
+        "@type": "BreadcrumbList",
         itemListElement: [
-          { '@type': 'ListItem', position: 1, name: 'LingoImage AI', item: absoluteUrl(localePath(typed)) },
-          { '@type': 'ListItem', position: 2, name: seo.h1, item: absoluteUrl(localePath(typed, `translate-image/${pair}`)) },
+          {
+            "@type": "ListItem",
+            position: 1,
+            name: "PicGlot",
+            item: absoluteUrl(localePath(typed)),
+          },
+          {
+            "@type": "ListItem",
+            position: 2,
+            name: seo.h1,
+            item: absoluteUrl(localePath(typed, `translate-image/${pair}`)),
+          },
         ],
       },
       ...(seo.faq?.length
         ? [
             {
-              '@type': 'FAQPage',
+              "@type": "FAQPage",
               mainEntity: seo.faq.map((item) => ({
-                '@type': 'Question',
+                "@type": "Question",
                 name: item.q,
-                acceptedAnswer: { '@type': 'Answer', text: item.a },
+                acceptedAnswer: { "@type": "Answer", text: item.a },
               })),
             },
           ]
@@ -103,7 +119,7 @@ export default async function LanguagePairPage({
       <section className="container-page py-10 sm:py-14">
         <nav aria-label="Breadcrumb" className="mb-4 text-sm text-muted">
           <a href={localePath(typed)} className="hover:text-fg">
-            LingoImage AI
+            PicGlot
           </a>
           <span aria-hidden> / </span>
           <span aria-current="page">{seo.h1}</span>
@@ -111,7 +127,9 @@ export default async function LanguagePairPage({
 
         <div className="mx-auto max-w-3xl text-center">
           <h1 className="text-3xl font-bold sm:text-4xl">{seo.h1}</h1>
-          {seo.description && <p className="mt-3 text-muted">{seo.description}</p>}
+          {seo.description && (
+            <p className="mt-3 text-muted">{seo.description}</p>
+          )}
         </div>
 
         <div className="mx-auto mt-8 max-w-3xl">
@@ -143,7 +161,9 @@ export default async function LanguagePairPage({
             <div className="mt-5 grid gap-3">
               {seo.faq.map((item) => (
                 <details key={item.q} className="card p-4">
-                  <summary className="cursor-pointer font-medium">{item.q}</summary>
+                  <summary className="cursor-pointer font-medium">
+                    {item.q}
+                  </summary>
                   <p className="mt-2 text-sm text-muted">{item.a}</p>
                 </details>
               ))}

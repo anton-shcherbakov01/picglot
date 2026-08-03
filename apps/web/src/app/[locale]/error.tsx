@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { useEffect } from 'react';
+import { useEffect } from "react";
 
 export default function ErrorPage({
   error,
@@ -11,7 +11,7 @@ export default function ErrorPage({
 }) {
   useEffect(() => {
     // The digest is a server-side reference; the message itself is never shown.
-    console.error('page error', error.digest);
+    console.error("page error", error.digest);
   }, [error]);
 
   return (

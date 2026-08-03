@@ -1,13 +1,13 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
 
-import { ApiError, apiFetch, type ProjectResponse } from '@/lib/api';
-import { formatRelative } from '@/lib/format';
-import { localePath, type Locale } from '@/lib/i18n';
-import type { Messages } from '@/lib/messages';
+import { ApiError, apiFetch, type ProjectResponse } from "@/lib/api";
+import { formatRelative } from "@/lib/format";
+import { localePath, type Locale } from "@/lib/i18n";
+import type { Messages } from "@/lib/messages";
 
 interface ProjectList {
   items: ProjectResponse[];
@@ -22,11 +22,17 @@ interface Wallet {
   plan_code: string;
 }
 
-export function Dashboard({ locale, messages }: { locale: Locale; messages: Messages }) {
+export function Dashboard({
+  locale,
+  messages,
+}: {
+  locale: Locale;
+  messages: Messages;
+}) {
   const router = useRouter();
   const [projects, setProjects] = useState<ProjectList | null>(null);
   const [wallet, setWallet] = useState<Wallet | null>(null);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState("");
   const [trash, setTrash] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -34,12 +40,12 @@ export function Dashboard({ locale, messages }: { locale: Locale; messages: Mess
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const query = new URLSearchParams({ limit: '24' });
-      if (search) query.set('search', search);
-      if (trash) query.set('trash', 'true');
+      const query = new URLSearchParams({ limit: "24" });
+      if (search) query.set("search", search);
+      if (trash) query.set("trash", "true");
       const [list, balance] = await Promise.all([
         apiFetch<ProjectList>(`/api/v1/projects?${query}`),
-        apiFetch<Wallet>('/api/v1/account/wallet').catch(() => null),
+        apiFetch<Wallet>("/api/v1/account/wallet").catch(() => null),
       ]);
       setProjects(list);
       setWallet(balance);
@@ -47,11 +53,12 @@ export function Dashboard({ locale, messages }: { locale: Locale; messages: Mess
     } catch (failure) {
       const apiError = failure as ApiError;
       if (apiError.status === 401) {
-        router.push(localePath(locale, 'auth/sign-in'));
+        router.push(localePath(locale, "auth/sign-in"));
         return;
       }
       setError(
-        (messages.errors as Record<string, string>)[apiError.code] ?? apiError.message,
+        (messages.errors as Record<string, string>)[apiError.code] ??
+          apiError.message,
       );
     } finally {
       setLoading(false);
@@ -64,12 +71,12 @@ export function Dashboard({ locale, messages }: { locale: Locale; messages: Mess
   }, [load, search]);
 
   const remove = async (id: string) => {
-    await apiFetch(`/api/v1/projects/${id}`, { method: 'DELETE' });
+    await apiFetch(`/api/v1/projects/${id}`, { method: "DELETE" });
     await load();
   };
 
   const restore = async (id: string) => {
-    await apiFetch(`/api/v1/projects/${id}/restore`, { method: 'POST' });
+    await apiFetch(`/api/v1/projects/${id}/restore`, { method: "POST" });
     await load();
   };
 
@@ -79,10 +86,16 @@ export function Dashboard({ locale, messages }: { locale: Locale; messages: Mess
         <h1 className="text-2xl font-bold">{messages.dashboard.title}</h1>
         {wallet && (
           <span className="chip">
-            {messages.dashboard.credits.replace('{count}', String(wallet.balance))}
+            {messages.dashboard.credits.replace(
+              "{count}",
+              String(wallet.balance),
+            )}
           </span>
         )}
-        <Link href={localePath(locale, 'image-translator')} className="btn-primary ml-auto">
+        <Link
+          href={localePath(locale, "image-translator")}
+          className="btn-primary ml-auto"
+        >
           {messages.dashboard.newProject}
         </Link>
       </div>
@@ -101,7 +114,7 @@ export function Dashboard({ locale, messages }: { locale: Locale; messages: Mess
         />
         <button
           type="button"
-          className={trash ? 'btn-secondary' : 'btn-ghost'}
+          className={trash ? "btn-secondary" : "btn-ghost"}
           aria-pressed={trash}
           onClick={() => setTrash((value) => !value)}
         >
@@ -110,7 +123,10 @@ export function Dashboard({ locale, messages }: { locale: Locale; messages: Mess
       </div>
 
       {error && (
-        <p role="alert" className="mt-6 rounded-lg border border-danger/40 bg-danger/10 px-4 py-3 text-sm text-danger">
+        <p
+          role="alert"
+          className="mt-6 rounded-lg border border-danger/40 bg-danger/10 px-4 py-3 text-sm text-danger"
+        >
           {error}
         </p>
       )}
@@ -138,7 +154,10 @@ export function Dashboard({ locale, messages }: { locale: Locale; messages: Mess
                     loading="lazy"
                   />
                 ) : (
-                  <div className="grid h-36 place-items-center text-3xl" aria-hidden>
+                  <div
+                    className="grid h-36 place-items-center text-3xl"
+                    aria-hidden
+                  >
                     🗒️
                   </div>
                 )}
@@ -152,7 +171,7 @@ export function Dashboard({ locale, messages }: { locale: Locale; messages: Mess
                 </Link>
                 <p className="mt-1 text-xs text-muted">
                   {project.tool_type} · {project.page_count} p.
-                  {project.quality_band ? ` · ${project.quality_band}` : ''}
+                  {project.quality_band ? ` · ${project.quality_band}` : ""}
                 </p>
                 <p className="mt-1 text-xs text-muted">
                   {formatRelative(project.updated_at, locale)}
@@ -160,7 +179,7 @@ export function Dashboard({ locale, messages }: { locale: Locale; messages: Mess
                 {project.expires_at && !trash && (
                   <p className="mt-1 text-xs text-warn">
                     {messages.dashboard.expires.replace(
-                      '{when}',
+                      "{when}",
                       formatRelative(project.expires_at, locale),
                     )}
                   </p>
@@ -191,7 +210,10 @@ export function Dashboard({ locale, messages }: { locale: Locale; messages: Mess
       ) : (
         <div className="card mt-6 p-10 text-center">
           <p className="text-muted">{messages.dashboard.empty}</p>
-          <Link href={localePath(locale, 'image-translator')} className="btn-primary mt-4 inline-flex">
+          <Link
+            href={localePath(locale, "image-translator")}
+            className="btn-primary mt-4 inline-flex"
+          >
             {messages.dashboard.newProject}
           </Link>
         </div>

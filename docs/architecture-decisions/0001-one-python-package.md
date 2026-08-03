@@ -15,7 +15,7 @@ another.
 
 ## Decision
 
-One installable package, `lingoimage`, living in `apps/api`, imported by both
+One installable package, `picglot`, living in `apps/api`, imported by both
 tiers. `workers/vision` and `workers/export` remain as deployment units — their
 own Dockerfiles, queues and scaling — but not as separate Python distributions.
 
@@ -24,9 +24,9 @@ OpenCV, Tesseract language packs and fonts; the API image does not.
 
 ## Consequences
 
-* Models, adapters and pipeline logic cannot drift between tiers.
-* One dependency set, one lint and type configuration, one test suite.
-* The API image carries a little more code than it strictly executes. Measured
+- Models, adapters and pipeline logic cannot drift between tiers.
+- One dependency set, one lint and type configuration, one test suite.
+- The API image carries a little more code than it strictly executes. Measured
   against the class of bug this prevents, that is a good trade.
-* Splitting later is mechanical if the vision engine ever needs its own release
-  cadence: the boundary already exists at `lingoimage.vision`.
+- Splitting later is mechanical if the vision engine ever needs its own release
+  cadence: the boundary already exists at `picglot.vision`.

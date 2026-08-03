@@ -1,7 +1,7 @@
-import type { MetadataRoute } from 'next';
+import type { MetadataRoute } from "next";
 
-import { serverFetch } from '@/lib/api';
-import { LOCALES, SITE_URL, absoluteUrl, localePath } from '@/lib/i18n';
+import { serverFetch } from "@/lib/api";
+import { LOCALES, SITE_URL, absoluteUrl, localePath } from "@/lib/i18n";
 
 interface SitemapData {
   pages: { path: string; locale: string; kind: string; updated_at: string }[];
@@ -19,7 +19,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     entries.push({
       url: absoluteUrl(localePath(locale)),
       lastModified: new Date(),
-      changeFrequency: 'weekly',
+      changeFrequency: "weekly",
       priority: 1,
       alternates: {
         languages: Object.fromEntries(
@@ -27,17 +27,23 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         ),
       },
     });
-    for (const path of ['pricing', 'api', 'supported-languages', 'security', 'blog']) {
+    for (const path of [
+      "pricing",
+      "api",
+      "supported-languages",
+      "security",
+      "blog",
+    ]) {
       entries.push({
         url: absoluteUrl(localePath(locale, path)),
         lastModified: new Date(),
-        changeFrequency: 'monthly',
+        changeFrequency: "monthly",
         priority: 0.6,
       });
     }
   }
 
-  const data = await serverFetch<SitemapData>('/api/v1/content/sitemap', {
+  const data = await serverFetch<SitemapData>("/api/v1/content/sitemap", {
     revalidate: 3600,
   });
 
@@ -45,8 +51,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     entries.push({
       url: absoluteUrl(localePath(page.locale as never, page.path)),
       lastModified: new Date(page.updated_at),
-      changeFrequency: page.kind === 'tool' ? 'weekly' : 'monthly',
-      priority: page.kind === 'tool' ? 0.9 : 0.7,
+      changeFrequency: page.kind === "tool" ? "weekly" : "monthly",
+      priority: page.kind === "tool" ? 0.9 : 0.7,
     });
   }
 
@@ -54,7 +60,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     entries.push({
       url: absoluteUrl(localePath(post.locale as never, `blog/${post.slug}`)),
       lastModified: new Date(post.updated_at),
-      changeFrequency: 'yearly',
+      changeFrequency: "yearly",
       priority: 0.5,
     });
   }

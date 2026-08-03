@@ -32,11 +32,11 @@ disk. The three things that decide the whole plan:
 
 ## 1. Requirements
 
-| | Minimum | Comfortable |
-|---|---|---|
-| vCPU | 4 | 8 |
-| RAM | 8 GB | 16 GB |
-| Disk | 40 GB SSD | 100 GB SSD |
+|      | Minimum   | Comfortable |
+| ---- | --------- | ----------- |
+| vCPU | 4         | 8           |
+| RAM  | 8 GB      | 16 GB       |
+| Disk | 40 GB SSD | 100 GB SSD  |
 
 Nothing here needs a GPU. A fresh install performs OCR, editing and every
 export with **no API keys at all** (bundled RapidOCR); translation needs
@@ -47,8 +47,8 @@ either a provider key or the offline Argos models.
 ## 2. Clone and configure
 
 ```bash
-sudo mkdir -p /opt/lingoimage && sudo chown "$USER" /opt/lingoimage
-git clone <your-repo> /opt/lingoimage && cd /opt/lingoimage
+sudo mkdir -p /opt/picglot && sudo chown "$USER" /opt/picglot
+git clone <your-repo> /opt/picglot && cd /opt/picglot
 cp .env.example .env
 ```
 
@@ -74,10 +74,10 @@ NEXT_PUBLIC_SITE_URL=https://example.com
 # TRAP: the app reads DATABASE_URL; the postgres container reads POSTGRES_*.
 # They are separate variables that must describe the SAME credentials, and in
 # production the host is the compose service name `postgres`, NOT localhost.
-DATABASE_URL=postgresql+psycopg://lingo:<strong-pw>@postgres:5432/lingoimage
-POSTGRES_USER=lingo
+DATABASE_URL=postgresql+psycopg://picglot:<strong-pw>@postgres:5432/picglot
+POSTGRES_USER=picglot
 POSTGRES_PASSWORD=<strong-pw>
-POSTGRES_DB=lingoimage
+POSTGRES_DB=picglot
 
 # --- redis ---
 # TRAP: production compose starts redis with --requirepass, so the password
@@ -167,9 +167,9 @@ First build pulls and compiles a lot — expect 5–15 minutes.
 
 ```bash
 # Plans, feature flags, SEO content — NO demo accounts.
-docker compose exec api python -m lingoimage.cli seed --baseline-only
+docker compose exec api python -m picglot.cli seed --baseline-only
 
-docker compose exec api python -m lingoimage.cli create-admin \
+docker compose exec api python -m picglot.cli create-admin \
   --email ops@example.com --password '<strong>' --role superadmin
 ```
 
@@ -181,7 +181,7 @@ passwords are in `.env.example`, i.e. public.
 ## 7. Verify
 
 ```bash
-docker compose exec api python -m lingoimage.cli health
+docker compose exec api python -m picglot.cli health
 curl -fsS https://example.com/health/ready | python3 -m json.tool
 docker compose ps
 ```
@@ -252,10 +252,10 @@ server {
 
 Two other collision points on a shared box:
 
-* **Ports** — the production compose already unpublishes Postgres, Redis and
+- **Ports** — the production compose already unpublishes Postgres, Redis and
   MinIO (`ports: []`), so they only exist on the internal compose network.
   Nothing to do.
-* **Compose project name** — this stack sets `name: lingoimage`, so its
+- **Compose project name** — this stack sets `name: picglot`, so its
   containers, networks and volumes are namespaced and won't collide with
   another project's `postgres`/`redis` containers.
 
@@ -263,11 +263,11 @@ Two other collision points on a shared box:
 
 ## Costs, roughly
 
-| Shape | Monthly |
-|---|---|
-| Single VPS 8 vCPU / 16 GB (Hetzner, Timeweb, DO) | $25–50 |
-| Managed starter (container service + managed PG + Redis + S3) | $80–150 |
-| Managed under real load (2 API + 4 workers + CDN) | $200–500 |
+| Shape                                                         | Monthly  |
+| ------------------------------------------------------------- | -------- |
+| Single VPS 8 vCPU / 16 GB (Hetzner, Timeweb, DO)              | $25–50   |
+| Managed starter (container service + managed PG + Redis + S3) | $80–150  |
+| Managed under real load (2 API + 4 workers + CDN)             | $200–500 |
 
 Plus domain (~$10/yr), payment processor fees, and per-provider translation
 costs if you enable a paid one. `LLM_DAILY_COST_LIMIT_USD` and the
@@ -289,5 +289,5 @@ provider, not after the first surprise invoice.
 - [ ] Prometheus scraping `/metrics`, alerts routed somewhere human
 - [ ] Object storage public access blocked
 - [ ] Legal pages reviewed for your jurisdiction
-- [ ] `python -m lingoimage.cli health` green
+- [ ] `python -m picglot.cli health` green
 - [ ] One real file processed end to end through the public URL

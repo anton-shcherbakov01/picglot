@@ -21,7 +21,7 @@ Point an A record at the host, open 80 and 443, and leave everything else closed
 ### 2. Configure
 
 ```bash
-git clone <repo> /opt/lingoimage && cd /opt/lingoimage
+git clone <repo> /opt/picglot && cd /opt/picglot
 cp .env.example .env
 ```
 
@@ -38,9 +38,9 @@ PUBLIC_API_URL=https://example.com
 NEXT_PUBLIC_API_URL=https://example.com
 NEXT_PUBLIC_SITE_URL=https://example.com
 SESSION_COOKIE_SECURE=true
-POSTGRES_USER=lingo
+POSTGRES_USER=picglot
 POSTGRES_PASSWORD=<strong>
-POSTGRES_DB=lingoimage
+POSTGRES_DB=picglot
 REDIS_PASSWORD=<strong>
 S3_ACCESS_KEY_ID=<strong>
 S3_SECRET_ACCESS_KEY=<strong>
@@ -80,21 +80,21 @@ The `migrate` service runs Alembic once and the API waits for it to finish.
 ### 5. Verify
 
 ```bash
-docker compose exec api python -m lingoimage.cli health
+docker compose exec api python -m picglot.cli health
 curl -fsS https://example.com/health/ready | jq
 ```
 
 Then create the first administrator:
 
 ```bash
-docker compose exec api python -m lingoimage.cli create-admin \
+docker compose exec api python -m picglot.cli create-admin \
   --email ops@example.com --password '<strong>' --role superadmin
 ```
 
 ### 6. Load the baseline content
 
 ```bash
-docker compose exec api python -m lingoimage.cli seed --baseline-only
+docker compose exec api python -m picglot.cli seed --baseline-only
 ```
 
 `--baseline-only` loads plans, feature flags and SEO content but **not** demo
@@ -107,24 +107,24 @@ accounts. Never run a plain `seed` in production.
 Nothing here is cloud-specific; the same layout works on AWS, GCP, Azure,
 Hetzner or Yandex Cloud.
 
-| Component | Managed service | Notes |
-|---|---|---|
-| `web` | Any Node host, or Vercel | `output: standalone` is already configured |
-| `api` | Container service behind a load balancer | 2+ instances, `/health/ready` as the probe |
-| `worker-cpu` | Container service, scale on queue depth | Needs more memory than the API |
-| `worker-beat` | Exactly **one** instance | Duplicates would double-schedule maintenance |
-| Postgres | RDS / Cloud SQL / managed PG | Enable PITR |
-| Redis | ElastiCache / Memorystore | Not a durable store; loss is survivable |
-| Object storage | S3 / GCS / R2 | Block public access; lifecycle rules as a backstop |
-| Secrets | Secrets Manager / Vault | Inject as environment variables |
+| Component      | Managed service                          | Notes                                              |
+| -------------- | ---------------------------------------- | -------------------------------------------------- |
+| `web`          | Any Node host, or Vercel                 | `output: standalone` is already configured         |
+| `api`          | Container service behind a load balancer | 2+ instances, `/health/ready` as the probe         |
+| `worker-cpu`   | Container service, scale on queue depth  | Needs more memory than the API                     |
+| `worker-beat`  | Exactly **one** instance                 | Duplicates would double-schedule maintenance       |
+| Postgres       | RDS / Cloud SQL / managed PG             | Enable PITR                                        |
+| Redis          | ElastiCache / Memorystore                | Not a durable store; loss is survivable            |
+| Object storage | S3 / GCS / R2                            | Block public access; lifecycle rules as a backstop |
+| Secrets        | Secrets Manager / Vault                  | Inject as environment variables                    |
 
 Health probes:
 
-* liveness → `GET /health/live` (no dependencies, fast)
-* readiness → `GET /health/ready` (returns 503 when the database or storage is down)
+- liveness → `GET /health/live` (no dependencies, fast)
+- readiness → `GET /health/ready` (returns 503 when the database or storage is down)
 
 Scale the API on CPU and request latency; scale `worker-cpu` on
-`lingoimage_queue_depth`. See [scaling.md](scaling.md).
+`picglot_queue_depth`. See [scaling.md](scaling.md).
 
 ### CDN
 
@@ -161,5 +161,5 @@ Rollback is the previous image tag plus, if a migration must be undone,
 - [ ] Sentry DSN set
 - [ ] Object storage: public access blocked, lifecycle rules applied
 - [ ] Legal pages reviewed by counsel for your jurisdiction
-- [ ] `python -m lingoimage.cli health` green
+- [ ] `python -m picglot.cli health` green
 - [ ] One real file processed end to end through the public URL

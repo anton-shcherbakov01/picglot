@@ -21,8 +21,8 @@ if [ -f .env ]; then
   set +a
 fi
 
-DB_NAME="${POSTGRES_DB:-lingoimage}"
-DB_USER="${POSTGRES_USER:-lingo}"
+DB_NAME="${POSTGRES_DB:-picglot}"
+DB_USER="${POSTGRES_USER:-picglot}"
 
 echo "[backup] Dumping PostgreSQL (${DB_NAME})..."
 "${COMPOSE[@]}" exec -T postgres pg_dump \
@@ -31,14 +31,14 @@ echo "[backup] Dumping PostgreSQL (${DB_NAME})..."
   > "${DEST}/postgres_${DB_NAME}.dump"
 echo "[backup] PostgreSQL dump saved -> ${DEST}/postgres_${DB_NAME}.dump"
 
-echo "[backup] Mirroring object storage bucket '${S3_BUCKET:-lingoimage}'..."
+echo "[backup] Mirroring object storage bucket '${S3_BUCKET:-picglot}'..."
 mkdir -p "${DEST}/minio"
 "${COMPOSE[@]}" run --rm --no-deps \
   -v "$(pwd)/${DEST}/minio:/backup" \
   --entrypoint sh \
   minio-init -c "
-    mc alias set backup-src '${S3_ENDPOINT_URL:-http://minio:9000}' '${S3_ACCESS_KEY_ID:-lingoimage}' '${S3_SECRET_ACCESS_KEY:-lingoimage-dev-secret}' >/dev/null &&
-    mc mirror --overwrite backup-src/${S3_BUCKET:-lingoimage} /backup
+    mc alias set backup-src '${S3_ENDPOINT_URL:-http://minio:9000}' '${S3_ACCESS_KEY_ID:-picglot}' '${S3_SECRET_ACCESS_KEY:-picglot-dev-secret}' >/dev/null &&
+    mc mirror --overwrite backup-src/${S3_BUCKET:-picglot} /backup
   " || echo "[backup] Object storage mirror failed or minio-init unavailable — check manually."
 
 # .env keys without values, so the shape of the config is recoverable without leaking secrets.

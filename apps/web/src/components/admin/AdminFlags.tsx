@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from "react";
 
-import { ApiError, apiFetch } from '@/lib/api';
+import { ApiError, apiFetch } from "@/lib/api";
 
-import { ErrorNote } from './AdminPanel';
+import { ErrorNote } from "./AdminPanel";
 
 interface Flag {
   key: string;
@@ -16,14 +16,20 @@ interface Flag {
   kill_switch: boolean;
 }
 
-export function AdminFlags({ onError }: { onError: (failure: unknown) => boolean }) {
+export function AdminFlags({
+  onError,
+}: {
+  onError: (failure: unknown) => boolean;
+}) {
   const [flags, setFlags] = useState<Flag[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
-      const result = await apiFetch<{ items: Flag[] }>('/api/v1/admin/feature-flags');
+      const result = await apiFetch<{ items: Flag[] }>(
+        "/api/v1/admin/feature-flags",
+      );
       setFlags(result.items);
       setError(null);
     } catch (failure) {
@@ -38,7 +44,10 @@ export function AdminFlags({ onError }: { onError: (failure: unknown) => boolean
   const update = async (key: string, patch: Partial<Flag>) => {
     setBusy(key);
     try {
-      await apiFetch(`/api/v1/admin/feature-flags/${key}`, { method: 'PUT', json: patch });
+      await apiFetch(`/api/v1/admin/feature-flags/${key}`, {
+        method: "PUT",
+        json: patch,
+      });
       await load();
     } catch (failure) {
       if (!onError(failure)) setError((failure as ApiError).message);
@@ -48,11 +57,14 @@ export function AdminFlags({ onError }: { onError: (failure: unknown) => boolean
   };
 
   const setRollout = async (flag: Flag) => {
-    const raw = window.prompt(`Rollout percent for "${flag.key}" (0–100):`, String(flag.rollout_percent ?? 100));
+    const raw = window.prompt(
+      `Rollout percent for "${flag.key}" (0–100):`,
+      String(flag.rollout_percent ?? 100),
+    );
     if (raw === null) return;
     const value = Number(raw);
     if (!Number.isInteger(value) || value < 0 || value > 100) {
-      window.alert('Enter a whole number between 0 and 100.');
+      window.alert("Enter a whole number between 0 and 100.");
       return;
     }
     await update(flag.key, { rollout_percent: value });
@@ -64,20 +76,32 @@ export function AdminFlags({ onError }: { onError: (failure: unknown) => boolean
   return (
     <div className="grid gap-3">
       <p className="text-xs text-muted">
-        A kill switch overrides everything else — when it is on, the feature is off regardless of
-        rollout or plan. Changes take effect without a deploy and are written to the audit log.
+        A kill switch overrides everything else — when it is on, the feature is
+        off regardless of rollout or plan. Changes take effect without a deploy
+        and are written to the audit log.
       </p>
 
       {flags.map((flag) => (
-        <div key={flag.key} className="card flex flex-wrap items-center justify-between gap-3 p-4">
+        <div
+          key={flag.key}
+          className="card flex flex-wrap items-center justify-between gap-3 p-4"
+        >
           <div className="min-w-0">
             <div className="font-medium">{flag.key}</div>
-            {flag.description && <div className="text-sm text-muted">{flag.description}</div>}
+            {flag.description && (
+              <div className="text-sm text-muted">{flag.description}</div>
+            )}
             <div className="mt-1 flex flex-wrap gap-2 text-xs text-muted">
               <span>rollout: {flag.rollout_percent ?? 100}%</span>
-              {flag.plan_codes?.length ? <span>plans: {flag.plan_codes.join(', ')}</span> : null}
-              {flag.locales?.length ? <span>locales: {flag.locales.join(', ')}</span> : null}
-              {flag.kill_switch && <span className="text-danger">kill switch on</span>}
+              {flag.plan_codes?.length ? (
+                <span>plans: {flag.plan_codes.join(", ")}</span>
+              ) : null}
+              {flag.locales?.length ? (
+                <span>locales: {flag.locales.join(", ")}</span>
+              ) : null}
+              {flag.kill_switch && (
+                <span className="text-danger">kill switch on</span>
+              )}
             </div>
           </div>
 
@@ -88,7 +112,7 @@ export function AdminFlags({ onError }: { onError: (failure: unknown) => boolean
               disabled={busy === flag.key}
               onClick={() => void update(flag.key, { enabled: !flag.enabled })}
             >
-              {flag.enabled ? 'Disable' : 'Enable'}
+              {flag.enabled ? "Disable" : "Enable"}
             </button>
             <button
               type="button"
@@ -102,15 +126,19 @@ export function AdminFlags({ onError }: { onError: (failure: unknown) => boolean
               type="button"
               className="btn-ghost text-xs"
               disabled={busy === flag.key}
-              onClick={() => void update(flag.key, { kill_switch: !flag.kill_switch })}
+              onClick={() =>
+                void update(flag.key, { kill_switch: !flag.kill_switch })
+              }
             >
-              {flag.kill_switch ? 'Clear kill switch' : 'Kill switch'}
+              {flag.kill_switch ? "Clear kill switch" : "Kill switch"}
             </button>
           </div>
         </div>
       ))}
 
-      {flags.length === 0 && <p className="text-sm text-muted">No feature flags defined.</p>}
+      {flags.length === 0 && (
+        <p className="text-sm text-muted">No feature flags defined.</p>
+      )}
     </div>
   );
 }

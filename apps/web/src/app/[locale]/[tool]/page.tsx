@@ -1,11 +1,20 @@
-import type { Metadata } from 'next';
-import { notFound } from 'next/navigation';
+import type { Metadata } from "next";
+import { notFound, redirect } from "next/navigation";
 
-import { toolTitle } from '@/components/Header';
-import { WorkArea } from '@/components/WorkArea';
-import { serverFetch, type AppConfig, type SeoPageResponse } from '@/lib/api';
-import { absoluteUrl, alternates, isLocale, localePath, type Locale } from '@/lib/i18n';
-import { getMessages } from '@/lib/messages';
+import { toolTitle } from "@/components/Header";
+import { BatchArea } from "@/components/BatchArea";
+import { WorkArea } from "@/components/WorkArea";
+import { serverFetch, type AppConfig, type SeoPageResponse } from "@/lib/api";
+import {
+  absoluteUrl,
+  alternates,
+  isLocale,
+  localePath,
+  toolAlternates,
+  toolSlugFor,
+  type Locale,
+} from "@/lib/i18n";
+import { getMessages } from "@/lib/messages";
 
 /**
  * One page component serves every tool and every format landing page.
@@ -17,7 +26,7 @@ import { getMessages } from '@/lib/messages';
 
 async function loadPage(locale: string, tool: string) {
   const [config, seo] = await Promise.all([
-    serverFetch<AppConfig>('/api/v1/config', { revalidate: 600 }),
+    serverFetch<AppConfig>("/api/v1/config", { revalidate: 600 }),
     serverFetch<SeoPageResponse>(
       `/api/v1/content/page?path=/${encodeURIComponent(tool)}&locale=${locale}`,
       { revalidate: 900 },
@@ -33,10 +42,18 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale, tool } = await params;
   if (!isLocale(locale)) return {};
-  const { seo } = await loadPage(locale, tool);
+  const { config, seo } = await loadPage(locale, tool);
   if (!seo) return {};
 
-  const { languages } = alternates(`/${tool}`);
+  // Follow each locale's own slug, so hreflang never points at a redirect.
+  // True when `tool` is this tool's page in this locale, English or localised;
+  // a format landing page maps to a tool but keeps one slug in every locale.
+  const spec = config?.tools.find((item) => item.slug === seo.tool_slug);
+  const isToolPage =
+    spec && toolSlugFor(locale, spec.slug, spec.localized_slugs) === tool;
+  const { languages } = isToolPage
+    ? toolAlternates(spec.slug, spec.localized_slugs)
+    : alternates(`/${tool}`);
   return {
     title: seo.title,
     description: seo.description,
@@ -46,7 +63,13 @@ export async function generateMetadata({
       title: seo.h1,
       description: seo.description,
       url: absoluteUrl(localePath(locale, tool)),
-      images: [{ url: absoluteUrl(`/og/${locale}/${tool}.png`), width: 1200, height: 630 }],
+      images: [
+        {
+          url: absoluteUrl(`/og/${locale}/${tool}.png`),
+          width: 1200,
+          height: 630,
+        },
+      ],
     },
   };
 }
@@ -70,22 +93,29 @@ export default async function ToolPage({
   const spec = config.tools.find((item) => item.slug === toolSlug);
   if (!spec) notFound();
 
+  // This locale publishes the tool under its own slug: send the English path
+  // there rather than serving the same page at two indexable addresses.
+  const preferred = toolSlugFor(typed, spec.slug, spec.localized_slugs);
+  if (tool === spec.slug && preferred !== tool) {
+    redirect(localePath(typed, preferred));
+  }
+
   const heading = seo?.h1 ?? toolTitle(spec.slug, typed);
 
   const structuredData = {
-    '@context': 'https://schema.org',
-    '@graph': [
+    "@context": "https://schema.org",
+    "@graph": [
       {
-        '@type': 'BreadcrumbList',
+        "@type": "BreadcrumbList",
         itemListElement: [
           {
-            '@type': 'ListItem',
+            "@type": "ListItem",
             position: 1,
-            name: 'LingoImage AI',
+            name: "PicGlot",
             item: absoluteUrl(localePath(typed)),
           },
           {
-            '@type': 'ListItem',
+            "@type": "ListItem",
             position: 2,
             name: heading,
             item: absoluteUrl(localePath(typed, tool)),
@@ -93,20 +123,20 @@ export default async function ToolPage({
         ],
       },
       {
-        '@type': 'SoftwareApplication',
+        "@type": "SoftwareApplication",
         name: heading,
-        applicationCategory: 'UtilitiesApplication',
-        operatingSystem: 'Any',
-        offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+        applicationCategory: "UtilitiesApplication",
+        operatingSystem: "Any",
+        offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
       },
       ...(seo?.faq?.length
         ? [
             {
-              '@type': 'FAQPage',
+              "@type": "FAQPage",
               mainEntity: seo.faq.map((item) => ({
-                '@type': 'Question',
+                "@type": "Question",
                 name: item.q,
-                acceptedAnswer: { '@type': 'Answer', text: item.a },
+                acceptedAnswer: { "@type": "Answer", text: item.a },
               })),
             },
           ]
@@ -114,9 +144,11 @@ export default async function ToolPage({
     ],
   };
 
-  const formats = seo?.body_sections.find((section) => section.type === 'formats')?.items ??
+  const formats =
+    seo?.body_sections.find((section) => section.type === "formats")?.items ??
     spec.accepts;
-  const exports = seo?.body_sections.find((section) => section.type === 'exports')?.items ??
+  const exports =
+    seo?.body_sections.find((section) => section.type === "exports")?.items ??
     spec.exports;
 
   return (
@@ -129,7 +161,7 @@ export default async function ToolPage({
       <section className="container-page py-10 sm:py-14">
         <nav aria-label="Breadcrumb" className="mb-4 text-sm text-muted">
           <a href={localePath(typed)} className="hover:text-fg">
-            LingoImage AI
+            PicGlot
           </a>
           <span aria-hidden> / </span>
           <span aria-current="page">{heading}</span>
@@ -137,18 +169,24 @@ export default async function ToolPage({
 
         <div className="mx-auto max-w-3xl text-center">
           <h1 className="text-3xl font-bold sm:text-4xl">{heading}</h1>
-          {seo?.description && <p className="mt-3 text-muted">{seo.description}</p>}
+          {seo?.description && (
+            <p className="mt-3 text-muted">{seo.description}</p>
+          )}
         </div>
 
         <div className="mx-auto mt-8 max-w-3xl">
-          <WorkArea
-            locale={typed}
-            messages={messages}
-            config={config}
-            toolSlug={spec.slug}
-            defaultSource={seo?.source_language}
-            defaultTarget={seo?.target_language}
-          />
+          {spec.slug === "batch" ? (
+            <BatchArea locale={typed} messages={messages} config={config} />
+          ) : (
+            <WorkArea
+              locale={typed}
+              messages={messages}
+              config={config}
+              toolSlug={spec.slug}
+              defaultSource={seo?.source_language}
+              defaultTarget={seo?.target_language}
+            />
+          )}
         </div>
       </section>
 
@@ -165,13 +203,17 @@ export default async function ToolPage({
           <div className="card p-5">
             <h2 className="text-sm font-semibold">{messages.upload.formats}</h2>
             <p className="mt-2 text-sm text-muted">
-              {formats.map((item) => item.toUpperCase()).join(', ')}
+              {formats.map((item) => item.toUpperCase()).join(", ")}
             </p>
           </div>
           <div className="card p-5">
-            <h2 className="text-sm font-semibold">{messages.result.download}</h2>
+            <h2 className="text-sm font-semibold">
+              {messages.result.download}
+            </h2>
             <p className="mt-2 text-sm text-muted">
-              {exports.map((item) => item.replace('_', ' ').toUpperCase()).join(', ')}
+              {exports
+                .map((item) => item.replace("_", " ").toUpperCase())
+                .join(", ")}
             </p>
           </div>
         </div>
@@ -186,7 +228,9 @@ export default async function ToolPage({
             <div className="mt-5 grid gap-3">
               {seo.faq.map((item) => (
                 <details key={item.q} className="card p-4">
-                  <summary className="cursor-pointer font-medium">{item.q}</summary>
+                  <summary className="cursor-pointer font-medium">
+                    {item.q}
+                  </summary>
                   <p className="mt-2 text-sm text-muted">{item.a}</p>
                 </details>
               ))}

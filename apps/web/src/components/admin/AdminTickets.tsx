@@ -1,11 +1,11 @@
-'use client';
+"use client";
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from "react";
 
-import { ApiError, apiFetch } from '@/lib/api';
-import type { Locale } from '@/lib/i18n';
+import { ApiError, apiFetch } from "@/lib/api";
+import type { Locale } from "@/lib/i18n";
 
-import { ErrorNote, Timestamp } from './AdminPanel';
+import { ErrorNote, Timestamp } from "./AdminPanel";
 
 interface Ticket {
   id: string;
@@ -25,7 +25,7 @@ export function AdminTickets({
   locale: Locale;
   onError: (failure: unknown) => boolean;
 }) {
-  const [status, setStatus] = useState('open');
+  const [status, setStatus] = useState("open");
   const [tickets, setTickets] = useState<Ticket[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -59,7 +59,7 @@ export function AdminTickets({
           value={status}
           onChange={(event) => setStatus(event.target.value)}
         >
-          {['open', 'closed'].map((value) => (
+          {["open", "closed"].map((value) => (
             <option key={value} value={value}>
               {value}
             </option>
@@ -85,7 +85,9 @@ export function AdminTickets({
                 {ticket.project_id && <span>project: {ticket.project_id}</span>}
                 {ticket.request_id && <span>request: {ticket.request_id}</span>}
               </div>
-              <p className="mt-3 whitespace-pre-wrap text-sm">{ticket.message}</p>
+              <p className="mt-3 whitespace-pre-wrap text-sm">
+                {ticket.message}
+              </p>
             </div>
           ))}
         </div>

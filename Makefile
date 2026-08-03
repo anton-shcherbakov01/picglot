@@ -1,4 +1,4 @@
-# LingoImage AI — top level task runner.
+# PicGlot — top level task runner.
 # Windows users without GNU make: use the equivalent npm scripts
 #   npm run setup | dev | lint | typecheck | test | build ...
 # or the PowerShell shim: ./scripts/make.ps1 <target>
@@ -38,13 +38,13 @@ dev: ## Run the full local stack (infra in Docker, app processes locally)
 	npm run dev
 
 dev-api: ## Run only the API with autoreload
-	$(VENV_BIN)/uvicorn lingoimage.main:app --reload --host 0.0.0.0 --port 8000
+	$(VENV_BIN)/uvicorn picglot.main:app --reload --host 0.0.0.0 --port 8000
 
 dev-web: ## Run only the Next.js dev server
-	npm run dev --workspace @lingoimage/web
+	npm run dev --workspace @picglot/web
 
 dev-worker: ## Run a local CPU worker
-	$(VENV_BIN)/celery -A lingoimage.workers.celery_app worker -Q cpu,export,notifications -l info
+	$(VENV_BIN)/celery -A picglot.workers.celery_app worker -Q cpu,export,notifications -l info
 
 lint: lint-py lint-web ## Lint everything
 
@@ -58,7 +58,7 @@ lint-web:
 typecheck: typecheck-py typecheck-web ## Type-check everything
 
 typecheck-py:
-	$(VENV_BIN)/mypy $(API_DIR)/lingoimage
+	$(VENV_BIN)/mypy $(API_DIR)/picglot
 
 typecheck-web:
 	npm run typecheck
@@ -80,7 +80,7 @@ test-e2e: ## Run Playwright end-to-end tests
 	npm run test:e2e
 
 build: build-web ## Production build
-	$(VENV_BIN)/python -m compileall -q $(API_DIR)/lingoimage
+	$(VENV_BIN)/python -m compileall -q $(API_DIR)/picglot
 
 build-web:
 	npm run build
@@ -104,10 +104,10 @@ migration: ## Create a new migration: make migration m="add table"
 	$(VENV_BIN)/alembic -c $(API_DIR)/alembic.ini revision --autogenerate -m "$(m)"
 
 seed: ## Load plans, feature flags, SEO content and demo data
-	$(VENV_BIN)/python -m lingoimage.cli seed
+	$(VENV_BIN)/python -m picglot.cli seed
 
 health: ## Check that every service is reachable
-	$(VENV_BIN)/python -m lingoimage.cli health
+	$(VENV_BIN)/python -m picglot.cli health
 
 docker-build: ## Build all production images
 	$(COMPOSE) -f docker-compose.production.yml build

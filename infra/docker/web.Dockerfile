@@ -15,7 +15,7 @@ FROM node:22-alpine AS builder
 WORKDIR /app
 ARG NEXT_PUBLIC_API_URL=http://localhost:8000
 ARG NEXT_PUBLIC_SITE_URL=http://localhost:3000
-ARG NEXT_PUBLIC_BRAND_NAME="LingoImage AI"
+ARG NEXT_PUBLIC_BRAND_NAME="PicGlot"
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL \
     NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL \
     NEXT_PUBLIC_BRAND_NAME=$NEXT_PUBLIC_BRAND_NAME \
@@ -23,7 +23,7 @@ ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL \
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/web/node_modules ./apps/web/node_modules
 COPY . .
-RUN npm run build --workspace @lingoimage/web
+RUN npm run build --workspace @picglot/web
 
 FROM node:22-alpine AS runner
 WORKDIR /app

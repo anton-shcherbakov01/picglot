@@ -15,11 +15,11 @@ Windows without GNU make: `.\scripts\make.ps1 <target>` or the equivalent
 
 ## Code style
 
-* Python: `ruff check` / `ruff format` (see `apps/api/pyproject.toml`), mypy
+- Python: `ruff check` / `ruff format` (see `apps/api/pyproject.toml`), mypy
   strict where the codebase already is.
-* TypeScript: `eslint` + `tsc --noEmit`, `strict` and
+- TypeScript: `eslint` + `tsc --noEmit`, `strict` and
   `noUncheckedIndexedAccess` in `apps/web/tsconfig.json`.
-* Run `make lint && make typecheck && make test` before pushing — all three
+- Run `make lint && make typecheck && make test` before pushing — all three
   are also CI gates in `.github/workflows/ci.yml`.
 
 ## Commits

@@ -1,17 +1,18 @@
-import Link from 'next/link';
+import Link from "next/link";
 
-import { localePath, type Locale } from '@/lib/i18n';
-import type { Messages } from '@/lib/messages';
-import { toolTitle } from './Header';
+import type { AppConfig } from "@/lib/api";
+import { localePath, toolSlugFor, type Locale } from "@/lib/i18n";
+import type { Messages } from "@/lib/messages";
+import { toolTitle } from "./Header";
 
 export function Footer({
   locale,
   messages,
-  toolSlugs,
+  tools,
 }: {
   locale: Locale;
   messages: Messages;
-  toolSlugs: string[];
+  tools: AppConfig["tools"];
 }) {
   const year = new Date().getFullYear();
 
@@ -24,9 +25,9 @@ export function Footer({
               aria-hidden
               className="grid h-6 w-6 place-items-center rounded bg-accent text-[11px] font-bold text-accent-fg"
             >
-              Li
+              PG
             </span>
-            LingoImage AI
+            PicGlot
           </div>
           <p className="text-sm text-muted">{messages.brand.tagline}</p>
         </div>
@@ -36,15 +37,24 @@ export function Footer({
             {messages.footer.product}
           </h2>
           <ul className="space-y-2 text-sm text-muted">
-            {toolSlugs.slice(0, 7).map((slug) => (
-              <li key={slug}>
-                <Link href={localePath(locale, slug)} className="hover:text-fg">
-                  {toolTitle(slug, locale)}
+            {tools.slice(0, 7).map((tool) => (
+              <li key={tool.slug}>
+                <Link
+                  href={localePath(
+                    locale,
+                    toolSlugFor(locale, tool.slug, tool.localized_slugs),
+                  )}
+                  className="hover:text-fg"
+                >
+                  {toolTitle(tool.slug, locale)}
                 </Link>
               </li>
             ))}
             <li>
-              <Link href={localePath(locale, 'pricing')} className="hover:text-fg">
+              <Link
+                href={localePath(locale, "pricing")}
+                className="hover:text-fg"
+              >
                 {messages.nav.pricing}
               </Link>
             </li>
@@ -57,27 +67,36 @@ export function Footer({
           </h2>
           <ul className="space-y-2 text-sm text-muted">
             <li>
-              <Link href={localePath(locale, 'api')} className="hover:text-fg">
+              <Link href={localePath(locale, "api")} className="hover:text-fg">
                 {messages.nav.api}
               </Link>
             </li>
             <li>
-              <Link href={localePath(locale, 'blog')} className="hover:text-fg">
+              <Link href={localePath(locale, "blog")} className="hover:text-fg">
                 {messages.nav.blog}
               </Link>
             </li>
             <li>
-              <Link href={localePath(locale, 'supported-languages')} className="hover:text-fg">
+              <Link
+                href={localePath(locale, "supported-languages")}
+                className="hover:text-fg"
+              >
                 {messages.nav.languages}
               </Link>
             </li>
             <li>
-              <Link href={localePath(locale, 'status')} className="hover:text-fg">
+              <Link
+                href={localePath(locale, "status")}
+                className="hover:text-fg"
+              >
                 {messages.nav.status}
               </Link>
             </li>
             <li>
-              <Link href={localePath(locale, 'contact')} className="hover:text-fg">
+              <Link
+                href={localePath(locale, "contact")}
+                className="hover:text-fg"
+              >
                 {messages.nav.contact}
               </Link>
             </li>
@@ -90,32 +109,50 @@ export function Footer({
           </h2>
           <ul className="space-y-2 text-sm text-muted">
             <li>
-              <Link href={localePath(locale, 'legal/privacy')} className="hover:text-fg">
+              <Link
+                href={localePath(locale, "legal/privacy")}
+                className="hover:text-fg"
+              >
                 {messages.footer.privacy}
               </Link>
             </li>
             <li>
-              <Link href={localePath(locale, 'legal/terms')} className="hover:text-fg">
+              <Link
+                href={localePath(locale, "legal/terms")}
+                className="hover:text-fg"
+              >
                 {messages.footer.terms}
               </Link>
             </li>
             <li>
-              <Link href={localePath(locale, 'legal/cookies')} className="hover:text-fg">
+              <Link
+                href={localePath(locale, "legal/cookies")}
+                className="hover:text-fg"
+              >
                 {messages.footer.cookies}
               </Link>
             </li>
             <li>
-              <Link href={localePath(locale, 'legal/refunds')} className="hover:text-fg">
+              <Link
+                href={localePath(locale, "legal/refunds")}
+                className="hover:text-fg"
+              >
                 {messages.footer.refunds}
               </Link>
             </li>
             <li>
-              <Link href={localePath(locale, 'legal/acceptable-use')} className="hover:text-fg">
+              <Link
+                href={localePath(locale, "legal/acceptable-use")}
+                className="hover:text-fg"
+              >
                 {messages.footer.acceptableUse}
               </Link>
             </li>
             <li>
-              <Link href={localePath(locale, 'security')} className="hover:text-fg">
+              <Link
+                href={localePath(locale, "security")}
+                className="hover:text-fg"
+              >
                 {messages.footer.security}
               </Link>
             </li>
@@ -125,7 +162,7 @@ export function Footer({
 
       <div className="border-t border-border">
         <div className="container-page py-5 text-xs text-muted">
-          © {year} LingoImage AI. {messages.footer.rights}
+          © {year} PicGlot. {messages.footer.rights}
         </div>
       </div>
     </footer>

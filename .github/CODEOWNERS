@@ -1,0 +1,34 @@
+# Code owners.
+#
+# Replace @anton-shcherbakov01 with the real teams once there is more than one
+# maintainer — the point of this file is that security-sensitive and
+# money-sensitive areas cannot be merged without a named reviewer.
+
+*                                   @anton-shcherbakov01
+
+# Money. A mistake here is a refund or a chargeback, not a redeploy.
+/apps/api/picglot/services/credits.py       @anton-shcherbakov01
+/apps/api/picglot/providers/payments.py     @anton-shcherbakov01
+/apps/api/picglot/domain/credits.py         @anton-shcherbakov01
+/apps/api/picglot/domain/plans.py           @anton-shcherbakov01
+
+# Security-critical surfaces.
+/apps/api/picglot/core/security.py          @anton-shcherbakov01
+/apps/api/picglot/services/auth.py          @anton-shcherbakov01
+/apps/api/picglot/services/files.py         @anton-shcherbakov01
+/apps/api/picglot/api/routers/admin.py      @anton-shcherbakov01
+/apps/api/picglot/providers/llm.py          @anton-shcherbakov01
+
+# Schema changes outlive whoever wrote them.
+/apps/api/migrations/                       @anton-shcherbakov01
+/apps/api/picglot/db/models.py              @anton-shcherbakov01
+
+# Deployment and secrets handling.
+/infra/                                     @anton-shcherbakov01
+/docker-compose.production.yml              @anton-shcherbakov01
+/.github/workflows/                         @anton-shcherbakov01
+/.env.example                               @anton-shcherbakov01
+
+# Documented decisions should not change silently.
+/docs/architecture-decisions/               @anton-shcherbakov01
+/docs/security/                             @anton-shcherbakov01

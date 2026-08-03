@@ -32,29 +32,29 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /build
 COPY apps/api/pyproject.toml apps/api/README.md ./
-COPY apps/api/lingoimage ./lingoimage
+COPY apps/api/picglot ./picglot
 RUN python -m venv /opt/venv \
     && /opt/venv/bin/pip install --upgrade pip wheel \
     && /opt/venv/bin/pip install ".[ocr]"
 
 FROM base AS runtime
 ENV PATH="/opt/venv/bin:$PATH" \
-    TMPDIR=/tmp/lingoimage \
+    TMPDIR=/tmp/picglot \
     FONT_DIR=/app/assets/fonts \
     OMP_THREAD_LIMIT=1
 COPY --from=builder /opt/venv /opt/venv
 
-RUN groupadd --system --gid 1001 lingo \
-    && useradd --system --uid 1001 --gid lingo --create-home lingo \
-    && mkdir -p /tmp/lingoimage /app /home/lingo/.cache \
-    && chown -R lingo:lingo /tmp/lingoimage /app /home/lingo
+RUN groupadd --system --gid 1001 picglot \
+    && useradd --system --uid 1001 --gid picglot --create-home picglot \
+    && mkdir -p /tmp/picglot /app /home/picglot/.cache \
+    && chown -R picglot:picglot /tmp/picglot /app /home/picglot
 
 WORKDIR /app
-COPY --chown=lingo:lingo apps/api/alembic.ini ./alembic.ini
-COPY --chown=lingo:lingo apps/api/lingoimage ./lingoimage
-COPY --chown=lingo:lingo assets ./assets
+COPY --chown=picglot:picglot apps/api/alembic.ini ./alembic.ini
+COPY --chown=picglot:picglot apps/api/picglot ./picglot
+COPY --chown=picglot:picglot assets ./assets
 
-USER lingo
+USER picglot
 STOPSIGNAL SIGTERM
 
-CMD ["celery", "-A", "lingoimage.workers.celery_app", "worker", "-Q", "cpu", "-l", "info"]
+CMD ["celery", "-A", "picglot.workers.celery_app", "worker", "-Q", "cpu", "-l", "info"]

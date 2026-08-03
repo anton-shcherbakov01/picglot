@@ -1,18 +1,24 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import Link from "next/link";
+import { useEffect, useState } from "react";
 
-import { captureFirstTouch, consentState, setConsent } from '@/lib/analytics';
-import { localePath, type Locale } from '@/lib/i18n';
-import type { Messages } from '@/lib/messages';
+import { captureFirstTouch, consentState, setConsent } from "@/lib/analytics";
+import { localePath, type Locale } from "@/lib/i18n";
+import type { Messages } from "@/lib/messages";
 
-export function ConsentBanner({ locale, messages }: { locale: Locale; messages: Messages }) {
+export function ConsentBanner({
+  locale,
+  messages,
+}: {
+  locale: Locale;
+  messages: Messages;
+}) {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
     captureFirstTouch();
-    if (consentState() === 'unknown') setVisible(true);
+    if (consentState() === "unknown") setVisible(true);
   }, []);
 
   if (!visible) return null;
@@ -30,16 +36,27 @@ export function ConsentBanner({ locale, messages }: { locale: Locale; messages: 
     >
       <div className="mx-auto flex max-w-3xl flex-col gap-3 sm:flex-row sm:items-center">
         <p className="flex-1 text-sm text-muted">
-          {messages.consent.message}{' '}
-          <Link href={localePath(locale, 'legal/cookies')} className="text-accent underline">
+          {messages.consent.message}{" "}
+          <Link
+            href={localePath(locale, "legal/cookies")}
+            className="text-accent underline"
+          >
             {messages.consent.policyLink}
           </Link>
         </p>
         <div className="flex shrink-0 gap-2">
-          <button type="button" className="btn-secondary text-xs" onClick={() => choose(false)}>
+          <button
+            type="button"
+            className="btn-secondary text-xs"
+            onClick={() => choose(false)}
+          >
             {messages.consent.decline}
           </button>
-          <button type="button" className="btn-primary text-xs" onClick={() => choose(true)}>
+          <button
+            type="button"
+            className="btn-primary text-xs"
+            onClick={() => choose(true)}
+          >
             {messages.consent.accept}
           </button>
         </div>

@@ -1,8 +1,14 @@
-import type { Metadata } from 'next';
-import { notFound } from 'next/navigation';
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 
-import { findContentPage } from '@/content/legal';
-import { absoluteUrl, alternates, isLocale, localePath, type Locale } from '@/lib/i18n';
+import { findContentPage } from "@/content/legal";
+import {
+  absoluteUrl,
+  alternates,
+  isLocale,
+  localePath,
+  type Locale,
+} from "@/lib/i18n";
 
 export async function generateMetadata({
   params,
@@ -11,16 +17,19 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
   if (!isLocale(locale)) return {};
-  const page = findContentPage('security');
-  const title = locale === 'ru' ? page?.title.ru : page?.title.en;
-  const { languages } = alternates('/security');
+  const page = findContentPage("security");
+  const title = locale === "ru" ? page?.title.ru : page?.title.en;
+  const { languages } = alternates("/security");
   return {
     title,
     description:
-      locale === 'ru'
-        ? 'Как LingoImage AI хранит, защищает и удаляет ваши файлы.'
-        : 'How LingoImage AI stores, protects and deletes your files.',
-    alternates: { canonical: absoluteUrl(localePath(locale, 'security')), languages },
+      locale === "ru"
+        ? "Как PicGlot хранит, защищает и удаляет ваши файлы."
+        : "How PicGlot stores, protects and deletes your files.",
+    alternates: {
+      canonical: absoluteUrl(localePath(locale, "security")),
+      languages,
+    },
   };
 }
 
@@ -31,11 +40,12 @@ export default async function SecurityPage({
 }) {
   const { locale } = await params;
   if (!isLocale(locale)) notFound();
-  const page = findContentPage('security');
+  const page = findContentPage("security");
   if (!page) notFound();
 
   const typed = locale as Locale;
-  const pick = <T,>(value: { en: T; ru: T }): T => (typed === 'ru' ? value.ru : value.en);
+  const pick = <T,>(value: { en: T; ru: T }): T =>
+    typed === "ru" ? value.ru : value.en;
 
   return (
     <article className="container-page max-w-3xl py-12">
