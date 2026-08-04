@@ -158,8 +158,8 @@ export default async function ToolPage({
         dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
       />
 
-      <section className="container-page py-10 sm:py-14">
-        <nav aria-label="Breadcrumb" className="mb-4 text-sm text-muted">
+      <section className="glow relative isolate container-page py-10 sm:py-16">
+        <nav aria-label="Breadcrumb" className="meta mb-6">
           <a href={localePath(typed)} className="hover:text-fg">
             PicGlot
           </a>
@@ -168,13 +168,15 @@ export default async function ToolPage({
         </nav>
 
         <div className="mx-auto max-w-3xl text-center">
-          <h1 className="text-3xl font-bold sm:text-4xl">{heading}</h1>
+          <h1 className="text-title sm:text-display">{heading}</h1>
           {seo?.description && (
-            <p className="mt-3 text-muted">{seo.description}</p>
+            <p className="mx-auto mt-4 max-w-2xl text-[17px] leading-relaxed text-muted">
+              {seo.description}
+            </p>
           )}
         </div>
 
-        <div className="mx-auto mt-8 max-w-3xl">
+        <div className="mx-auto mt-10 max-w-3xl">
           {spec.slug === "batch" ? (
             <BatchArea locale={typed} messages={messages} config={config} />
           ) : (
@@ -199,21 +201,17 @@ export default async function ToolPage({
       )}
 
       <section className="container-page pb-10">
-        <div className="mx-auto grid max-w-3xl gap-4 sm:grid-cols-2">
-          <div className="card p-5">
-            <h2 className="text-sm font-semibold">{messages.upload.formats}</h2>
-            <p className="mt-2 text-sm text-muted">
-              {formats.map((item) => item.toUpperCase()).join(", ")}
+        <div className="mx-auto grid max-w-3xl gap-px overflow-hidden rounded-card border border-border bg-border shadow-soft sm:grid-cols-2">
+          <div className="bg-surface p-5">
+            <h2 className="eyebrow">{messages.upload.formats}</h2>
+            <p className="mt-2 font-mono text-[13px] uppercase tracking-[0.06em]">
+              {formats.join(" · ")}
             </p>
           </div>
-          <div className="card p-5">
-            <h2 className="text-sm font-semibold">
-              {messages.result.download}
-            </h2>
-            <p className="mt-2 text-sm text-muted">
-              {exports
-                .map((item) => item.replace("_", " ").toUpperCase())
-                .join(", ")}
+          <div className="bg-surface p-5">
+            <h2 className="eyebrow">{messages.result.download}</h2>
+            <p className="mt-2 font-mono text-[13px] uppercase tracking-[0.06em]">
+              {exports.map((item) => item.replace("_", " ")).join(" · ")}
             </p>
           </div>
         </div>

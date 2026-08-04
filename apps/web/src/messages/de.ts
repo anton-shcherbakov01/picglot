@@ -173,6 +173,8 @@ export const de: Messages = {
     zoomIn: "Vergrößern",
     zoomOut: "Verkleinern",
     fit: "An Bildschirm anpassen",
+    imageFailed:
+      "Das Bild konnte nicht geladen werden. Die Textblöcke bleiben bearbeitbar.",
     apply: "Änderungen anwenden",
     applying: "Wird neu gezeichnet…",
     saved: "Gespeichert",

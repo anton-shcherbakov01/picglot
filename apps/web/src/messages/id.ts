@@ -172,6 +172,8 @@ export const id: Messages = {
     zoomIn: "Perbesar",
     zoomOut: "Perkecil",
     fit: "Sesuaikan ke layar",
+    imageFailed:
+      "Gambar tidak dapat dimuat. Blok teks di bawah masih bisa diedit.",
     apply: "Terapkan perubahan",
     applying: "Menggambar ulang…",
     saved: "Tersimpan",

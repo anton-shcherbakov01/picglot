@@ -5,6 +5,8 @@ import { localePath, toolSlugFor, type Locale } from "@/lib/i18n";
 import type { Messages } from "@/lib/messages";
 import { toolTitle } from "@/lib/tools";
 
+import { Wordmark } from "./Brand";
+
 export function Footer({
   locale,
   messages,
@@ -17,23 +19,20 @@ export function Footer({
   const year = new Date().getFullYear();
 
   return (
-    <footer className="mt-20 border-t border-border bg-surface">
-      <div className="container-page grid gap-10 py-12 sm:grid-cols-2 lg:grid-cols-4">
+    <footer className="mt-24 border-t border-border bg-surface">
+      <div className="container-page grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-4">
         <div>
-          <div className="mb-3 flex items-center gap-2 font-semibold">
-            <span
-              aria-hidden
-              className="grid h-6 w-6 place-items-center rounded bg-accent text-[11px] font-bold text-accent-fg"
-            >
-              PG
-            </span>
+          <div className="mb-4 flex items-center gap-2.5 font-semibold tracking-tight">
+            <Wordmark size={28} />
             PicGlot
           </div>
-          <p className="text-sm text-muted">{messages.brand.tagline}</p>
+          <p className="max-w-xs text-sm leading-relaxed text-muted">
+            {messages.brand.tagline}
+          </p>
         </div>
 
         <nav aria-labelledby="footer-product">
-          <h2 id="footer-product" className="mb-3 text-sm font-semibold">
+          <h2 id="footer-product" className="eyebrow mb-4">
             {messages.footer.product}
           </h2>
           <ul className="space-y-2 text-sm text-muted">
@@ -62,7 +61,7 @@ export function Footer({
         </nav>
 
         <nav aria-labelledby="footer-company">
-          <h2 id="footer-company" className="mb-3 text-sm font-semibold">
+          <h2 id="footer-company" className="eyebrow mb-4">
             {messages.footer.company}
           </h2>
           <ul className="space-y-2 text-sm text-muted">
@@ -104,7 +103,7 @@ export function Footer({
         </nav>
 
         <nav aria-labelledby="footer-legal">
-          <h2 id="footer-legal" className="mb-3 text-sm font-semibold">
+          <h2 id="footer-legal" className="eyebrow mb-4">
             {messages.footer.legal}
           </h2>
           <ul className="space-y-2 text-sm text-muted">
@@ -161,7 +160,7 @@ export function Footer({
       </div>
 
       <div className="border-t border-border">
-        <div className="container-page py-5 text-xs text-muted">
+        <div className="container-page py-6 text-xs text-muted">
           © {year} PicGlot. {messages.footer.rights}
         </div>
       </div>

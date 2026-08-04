@@ -175,6 +175,8 @@ export const en = {
     zoomIn: "Zoom in",
     zoomOut: "Zoom out",
     fit: "Fit to screen",
+    imageFailed:
+      "The image could not be loaded. The text blocks below are still editable.",
     apply: "Apply changes",
     applying: "Redrawing…",
     saved: "Saved",

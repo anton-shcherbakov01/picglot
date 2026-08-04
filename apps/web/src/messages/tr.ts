@@ -173,6 +173,8 @@ export const tr: Messages = {
     zoomIn: "Yakınlaştır",
     zoomOut: "Uzaklaştır",
     fit: "Ekrana sığdır",
+    imageFailed:
+      "Görsel yüklenemedi. Aşağıdaki metin blokları hâlâ düzenlenebilir.",
     apply: "Değişiklikleri uygula",
     applying: "Yeniden çiziliyor…",
     saved: "Kaydedildi",

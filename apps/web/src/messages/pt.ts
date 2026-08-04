@@ -171,6 +171,8 @@ export const pt: Messages = {
     zoomIn: "Aumentar zoom",
     zoomOut: "Diminuir zoom",
     fit: "Ajustar à tela",
+    imageFailed:
+      "Não foi possível carregar a imagem. Os blocos de texto continuam editáveis.",
     apply: "Aplicar alterações",
     applying: "Redesenhando…",
     saved: "Salvo",

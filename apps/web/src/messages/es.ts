@@ -171,6 +171,8 @@ export const es: Messages = {
     zoomIn: "Acercar",
     zoomOut: "Alejar",
     fit: "Ajustar a la pantalla",
+    imageFailed:
+      "No se pudo cargar la imagen. Los bloques de texto siguen siendo editables.",
     apply: "Aplicar cambios",
     applying: "Redibujando…",
     saved: "Guardado",

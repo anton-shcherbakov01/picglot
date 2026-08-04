@@ -50,6 +50,7 @@ interface Props {
     zoomIn: string;
     zoomOut: string;
     fit: string;
+    imageFailed: string;
   };
 }
 
@@ -96,6 +97,7 @@ export function CanvasStage({
   const selectedShapeRef = useRef<Konva.Rect>(null);
 
   const [image, setImage] = useState<HTMLImageElement | null>(null);
+  const [imageFailed, setImageFailed] = useState(false);
   const [size, setSize] = useState({ width: 800, height: 600 });
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [strokes, setStrokes] = useState<MaskStroke[]>([]);
@@ -106,15 +108,40 @@ export function CanvasStage({
   useEffect(() => {
     if (!imageUrl) {
       setImage(null);
+      setImageFailed(false);
       return;
     }
-    const element = new window.Image();
-    element.crossOrigin = "anonymous";
     let cancelled = false;
-    element.onload = () => {
-      if (!cancelled) setImage(element);
-    };
-    element.src = imageUrl;
+    setImageFailed(false);
+
+    const load = (anonymous: boolean) =>
+      new Promise<HTMLImageElement>((resolve, reject) => {
+        const element = new window.Image();
+        // Setting crossOrigin makes the browser *require* CORS headers rather
+        // than merely prefer them, so this attempt fails outright against an
+        // object store that answers without them.
+        if (anonymous) element.crossOrigin = "anonymous";
+        element.onload = () => resolve(element);
+        element.onerror = () => reject(new Error("image load failed"));
+        element.src = imageUrl;
+      });
+
+    // Pages come from storage on a separate host through presigned URLs. Try
+    // for an untainted canvas first, then settle for a tainted one: nothing
+    // here reads pixels back, and a picture the user cannot see is a far worse
+    // outcome than a canvas we cannot export from. A blank stage with the
+    // blocks drawn on top of nothing is what this fallback exists to prevent.
+    void load(true)
+      .catch(() => load(false))
+      .then((element) => {
+        if (!cancelled) setImage(element);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setImage(null);
+        setImageFailed(true);
+      });
+
     return () => {
       cancelled = true;
     };
@@ -256,35 +283,50 @@ export function CanvasStage({
   const panning = tool === "select" && !selectedId;
 
   return (
-    <div className="grid gap-2">
-      <div className="flex flex-wrap items-center gap-2">
-        <button
-          type="button"
-          className="btn-ghost text-xs"
-          onClick={() => onZoomChange(Math.max(0.05, zoom / 1.2))}
-          aria-label={labels.zoomOut}
-        >
-          −
-        </button>
-        <span className="text-xs tabular-nums text-muted">
-          {Math.round(zoom * 100)}%
-        </span>
-        <button
-          type="button"
-          className="btn-ghost text-xs"
-          onClick={() => onZoomChange(Math.min(8, zoom * 1.2))}
-          aria-label={labels.zoomIn}
-        >
-          +
-        </button>
-        <button type="button" className="btn-ghost text-xs" onClick={fit}>
+    <div className="relative">
+      {/* Zoom lives here, next to the surface it scales, and nowhere else. */}
+      <div className="mb-2 flex items-center gap-1">
+        <div className="flex items-center rounded-xl border border-border bg-surface p-0.5">
+          <button
+            type="button"
+            className="btn-ghost h-8 px-2.5 text-base"
+            onClick={() => onZoomChange(Math.max(0.05, zoom / 1.2))}
+            aria-label={labels.zoomOut}
+          >
+            −
+          </button>
+          <span className="w-12 text-center text-xs font-medium tabular-nums text-muted">
+            {Math.round(zoom * 100)}%
+          </span>
+          <button
+            type="button"
+            className="btn-ghost h-8 px-2.5 text-base"
+            onClick={() => onZoomChange(Math.min(8, zoom * 1.2))}
+            aria-label={labels.zoomIn}
+          >
+            +
+          </button>
+        </div>
+        <button type="button" className="btn-ghost h-9 text-xs" onClick={fit}>
           {labels.fit}
         </button>
       </div>
 
+      {imageFailed && (
+        <p
+          role="status"
+          className="mb-2 rounded-xl border border-warn/40 bg-warn/10 px-3 py-2 text-xs text-warn"
+        >
+          {labels.imageFailed}
+        </p>
+      )}
+
       <div
         ref={containerRef}
-        className="overflow-hidden rounded-card border border-border bg-raised"
+        className="dotfield overflow-hidden rounded-card border border-border bg-raised"
+        // Pinch and drag belong to the stage; letting the browser also treat
+        // them as page gestures makes both feel broken on a phone.
+        style={{ touchAction: "none" }}
         // The canvas is a pointer convenience; the block list is the
         // accessible equivalent, so the stage itself is hidden from the
         // accessibility tree rather than exposing a meaningless bitmap.

@@ -20,6 +20,7 @@ from picglot.api.routers import (
     admin,
     auth,
     billing,
+    files,
     jobs,
     projects,
     public,
@@ -154,6 +155,7 @@ def create_app() -> FastAPI:
     app.include_router(account.router)
     app.include_router(billing.router)
     app.include_router(public.router)
+    app.include_router(files.router)
     app.include_router(admin.router)
     app.include_router(workspaces.router)
 

@@ -172,6 +172,8 @@ export const pl: Messages = {
     zoomIn: "Przybliż",
     zoomOut: "Oddal",
     fit: "Dopasuj do ekranu",
+    imageFailed:
+      "Nie udało się wczytać obrazu. Bloki tekstu nadal można edytować.",
     apply: "Zastosuj zmiany",
     applying: "Ponowne rysowanie…",
     saved: "Zapisano",

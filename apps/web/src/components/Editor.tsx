@@ -335,7 +335,7 @@ export function Editor({
         <div
           role="group"
           aria-label={messages.result.compare}
-          className="flex rounded-lg border border-border p-0.5"
+          className="flex rounded-xl border border-border bg-surface p-0.5 shadow-soft"
         >
           {(["result", "original", "compare"] as View[]).map((option) => (
             <button
@@ -343,7 +343,7 @@ export function Editor({
               type="button"
               aria-pressed={view === option}
               onClick={() => setView(option)}
-              className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+              className={`rounded-[10px] px-3 py-1.5 text-sm font-medium transition-colors ${
                 view === option
                   ? "bg-accent text-accent-fg"
                   : "text-muted hover:text-fg"
@@ -358,10 +358,12 @@ export function Editor({
           ))}
         </div>
 
-        <div className="ml-auto flex flex-wrap items-center gap-2">
+        {/* Zoom is not here: the canvas owns it, because only the canvas knows
+            what "fit to screen" means for the current page. */}
+        <div className="ml-auto flex items-center gap-1">
           <button
             type="button"
-            className="btn-ghost px-2"
+            className="btn-ghost px-2.5"
             onClick={() => void step(-1)}
             disabled={saving || historyIndex === 0}
             aria-label={messages.editor.undo}
@@ -371,39 +373,13 @@ export function Editor({
           </button>
           <button
             type="button"
-            className="btn-ghost px-2"
+            className="btn-ghost px-2.5"
             onClick={() => void step(1)}
             disabled={saving || historyIndex >= history.length}
             aria-label={messages.editor.redo}
             title={messages.editor.redo}
           >
             ↷
-          </button>
-          <button
-            type="button"
-            className="btn-ghost px-2"
-            onClick={() => setZoom((z) => Math.max(0.25, z - 0.25))}
-            aria-label={messages.editor.zoomOut}
-          >
-            −
-          </button>
-          <span className="text-xs tabular-nums text-muted">
-            {Math.round(zoom * 100)}%
-          </span>
-          <button
-            type="button"
-            className="btn-ghost px-2"
-            onClick={() => setZoom((z) => Math.min(4, z + 0.25))}
-            aria-label={messages.editor.zoomIn}
-          >
-            +
-          </button>
-          <button
-            type="button"
-            className="btn-ghost"
-            onClick={() => setZoom(1)}
-          >
-            {messages.editor.fit}
           </button>
         </div>
       </div>
@@ -456,7 +432,7 @@ export function Editor({
                 aria-label={messages.editor.title}
                 className="flex flex-wrap items-center gap-2"
               >
-                <div className="flex rounded-lg border border-border p-0.5">
+                <div className="flex rounded-xl border border-border bg-surface p-0.5">
                   {(
                     [
                       ["select", "✥"],
@@ -479,7 +455,7 @@ export function Editor({
                               ? messages.editor.polygon
                               : messages.editor.selectTool
                       }
-                      className={`rounded-md px-2.5 py-1 text-sm ${
+                      className={`rounded-[10px] px-3 py-1.5 text-sm transition-colors ${
                         tool === option
                           ? "bg-accent text-accent-fg"
                           : "text-muted hover:text-fg"
@@ -514,22 +490,17 @@ export function Editor({
                   </label>
                 )}
 
-                <label className="flex items-center gap-1.5 text-xs text-muted">
-                  <input
-                    type="checkbox"
-                    checked={showBoxes}
-                    onChange={(event) => setShowBoxes(event.target.checked)}
-                  />
-                  {messages.editor.blocks}
-                </label>
-                <label className="flex items-center gap-1.5 text-xs text-muted">
-                  <input
-                    type="checkbox"
-                    checked={showMask}
-                    onChange={(event) => setShowMask(event.target.checked)}
-                  />
-                  {messages.editor.maskLayer}
-                </label>
+                {/* Layer toggles read as switches, not as a form to fill in. */}
+                <LayerToggle
+                  label={messages.editor.blocks}
+                  checked={showBoxes}
+                  onChange={setShowBoxes}
+                />
+                <LayerToggle
+                  label={messages.editor.maskLayer}
+                  checked={showMask}
+                  onChange={setShowMask}
+                />
                 {maskStrokes.length > 0 && (
                   <button
                     type="button"
@@ -565,6 +536,7 @@ export function Editor({
                     zoomIn: messages.editor.zoomIn,
                     zoomOut: messages.editor.zoomOut,
                     fit: messages.editor.fit,
+                    imageFailed: messages.editor.imageFailed,
                   }}
                 />
               ) : (
@@ -693,6 +665,38 @@ export function Editor({
         </aside>
       </div>
     </div>
+  );
+}
+
+function LayerToggle({
+  label,
+  checked,
+  onChange,
+}: {
+  label: string;
+  checked: boolean;
+  onChange: (next: boolean) => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      onClick={() => onChange(!checked)}
+      className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+        checked
+          ? "border-accent/40 bg-accent/10 text-fg"
+          : "border-border bg-surface text-muted hover:text-fg"
+      }`}
+    >
+      <span
+        aria-hidden
+        className={`h-2 w-2 rounded-full transition-colors ${
+          checked ? "bg-accent" : "bg-border"
+        }`}
+      />
+      {label}
+    </button>
   );
 }
 

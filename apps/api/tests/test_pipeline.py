@@ -69,6 +69,31 @@ def test_quality_does_not_report_translated_blocks_as_untranslated(client, sampl
     assert reasons.get("language_detection", {"score": 1.0})["score"] > 0.0
 
 
+def test_signed_page_urls_are_actually_servable(client, sample_image_bytes):
+    """Every asset URL handed to the browser must resolve to its bytes.
+
+    The local backend signs URLs pointing at `/api/v1/files/local/...`, a route
+    that did not exist: each one answered 404, so a self-hosted install with
+    local storage rendered pages the editor could never display.
+    """
+    from urllib.parse import urlparse
+
+    job = _process(client, sample_image_bytes, '{"tool":"image-to-text"}')
+    page = client.get(f"/api/v1/projects/{job['project_id']}").json()["pages"][0]
+
+    for field in ("original_url", "preview_url", "thumbnail_url"):
+        url = page.get(field)
+        assert url, f"{field} is missing"
+        response = client.get(urlparse(url).path)
+        assert response.status_code == 200, f"{field}: {response.text[:200]}"
+        assert response.headers["content-type"].startswith("image/")
+        assert len(response.content) > 0
+
+
+def test_signed_file_token_is_required(client):
+    assert client.get("/api/v1/files/local/not-a-real-token").status_code == 401
+
+
 def test_progress_stream_delivers_events(client, sample_image_bytes):
     """The SSE endpoint used to raise inside the stream on its first read."""
     response = client.post(

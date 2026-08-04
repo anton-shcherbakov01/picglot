@@ -315,21 +315,44 @@ export function WorkArea({
           const dropped = event.dataTransfer.files?.[0];
           if (dropped) void start(dropped);
         }}
-        className={`rounded-card border-2 border-dashed p-8 text-center transition-colors sm:p-12 ${
-          dragging ? "border-accent bg-accent/5" : "border-border bg-surface"
+        className={`rounded-panel border border-dashed p-6 text-center shadow-soft transition-[border-color,background-color] sm:p-10 ${
+          dragging
+            ? "border-accent bg-accent/5"
+            : "border-border bg-surface hover:border-accent/40"
         }`}
       >
-        <div aria-hidden className="mb-3 text-4xl">
-          {dragging ? "📥" : "🖼️"}
-        </div>
-        <p className="text-lg font-semibold">
+        <span
+          aria-hidden
+          className={`mx-auto grid h-14 w-14 place-items-center rounded-2xl border transition-colors ${
+            dragging
+              ? "border-accent/40 bg-accent/10 text-accent"
+              : "border-border bg-raised text-muted"
+          }`}
+        >
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+            <path
+              d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5"
+              stroke="currentColor"
+              strokeWidth="1.7"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+            <path
+              d="M3.5 15v2.5A2.5 2.5 0 0 0 6 20h12a2.5 2.5 0 0 0 2.5-2.5V15"
+              stroke="currentColor"
+              strokeWidth="1.7"
+              strokeLinecap="round"
+            />
+          </svg>
+        </span>
+        <p className="mt-4 text-lg font-semibold tracking-tight">
           {dragging ? messages.upload.dragActive : messages.upload.dropTitle}
         </p>
         <p className="mt-1 text-sm text-muted">
           {messages.upload.dropSubtitle}
         </p>
 
-        <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
+        <div className="mt-6 flex flex-col items-stretch gap-2 sm:flex-row sm:justify-center">
           <button
             type="button"
             className="btn-primary"
@@ -344,8 +367,11 @@ export function WorkArea({
           >
             {messages.upload.camera}
           </button>
-          <span className="chip">⌘/Ctrl + V — {messages.upload.paste}</span>
         </div>
+        {/* Paste is a keyboard shortcut; on a touch device it is noise. */}
+        <p className="meta mt-4 hidden sm:block">
+          ⌘/Ctrl + V — {messages.upload.paste}
+        </p>
 
         <input
           ref={inputRef}
@@ -371,13 +397,14 @@ export function WorkArea({
           }}
         />
 
-        <p className="mt-5 text-xs text-muted">
+        <div className="rule-fade mx-auto mt-6 max-w-sm" />
+        <p className="meta mt-4">
           {format(messages.upload.maxSize, {
             size: formatBytes(maxBytes, locale),
           })}{" "}
-          · {accepts.map((ext) => ext.toUpperCase()).join(", ")}
+          · {accepts.join(" · ")}
         </p>
-        <p className="mt-1 text-xs text-muted">{messages.upload.privacy}</p>
+        <p className="mt-2 text-xs text-muted">{messages.upload.privacy}</p>
       </div>
     </div>
   );
@@ -412,8 +439,11 @@ function ProgressPanel({
 
   return (
     <div className="card p-8 text-center">
-      <p className="truncate text-sm text-muted">{fileName}</p>
-      <p aria-live="polite" className="mt-2 text-lg font-semibold">
+      <p className="meta truncate">{fileName}</p>
+      <p
+        aria-live="polite"
+        className="mt-3 text-lg font-semibold tracking-tight"
+      >
         {label}
       </p>
 
@@ -423,14 +453,14 @@ function ProgressPanel({
         aria-valuemin={0}
         aria-valuemax={100}
         aria-label={label}
-        className="mx-auto mt-5 h-2 w-full max-w-md overflow-hidden rounded-full bg-raised"
+        className="mx-auto mt-5 h-1.5 w-full max-w-md overflow-hidden rounded-full bg-raised"
       >
         <div
-          className="h-full rounded-full bg-accent transition-[width] duration-500"
+          className="h-full rounded-full bg-gradient-to-r from-accent to-mint transition-[width] duration-500"
           style={{ width: `${Math.max(3, percent)}%` }}
         />
       </div>
-      <p className="mt-2 text-sm tabular-nums text-muted">{percent}%</p>
+      <output className="mt-2 block text-sm text-muted">{percent}%</output>
 
       {job?.pages_total && job.pages_total > 1 && (
         <p className="mt-1 text-xs text-muted">

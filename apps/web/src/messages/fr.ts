@@ -174,6 +174,8 @@ export const fr: Messages = {
     zoomIn: "Zoomer",
     zoomOut: "Dézoomer",
     fit: "Ajuster à l’écran",
+    imageFailed:
+      "L'image n'a pas pu être chargée. Les blocs de texte restent modifiables.",
     apply: "Appliquer les modifications",
     applying: "Redessin en cours…",
     saved: "Enregistré",
