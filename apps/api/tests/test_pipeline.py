@@ -50,6 +50,40 @@ def test_translation_is_applied_and_rendered(client, sample_image_bytes):
     assert all(region["translated_text"].startswith("[ru]") for region in page["regions"])
 
 
+def test_quality_does_not_report_translated_blocks_as_untranslated(client, sample_image_bytes):
+    """Every block was translated, so coverage must not be reported as a problem.
+
+    The report used to re-read the translations through the ORM, which returned
+    nothing — the session does not expire on commit — and every finished job
+    told the user that none of its blocks had been translated.
+    """
+    job = _process(
+        client,
+        sample_image_bytes,
+        '{"tool":"image-translator","target_language":"ru","translate":true}',
+    )
+    project = client.get(f"/api/v1/projects/{job['project_id']}").json()
+
+    reasons = {reason["key"]: reason for reason in project["quality_reasons"]}
+    assert "translation_coverage" not in reasons, reasons.get("translation_coverage")
+    assert reasons.get("language_detection", {"score": 1.0})["score"] > 0.0
+
+
+def test_progress_stream_delivers_events(client, sample_image_bytes):
+    """The SSE endpoint used to raise inside the stream on its first read."""
+    response = client.post(
+        "/api/v1/process",
+        files={"file": ("sign.png", sample_image_bytes, "image/png")},
+        data={"options": '{"tool":"image-to-text","translate":false}'},
+    )
+    job_id = response.json()["id"]
+    dispatch.wait_for(job_id, timeout=300)
+
+    stream = client.get(f"/api/v1/jobs/{job_id}/events")
+    assert stream.status_code == 200
+    assert "event: done" in stream.text
+
+
 def test_layout_analysis_identifies_a_heading(client, sample_image_bytes):
     job = _process(client, sample_image_bytes, '{"tool":"image-to-text"}')
     page = client.get(f"/api/v1/projects/{job['project_id']}").json()["pages"][0]

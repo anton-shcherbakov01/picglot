@@ -92,7 +92,7 @@ def assess(
 
     factors.append(_ocr_confidence(regions))
     factors.append(_suspicious_characters(regions))
-    factors.append(_language_detection(regions))
+    factors.append(_language_detection(pages))
     if target_language:
         factors.append(_translation_coverage(regions, translations or {}))
     factors.append(_overflow(regions, overflowed_region_ids or []))
@@ -145,13 +145,43 @@ def _suspicious_characters(regions: list[Region]) -> QualityFactor:
     )
 
 
-def _language_detection(regions: list[Region]) -> QualityFactor:
+def _language_detection(pages: list[PageResult]) -> QualityFactor:
+    """How much of the page we could attribute to a language.
+
+    Detection is per page for some engines and per block for others, so a
+    block inherits its page's language when it reports none of its own.
+    Without that fallback the local OCR path — which only ever reports at page
+    level — scored a flat zero here and told the user no language had been
+    identified, on pages where it plainly had.
+    """
+    regions = [region for page in pages for region in page.regions]
     if not regions:
         return QualityFactor("language_detection", 1.0, WEIGHTS["language_detection"])
-    detected = [region for region in regions if region.detected_language]
-    ratio = len(detected) / len(regions)
-    languages = {region.detected_language for region in detected}
-    detail = f"language identified for {len(detected)} of {len(regions)} blocks"
+
+    languages: set[str] = set()
+    unknown: list[str] = []
+    for page in pages:
+        for region in page.regions:
+            language = region.detected_language or page.detected_language
+            if language:
+                languages.add(language)
+            else:
+                unknown.append(region.id)
+
+    identified = len(regions) - len(unknown)
+    if not identified:
+        # Nothing on this path reports a language. That is a gap in what we
+        # know, not evidence of a bad result — score it neutrally, like an
+        # engine that reports no confidence.
+        return QualityFactor(
+            "language_detection",
+            0.6,
+            WEIGHTS["language_detection"],
+            "no language reported by the engine",
+        )
+
+    ratio = identified / len(regions)
+    detail = f"language identified for {identified} of {len(regions)} blocks"
     if len(languages) > 2:
         detail += f"; {len(languages)} different languages present"
         ratio *= 0.85
@@ -160,7 +190,7 @@ def _language_detection(regions: list[Region]) -> QualityFactor:
         round(ratio, 4),
         WEIGHTS["language_detection"],
         detail,
-        [region.id for region in regions if not region.detected_language],
+        unknown,
     )
 
 

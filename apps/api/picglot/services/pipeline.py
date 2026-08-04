@@ -114,6 +114,13 @@ def run_job(session: Session, job: Job) -> PipelineResult:
 
     outcomes: list[PageOutcome] = []
     page_results: list[PageResult] = []
+    #: Region id -> translated text, accumulated across pages. Read back from
+    #: the ORM this used to come back empty: the session does not expire on
+    #: commit, so `page.regions` and `region.translations` stay as they were
+    #: loaded and never see the rows we insert here. The quality report then
+    #: scored every block as untranslated even though translation had
+    #: succeeded. The in-memory result is the same data, one page earlier.
+    translated: dict[str, str] = {}
     overflowed: list[str] = []
     inpaint_scores: list[float] = []
     provider_counts: dict[str, int] = {}
@@ -125,7 +132,7 @@ def run_job(session: Session, job: Job) -> PipelineResult:
 
         base_progress = 0.05 + (index / max(len(page_numbers), 1)) * 0.9
         try:
-            outcome, page_result, page_overflow, page_inpaint = _process_page(
+            outcome, page_result, page_overflow, page_inpaint, page_translations = _process_page(
                 session,
                 job=job,
                 project=project,
@@ -143,6 +150,7 @@ def run_job(session: Session, job: Job) -> PipelineResult:
             outcomes.append(outcome)
             if page_result is not None:
                 page_results.append(page_result)
+            translated.update(page_translations)
             overflowed.extend(page_overflow)
             if page_inpaint is not None:
                 inpaint_scores.append(page_inpaint)
@@ -172,7 +180,7 @@ def run_job(session: Session, job: Job) -> PipelineResult:
 
     report = quality.assess(
         page_results,
-        translations=_translation_map(session, project),
+        translations=translated,
         target_language=project.target_language if translate else None,
         overflowed_region_ids=overflowed,
         inpaint_quality=(sum(inpaint_scores) / len(inpaint_scores) if inpaint_scores else None),
@@ -222,7 +230,7 @@ def _process_page(
     render_mode: RenderMode,
     base_progress: float,
     provider_counts: dict[str, int],
-) -> tuple[PageOutcome, PageResult | None, list[str], float | None]:
+) -> tuple[PageOutcome, PageResult | None, list[str], float | None, dict[str, str]]:
     # ---------------------------------------------------------- preprocessing
     job_service.update_progress(
         session,
@@ -438,6 +446,7 @@ def _process_page(
         page_result,
         overflowed,
         inpaint_score,
+        translations,
     )
 
 
@@ -575,16 +584,6 @@ def _persist_translations(
             )
         )
     session.flush()
-
-
-def _translation_map(session: Session, project: Project) -> dict[str, str]:
-    result: dict[str, str] = {}
-    for page in project.pages:
-        for region in page.regions:
-            for translation in region.translations:
-                if translation.is_active:
-                    result[region.id] = translation.translated_text
-    return result
 
 
 def _dominant_language(regions: list[Region]) -> str | None:

@@ -113,7 +113,10 @@ async def job_events(
             if await request.is_disconnected():
                 break
 
-            events = await asyncio.to_thread(job_service.read_events, job_id, cursor)
+            # `after_index` is keyword-only: passing the cursor positionally
+            # raised TypeError inside the stream, which surfaced as a 500 on
+            # every SSE connection while the job itself ran fine.
+            events = await asyncio.to_thread(job_service.read_events, job_id, after_index=cursor)
             for event in events:
                 cursor += 1
                 last_status = event.get("status")
