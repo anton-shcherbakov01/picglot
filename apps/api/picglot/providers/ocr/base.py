@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import io
+import re
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -17,6 +18,8 @@ from picglot.vision.types import (
     normalize_polygon,
     polygon_rotation,
 )
+
+_WHITESPACE = re.compile(r"\s+")
 
 
 @dataclass(slots=True)
@@ -68,6 +71,30 @@ def make_region(
         rotation=polygon_rotation(points),
         metadata=metadata or {},
     )
+
+
+def line_text_from_words(line_text: str, words: list[str]) -> str:
+    """Rebuild a line from its word fragments when the engine dropped the spaces.
+
+    Several engines return both a line string and the words that make it up, and
+    on stylised or tightly-set type the line string comes back with the
+    separators missing — ``DON'TLETANYONETELL`` for four recognised words. The
+    fragments still carry the boundaries, so they are the better source.
+
+    Only applied when the two spellings differ by whitespace alone. That guard
+    matters: an engine that splits ``well-known`` into two words must not have a
+    space forced into the middle of it.
+    """
+    line = line_text.strip()
+    fragments = [word.strip() for word in words if word and word.strip()]
+    if len(fragments) < 2:
+        return line
+
+    rebuilt = " ".join(fragments)
+    if _WHITESPACE.sub("", rebuilt) != _WHITESPACE.sub("", line):
+        return line
+    # Same characters either way — keep whichever spells out more boundaries.
+    return rebuilt if len(rebuilt) > len(line) else line
 
 
 def average_confidence(regions: list[Region]) -> float | None:

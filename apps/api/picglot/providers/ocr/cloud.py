@@ -18,7 +18,13 @@ from picglot.core.errors import AppError, ErrorCode
 from picglot.core.logging import get_logger
 from picglot.domain import languages as language_table
 from picglot.providers.base import HealthState, ProviderHealth
-from picglot.providers.ocr.base import OcrProvider, OcrRequest, average_confidence, make_region
+from picglot.providers.ocr.base import (
+    OcrProvider,
+    OcrRequest,
+    average_confidence,
+    line_text_from_words,
+    make_region,
+)
 from picglot.vision.types import OcrOutcome, Region
 
 log = get_logger(__name__)
@@ -127,6 +133,19 @@ class GoogleVisionProvider(OcrProvider):
         )
 
 
+#: Google reports what follows each word rather than what separates it.
+#: `SURE_SPACE` is a *wide space*, not a line break — reading it as one used to
+#: split lines mid-sentence — and an absent break must still yield a space, or
+#: consecutive words arrive glued into one token.
+_GOOGLE_BREAKS = {
+    "SPACE": " ",
+    "SURE_SPACE": " ",
+    "EOL_SURE_SPACE": "\n",
+    "HYPHEN": "\n",
+    "LINE_BREAK": "\n",
+}
+
+
 def _regions_from_google(payload: dict[str, Any]) -> list[Region]:
     annotation = payload.get("fullTextAnnotation") or {}
     regions: list[Region] = []
@@ -143,10 +162,7 @@ def _regions_from_google(payload: dict[str, Any]) -> list[Region]:
                         .get("detectedBreak", {})
                         .get("type")
                     )
-                    if break_type in {"SPACE", "EOL_SURE_SPACE"}:
-                        words.append(" ")
-                    elif break_type in {"LINE_BREAK", "SURE_SPACE"}:
-                        words.append("\n")
+                    words.append(_GOOGLE_BREAKS.get(break_type, " "))
                 text = "".join(words).strip()
                 if not text:
                     continue
@@ -230,7 +246,10 @@ class AzureVisionProvider(OcrProvider):
         regions: list[Region] = []
         for block in (payload.get("readResult") or {}).get("blocks", []):
             for line in block.get("lines", []):
-                text = str(line.get("text", "")).strip()
+                text = line_text_from_words(
+                    str(line.get("text", "")),
+                    [str(word.get("content", "")) for word in line.get("words", [])],
+                )
                 if not text:
                     continue
                 polygon = [
@@ -401,7 +420,10 @@ class YandexVisionProvider(OcrProvider):
         result = payload.get("result", payload)
         for block in (result.get("textAnnotation") or {}).get("blocks", []):
             for line in block.get("lines", []):
-                text = str(line.get("text", "")).strip()
+                text = line_text_from_words(
+                    str(line.get("text", "")),
+                    [str(word.get("text", "")) for word in line.get("words", [])],
+                )
                 if not text:
                     continue
                 vertices = line.get("boundingBox", {}).get("vertices", [])

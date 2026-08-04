@@ -133,6 +133,7 @@ export const fr: Messages = {
         text_overflow: "Ajustement du texte",
         inpaint_quality: "Réparation de l’arrière-plan",
         table_structure: "Structure du tableau",
+        dropped_spaces: "Espacement des mots",
       },
     },
   },

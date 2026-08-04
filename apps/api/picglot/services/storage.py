@@ -77,6 +77,26 @@ def checksum_bytes(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
+def api_download_url(key: str, *, filename: str | None = None, ttl: int | None = None) -> str:
+    """A signed URL the API serves itself.
+
+    Used whenever the object store is not reachable from a browser — always for
+    the local backend, and for S3 when the public endpoint is missing or points
+    somewhere only the cluster can resolve. Possession of the URL is the
+    authorisation, exactly as with a presigned S3 URL, and it expires the same
+    way.
+    """
+    from picglot.core.security import sign_payload
+
+    payload = {
+        "key": key,
+        "filename": filename,
+        "ttl": ttl or settings.signed_url_ttl_seconds,
+    }
+    signature = sign_payload(payload, salt="file-download")
+    return f"{settings.public_api_url.rstrip('/')}/api/v1/files/{signature}"
+
+
 # --------------------------------------------------------------------------- #
 # S3
 # --------------------------------------------------------------------------- #
@@ -205,6 +225,12 @@ class S3Storage:
         filename: str | None = None,
         content_type: str | None = None,
     ) -> str:
+        # A presigned URL is signed against a host; if that host is one only the
+        # cluster can resolve, the URL is dead on arrival in a browser. Serve it
+        # ourselves instead of handing out a link that cannot be opened.
+        if settings.serve_files_through_api:
+            return api_download_url(key, filename=filename, ttl=expires_in)
+
         params: dict[str, Any] = {"Bucket": settings.s3_bucket, "Key": key}
         if filename:
             params["ResponseContentDisposition"] = _content_disposition(filename)
@@ -330,12 +356,7 @@ class LocalStorage:
         filename: str | None = None,
         content_type: str | None = None,
     ) -> str:
-        from picglot.core.security import sign_payload
-
-        ttl = expires_in or settings.signed_url_ttl_seconds
-        payload = {"key": key, "filename": filename, "ttl": ttl}
-        signature = sign_payload(payload, salt="local-download")
-        return f"{settings.public_api_url}/api/v1/files/local/{signature}"
+        return api_download_url(key, filename=filename, ttl=expires_in)
 
     def signed_upload_url(
         self,
@@ -353,7 +374,7 @@ class LocalStorage:
         )
         return {
             "method": "PUT",
-            "url": f"{settings.public_api_url}/api/v1/files/local-upload/{signature}",
+            "url": f"{settings.public_api_url.rstrip('/')}/api/v1/files/upload/{signature}",
             "fields": {},
             "key": key,
         }

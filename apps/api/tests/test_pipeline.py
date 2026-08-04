@@ -91,7 +91,7 @@ def test_signed_page_urls_are_actually_servable(client, sample_image_bytes):
 
 
 def test_signed_file_token_is_required(client):
-    assert client.get("/api/v1/files/local/not-a-real-token").status_code == 401
+    assert client.get("/api/v1/files/not-a-real-token").status_code == 401
 
 
 def test_progress_stream_delivers_events(client, sample_image_bytes):

@@ -446,6 +446,32 @@ class Settings(BaseSettings):
         """Endpoint handed to browsers — differs from the in-cluster endpoint."""
         return (self.s3_public_endpoint_url or self.s3_endpoint_url).rstrip("/")
 
+    @property
+    def storage_endpoint_reachable_by_browser(self) -> bool:
+        """Whether a presigned URL can actually be opened by a visitor.
+
+        `S3_PUBLIC_ENDPOINT_URL` is empty by default, so the endpoint falls back
+        to the in-cluster one — `http://minio:9000` under Compose. A URL signed
+        against that host resolves for the API container and for nothing else:
+        a phone cannot resolve `minio`, and a plain-http URL is blocked outright
+        on an https page. Both cases look identical to the user (the picture
+        never appears), so they are detected here and served through the API
+        instead.
+        """
+        from urllib.parse import urlparse
+
+        endpoint = urlparse(self.s3_browser_endpoint)
+        host = (endpoint.hostname or "").lower()
+        if not host or host in _UNROUTABLE_HOSTS or "." not in host:
+            return False
+        # Mixed content: an https page may not load an http subresource.
+        return not (endpoint.scheme == "http" and self.public_web_url.startswith("https://"))
+
+    @property
+    def serve_files_through_api(self) -> bool:
+        """Stream objects from the API rather than linking straight to storage."""
+        return self.storage_backend == "local" or not self.storage_endpoint_reachable_by_browser
+
     def upload_limit_bytes(self, plan_code: str | None) -> int:
         return {
             None: self.max_upload_bytes_guest,
@@ -488,6 +514,10 @@ class Settings(BaseSettings):
 
 
 LOCAL_OCR_PROVIDERS = {"rapidocr", "tesseract", "builtin"}
+
+#: Hosts that resolve inside the deployment and nowhere else. A URL signed
+#: against one of these is useless to a browser.
+_UNROUTABLE_HOSTS = {"minio", "localhost", "127.0.0.1", "0.0.0.0", "::1", "s3", "storage"}
 LOCAL_TRANSLATION_PROVIDERS = {"argos", "echo"}
 
 

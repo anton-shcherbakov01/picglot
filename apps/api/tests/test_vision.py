@@ -292,3 +292,69 @@ def test_script_detection():
     assert languages.detect_script("Hello world") is languages.Script.LATIN
     assert languages.detect_script("مرحبا") is languages.Script.ARABIC
     assert languages.detect_script("こんにちは") is languages.Script.KANA
+
+
+def test_line_text_is_rebuilt_when_the_engine_drops_the_spaces():
+    """Some engines return a glued line string next to correct word fragments.
+
+    `DON'TLETANYONETELL` is what the user sees; the engine still knew where the
+    four words were. Nothing downstream can recover the boundaries once they
+    are gone, so they are taken from the fragments here.
+    """
+    from picglot.providers.ocr.base import line_text_from_words
+
+    assert (
+        line_text_from_words("DON'TLETANYONETELL", ["DON'T", "LET", "ANYONE", "TELL"])
+        == "DON'T LET ANYONE TELL"
+    )
+    # Already spaced: leave the engine's own spelling alone.
+    assert line_text_from_words("YOU ARE AMAZING", ["YOU", "ARE", "AMAZING"]) == "YOU ARE AMAZING"
+    # Differs by more than whitespace — a hyphen the engine split on. Forcing a
+    # space here would corrupt a word that was never broken.
+    assert line_text_from_words("well-known", ["well", "known"]) == "well-known"
+    assert line_text_from_words("single", ["single"]) == "single"
+
+
+def test_glued_words_withhold_the_top_confidence_band():
+    """A badge reading "high confidence" over run-together words is worse than none."""
+    from picglot.domain.enums import QualityBand
+    from picglot.vision.quality import assess
+    from picglot.vision.types import BoundingBox, PageResult, Region
+
+    def page(text: str) -> PageResult:
+        box = BoundingBox(0, 0, 100, 20)
+        region = Region(
+            id="reg_1",
+            polygon=box.to_polygon(),
+            bounding_box=box,
+            text=text,
+            confidence=0.97,
+        )
+        return PageResult(
+            page_number=1,
+            width=900,
+            height=420,
+            regions=[region],
+            detected_language="en",
+            confidence=0.97,
+        )
+
+    glued = assess([page("YOU ARE AMAZING, DON'TLETANYONETELL YOU OTHERWISE")])
+    assert glued.band is not QualityBand.HIGH
+    assert any(factor.key == "dropped_spaces" for factor in glued.factors)
+
+    clean = assess([page("Emergency exit keep this door closed at all times")])
+    assert clean.band is QualityBand.HIGH
+    assert all(factor.key != "dropped_spaces" for factor in clean.factors)
+
+    # Long compounds are normal in some languages; the threshold is relative to
+    # the page so they must not be flagged.
+    german = assess(
+        [
+            page(
+                "Rechtsschutzversicherungsgesellschaften "
+                "Bundesausbildungsfoerderungsgesetz Donaudampfschifffahrt"
+            )
+        ]
+    )
+    assert all(factor.key != "dropped_spaces" for factor in german.factors)

@@ -132,6 +132,7 @@ export const uk: Messages = {
         text_overflow: "Відповідність тексту",
         inpaint_quality: "Відновлення фону",
         table_structure: "Структура таблиці",
+        dropped_spaces: "Пробіли між словами",
       },
     },
   },

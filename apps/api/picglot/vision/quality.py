@@ -8,7 +8,9 @@ straight to the blocks that need review.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
+from statistics import median
 from typing import Any
 
 from picglot.domain.enums import QualityBand
@@ -16,14 +18,22 @@ from picglot.vision.types import PageResult, Region
 
 #: Weight of each signal in the final score. They sum to 1.
 WEIGHTS = {
-    "ocr_confidence": 0.32,
-    "suspicious_characters": 0.12,
+    "ocr_confidence": 0.26,
+    "suspicious_characters": 0.10,
     "language_detection": 0.10,
     "translation_coverage": 0.18,
     "text_overflow": 0.12,
     "inpaint_quality": 0.10,
     "table_structure": 0.06,
+    "dropped_spaces": 0.08,
 }
+
+#: A token containing any of these is a URL, a path, an address or a file name,
+#: none of which say anything about word spacing.
+_NOT_A_WORD = re.compile(r"[@/\\:_·]|\.\w{2,4}$|\d")
+
+#: Below this a long token is unremarkable in any language we support.
+_LONG_TOKEN = 16
 
 
 @dataclass(slots=True)
@@ -95,6 +105,9 @@ def assess(
     factors.append(_language_detection(pages))
     if target_language:
         factors.append(_translation_coverage(regions, translations or {}))
+    spacing = _dropped_spaces(regions)
+    if spacing is not None:
+        factors.append(spacing)
     factors.append(_overflow(regions, overflowed_region_ids or []))
     if inpaint_quality is not None:
         factors.append(
@@ -111,7 +124,16 @@ def assess(
 
     total_weight = sum(factor.weight for factor in factors) or 1.0
     score = sum(factor.score * factor.weight for factor in factors) / total_weight
-    return QualityReport(score=round(score, 4), band=band_for(score), factors=factors)
+
+    # A weighted average lets six unremarkable signals bury one alarming
+    # one, and most of those six report 1.0 when they had nothing to check.
+    # "High confidence" printed above visibly broken text is worse than no
+    # badge at all, so a single bad factor is enough to withhold the top band.
+    band = band_for(score)
+    worst = min((factor.score for factor in factors), default=1.0)
+    if worst < 0.7 and band is QualityBand.HIGH:
+        band = QualityBand.MEDIUM
+    return QualityReport(score=round(score, 4), band=band, factors=factors)
 
 
 def _ocr_confidence(regions: list[Region]) -> QualityFactor:
@@ -210,6 +232,44 @@ def _translation_coverage(regions: list[Region], translations: dict[str, str]) -
         WEIGHTS["translation_coverage"],
         f"{len(missing)} of {len(translatable)} blocks were not translated",
         missing,
+    )
+
+
+def _dropped_spaces(regions: list[Region]) -> QualityFactor | None:
+    """Blocks where words appear to have run together.
+
+    On tightly-set or stylised type an engine can return a whole phrase as one
+    token — `DON'TLETANYONETELL`. Nothing else here notices: the engine reports
+    high confidence in exactly those characters, and it is right about the
+    characters. The tell is the shape of the token relative to the rest of the
+    page, which is why the threshold is relative — a German contract full of
+    long compounds raises its own median and stays unflagged.
+    """
+    tokens = [(token, region) for region in regions for token in region.effective_text.split()]
+    if len(tokens) < 4:
+        return None  # Too little text to say what "long" means here.
+
+    typical = median([len(token) for token, _ in tokens])
+    threshold = max(_LONG_TOKEN, typical * 2.5)
+
+    flagged: list[str] = []
+    for token, region in tokens:
+        if len(token) < threshold or _NOT_A_WORD.search(token):
+            continue
+        letters = sum(1 for character in token if character.isalpha())
+        if letters < len(token) * 0.8:
+            continue
+        if region.id not in flagged:
+            flagged.append(region.id)
+
+    if not flagged:
+        return None
+    return QualityFactor(
+        "dropped_spaces",
+        round(max(0.0, 1.0 - len(flagged) / len(regions)), 4),
+        WEIGHTS["dropped_spaces"],
+        f"{len(flagged)} blocks look like words ran together",
+        flagged,
     )
 
 

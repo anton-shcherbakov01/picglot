@@ -130,6 +130,7 @@ export const es: Messages = {
         text_overflow: "Ajuste del texto",
         inpaint_quality: "Reparación del fondo",
         table_structure: "Estructura de la tabla",
+        dropped_spaces: "Espaciado entre palabras",
       },
     },
   },

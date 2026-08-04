@@ -132,6 +132,7 @@ export const tr: Messages = {
         text_overflow: "Metin sığdırma",
         inpaint_quality: "Arka plan onarımı",
         table_structure: "Tablo yapısı",
+        dropped_spaces: "Kelime aralıkları",
       },
     },
   },

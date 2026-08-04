@@ -1,7 +1,14 @@
 "use client";
 
 import Konva from "konva";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   Circle,
   Image as KonvaImage,
@@ -98,7 +105,7 @@ export function CanvasStage({
 
   const [image, setImage] = useState<HTMLImageElement | null>(null);
   const [imageFailed, setImageFailed] = useState(false);
-  const [size, setSize] = useState({ width: 800, height: 600 });
+  const [size, setSize] = useState({ width: 320, height: 240 });
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [strokes, setStrokes] = useState<MaskStroke[]>([]);
   const [drawing, setDrawing] = useState(false);
@@ -147,16 +154,23 @@ export function CanvasStage({
     };
   }, [imageUrl]);
 
-  // Track the container so the stage fills it and stays responsive.
-  useEffect(() => {
+  // Track the container so the stage fills it and stays responsive. Measured
+  // before paint, not after: the stage carries a fixed pixel width, so a frame
+  // rendered at the placeholder size is a frame laid out several hundred pixels
+  // wider than the phone it is on.
+  useLayoutEffect(() => {
     const node = containerRef.current;
     if (!node) return;
-    const observer = new ResizeObserver(([entry]) => {
-      if (!entry) return;
+    const apply = (width: number) => {
+      if (width <= 0) return;
       setSize({
-        width: Math.max(200, entry.contentRect.width),
-        height: Math.max(240, Math.min(720, entry.contentRect.width * 0.75)),
+        width,
+        height: Math.max(240, Math.min(720, width * 0.75)),
       });
+    };
+    apply(node.getBoundingClientRect().width);
+    const observer = new ResizeObserver(([entry]) => {
+      if (entry) apply(entry.contentRect.width);
     });
     observer.observe(node);
     return () => observer.disconnect();
@@ -283,9 +297,9 @@ export function CanvasStage({
   const panning = tool === "select" && !selectedId;
 
   return (
-    <div className="relative">
+    <div className="relative min-w-0">
       {/* Zoom lives here, next to the surface it scales, and nowhere else. */}
-      <div className="mb-2 flex items-center gap-1">
+      <div className="mb-2 flex flex-wrap items-center gap-1">
         <div className="flex items-center rounded-xl border border-border bg-surface p-0.5">
           <button
             type="button"

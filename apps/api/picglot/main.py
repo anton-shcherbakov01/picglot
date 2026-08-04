@@ -60,6 +60,16 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         queue=settings.queue_backend,
         storage=settings.storage_backend,
     )
+    if settings.storage_backend == "s3" and not settings.storage_endpoint_reachable_by_browser:
+        # Not fatal — the API serves the objects itself — but it costs bandwidth
+        # through the app for something the object store should be doing, and it
+        # is invisible unless we say so.
+        log.warning(
+            "storage.endpoint_not_browser_reachable",
+            endpoint=settings.s3_browser_endpoint,
+            effect="objects are streamed through the API",
+            fix="set S3_PUBLIC_ENDPOINT_URL to the public https address of the store",
+        )
     _init_optional_observability()
 
     if settings.storage_backend == "s3":

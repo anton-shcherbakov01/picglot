@@ -263,3 +263,40 @@ def test_security_headers_are_present(client):
     assert headers["X-Frame-Options"] == "DENY"
     assert "Referrer-Policy" in headers
     assert "Content-Security-Policy" in headers
+
+
+@pytest.mark.parametrize(
+    "endpoint,web_url,reachable",
+    [
+        # The Compose default: resolves inside the network and nowhere else.
+        ("http://minio:9000", "https://picglot.ru", False),
+        ("http://localhost:9000", "http://localhost:3000", False),
+        # Reachable host, but plain http under an https page — blocked as mixed
+        # content before the request is even made.
+        ("http://s3.picglot.ru", "https://picglot.ru", False),
+        ("https://s3.picglot.ru", "https://picglot.ru", True),
+    ],
+)
+def test_storage_urls_are_only_handed_out_when_a_browser_can_open_them(
+    endpoint, web_url, reachable
+):
+    """A signed URL a visitor cannot fetch is worse than no URL at all.
+
+    It fails silently: the upload works, the text is recognised, and only the
+    picture is missing — with nothing in the server logs to say why.
+    """
+    from picglot.core.config import settings
+
+    original = (settings.s3_public_endpoint_url, settings.public_web_url, settings.storage_backend)
+    try:
+        settings.s3_public_endpoint_url = endpoint
+        settings.public_web_url = web_url
+        settings.storage_backend = "s3"
+        assert settings.storage_endpoint_reachable_by_browser is reachable
+        assert settings.serve_files_through_api is not reachable
+    finally:
+        (
+            settings.s3_public_endpoint_url,
+            settings.public_web_url,
+            settings.storage_backend,
+        ) = original

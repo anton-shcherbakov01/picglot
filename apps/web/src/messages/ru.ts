@@ -129,6 +129,7 @@ export const ru: Messages = {
         text_overflow: "Размещение текста",
         inpaint_quality: "Восстановление фона",
         table_structure: "Структура таблиц",
+        dropped_spaces: "Пробелы между словами",
       },
     },
   },

@@ -131,6 +131,7 @@ export const pl: Messages = {
         text_overflow: "Dopasowanie tekstu",
         inpaint_quality: "Naprawa tła",
         table_structure: "Struktura tabeli",
+        dropped_spaces: "Odstępy między słowami",
       },
     },
   },

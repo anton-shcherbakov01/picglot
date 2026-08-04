@@ -134,6 +134,7 @@ export const en = {
         text_overflow: "Text fitting",
         inpaint_quality: "Background repair",
         table_structure: "Table structure",
+        dropped_spaces: "Word spacing",
       },
     },
   },

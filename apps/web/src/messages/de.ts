@@ -132,6 +132,7 @@ export const de: Messages = {
         text_overflow: "Textanpassung",
         inpaint_quality: "Hintergrundreparatur",
         table_structure: "Tabellenstruktur",
+        dropped_spaces: "Wortabstände",
       },
     },
   },

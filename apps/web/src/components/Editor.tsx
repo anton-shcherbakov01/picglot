@@ -384,8 +384,8 @@ export function Editor({
         </div>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[1fr_20rem]">
-        <div className="card overflow-hidden">
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
+        <div className="card min-w-0 overflow-hidden">
           {view === "compare" ? (
             page?.original_url && (page.rendered_url ?? page.preview_url) ? (
               <BeforeAfterSlider
@@ -426,11 +426,11 @@ export function Editor({
               </div>
             )
           ) : (
-            <div className="grid gap-2 p-2" ref={imageWrapRef}>
+            <div className="grid min-w-0 gap-2 p-2" ref={imageWrapRef}>
               <div
                 role="toolbar"
                 aria-label={messages.editor.title}
-                className="flex flex-wrap items-center gap-2"
+                className="flex min-w-0 flex-wrap items-center gap-1.5"
               >
                 <div className="flex rounded-xl border border-border bg-surface p-0.5">
                   {(
@@ -581,7 +581,7 @@ export function Editor({
           )}
         </div>
 
-        <aside className="grid content-start gap-4">
+        <aside className="grid min-w-0 content-start gap-4">
           {selected ? (
             <BlockPanel
               messages={messages}

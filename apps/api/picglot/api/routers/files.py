@@ -1,14 +1,16 @@
-"""Signed file access for the local storage backend.
+"""Signed file access served by the API itself.
 
-With ``STORAGE_BACKEND=s3`` the browser talks to the object store directly
-through presigned URLs and none of this is reached. The local backend has no
-such server, so it hands out HMAC-signed tokens pointing here — and until this
-router existed every one of those URLs answered 404, which meant a self-hosted
-install with local storage produced pages, thumbnails and previews that no
-client could load.
+Normally the browser fetches objects straight from the store through presigned
+URLs. That only works when the store has an address the visitor can reach —
+`S3_PUBLIC_ENDPOINT_URL` is empty by default, so URLs get signed against
+`http://minio:9000`, which resolves for the API container and for nobody else.
+The result is invisible from the server side: uploads succeed, OCR succeeds,
+and the picture simply never appears.
 
-The token carries the key: it is signed and expiring, so possession of the URL
-is the authorisation, exactly as it is for a presigned S3 URL.
+So the storage layer routes through here whenever it cannot prove the store is
+browser-reachable, and always for the local backend. The token carries the key:
+it is signed and expiring, so possession of the URL is the authorisation,
+exactly as it is for a presigned S3 URL.
 """
 
 from __future__ import annotations
@@ -36,10 +38,10 @@ def _content_disposition(filename: str) -> str:
     return f"attachment; filename*=UTF-8''{quote(filename)}"
 
 
-@router.get("/local/{token}")
+@router.get("/{token}")
 def download(token: str, request: Request) -> Response:
-    """Serve an object the local backend signed a URL for."""
-    payload = unsign_payload(token, salt="local-download", max_age=MAX_TOKEN_AGE_SECONDS)
+    """Stream an object this API signed a URL for."""
+    payload = unsign_payload(token, salt="file-download", max_age=MAX_TOKEN_AGE_SECONDS)
     key = payload.get("key")
     if not isinstance(key, str) or not key:
         raise AppError(code=ErrorCode.TOKEN_INVALID)
@@ -66,9 +68,9 @@ def download(token: str, request: Request) -> Response:
     )
 
 
-@router.put("/local-upload/{token}")
+@router.put("/upload/{token}")
 async def upload(token: str, request: Request) -> dict[str, object]:
-    """Accept a direct browser upload for a key the local backend signed."""
+    """Accept a direct browser upload for a key this API signed."""
     payload = unsign_payload(token, salt="local-upload", max_age=MAX_TOKEN_AGE_SECONDS)
     key = payload.get("key")
     content_type = payload.get("content_type")

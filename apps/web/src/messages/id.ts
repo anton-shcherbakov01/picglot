@@ -131,6 +131,7 @@ export const id: Messages = {
         text_overflow: "Kesesuaian teks",
         inpaint_quality: "Perbaikan latar belakang",
         table_structure: "Struktur tabel",
+        dropped_spaces: "Spasi antar kata",
       },
     },
   },
