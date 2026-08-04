@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 
-import { toolTitle } from "@/components/Header";
 import { BatchArea } from "@/components/BatchArea";
 import { WorkArea } from "@/components/WorkArea";
 import { serverFetch, type AppConfig, type SeoPageResponse } from "@/lib/api";
@@ -15,6 +14,7 @@ import {
   type Locale,
 } from "@/lib/i18n";
 import { getMessages } from "@/lib/messages";
+import { toolTitle } from "@/lib/tools";
 
 /**
  * One page component serves every tool and every format landing page.

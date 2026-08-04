@@ -3,7 +3,7 @@ import Link from "next/link";
 import type { AppConfig } from "@/lib/api";
 import { localePath, toolSlugFor, type Locale } from "@/lib/i18n";
 import type { Messages } from "@/lib/messages";
-import { toolTitle } from "./Header";
+import { toolTitle } from "@/lib/tools";
 
 export function Footer({
   locale,

@@ -10,6 +10,7 @@ from typing import Any
 
 from picglot import __version__
 from picglot.core.config import ConfigurationError, settings
+from picglot.core.errors import AppError
 from picglot.core.logging import configure_logging, get_logger
 
 log = get_logger("cli")
@@ -254,6 +255,14 @@ def main(argv: list[str] | None = None) -> int:
     except ConfigurationError as exc:
         print(str(exc), file=sys.stderr)
         return 2
+    except AppError as exc:
+        # The message is deliberately generic — it is written for end users.
+        # `details` carries the part an operator can act on (which field, which
+        # rule), so print it instead of a traceback that hides it.
+        print(f"error: {exc.code}: {exc.message}", file=sys.stderr)
+        for key, value in (exc.details or {}).items():
+            print(f"  {key}: {value}", file=sys.stderr)
+        return 1
     except KeyboardInterrupt:
         return 130
 

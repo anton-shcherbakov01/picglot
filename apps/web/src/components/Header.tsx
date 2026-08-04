@@ -13,6 +13,7 @@ import {
   type Locale,
 } from "@/lib/i18n";
 import type { Messages } from "@/lib/messages";
+import { toolTitle } from "@/lib/tools";
 
 interface Props {
   locale: Locale;
@@ -305,30 +306,4 @@ function ThemeToggle({ label }: { label: string }) {
       <span aria-hidden>{dark ? "☀" : "☾"}</span>
     </button>
   );
-}
-
-/** Tool names are short enough to keep inline rather than in every dictionary. */
-const TOOL_TITLES: Record<string, { en: string; ru: string }> = {
-  "image-translator": { en: "Image translator", ru: "Переводчик изображений" },
-  "translate-photo": { en: "Photo translator", ru: "Переводчик фотографий" },
-  "screenshot-translator": {
-    en: "Screenshot translator",
-    ru: "Переводчик скриншотов",
-  },
-  "image-to-text": { en: "Image to text", ru: "Изображение в текст" },
-  "jpg-to-word": { en: "Photo to Word", ru: "Фото в Word" },
-  "image-to-excel": { en: "Image to Excel", ru: "Изображение в Excel" },
-  "handwriting-to-text": { en: "Handwriting to text", ru: "Рукописный текст" },
-  "pdf-translator": { en: "PDF translator", ru: "Переводчик PDF" },
-  "pdf-ocr": { en: "PDF OCR", ru: "OCR для PDF" },
-  "document-scanner": { en: "Document scanner", ru: "Сканер документов" },
-  "receipt-scanner": { en: "Receipt scanner", ru: "Сканер чеков" },
-  "invoice-ocr": { en: "Invoice OCR", ru: "Распознавание счетов" },
-  batch: { en: "Batch processing", ru: "Пакетная обработка" },
-};
-
-export function toolTitle(slug: string, locale: Locale): string {
-  const entry = TOOL_TITLES[slug];
-  if (!entry) return slug;
-  return locale === "ru" ? entry.ru : entry.en;
 }

@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { toolTitle } from "@/components/Header";
 import { WorkArea } from "@/components/WorkArea";
 import { serverFetch, type AppConfig, type SeoPageResponse } from "@/lib/api";
 import {
@@ -14,6 +13,7 @@ import {
   type Locale,
 } from "@/lib/i18n";
 import { getMessages } from "@/lib/messages";
+import { toolTitle } from "@/lib/tools";
 
 export async function generateMetadata({
   params,
