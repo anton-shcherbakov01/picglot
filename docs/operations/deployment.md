@@ -37,6 +37,10 @@ PUBLIC_WEB_URL=https://example.com
 PUBLIC_API_URL=https://example.com
 NEXT_PUBLIC_API_URL=https://example.com
 NEXT_PUBLIC_SITE_URL=https://example.com
+# Both are needed for images to load: the first signs presigned URLs against
+# an address browsers can reach, the second lets the CSP load from it.
+S3_PUBLIC_ENDPOINT_URL=https://s3.example.com
+NEXT_PUBLIC_S3_URL=https://s3.example.com
 SESSION_COOKIE_SECURE=true
 POSTGRES_USER=picglot
 POSTGRES_PASSWORD=<strong>

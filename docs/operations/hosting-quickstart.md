@@ -90,6 +90,17 @@ S3_ACCESS_KEY_ID=<strong>
 S3_SECRET_ACCESS_KEY=<strong>
 S3_ENDPOINT_URL=http://minio:9000
 
+# --- object storage as the browser sees it ---
+# TRAP: the two below are a pair, and BOTH are needed for pictures to appear.
+# S3_PUBLIC_ENDPOINT_URL is the address presigned URLs are signed against; leave
+# it empty and they point at `minio:9000`, which only the cluster can resolve.
+# NEXT_PUBLIC_S3_URL puts that same origin in the Content-Security-Policy;
+# leave it empty and the browser blocks every image before a request is made —
+# the store stays healthy, the object is there, the logs stay clean, and the
+# editor shows an empty canvas. Give the store its own hostname and certificate.
+S3_PUBLIC_ENDPOINT_URL=https://s3.example.com
+NEXT_PUBLIC_S3_URL=https://s3.example.com
+
 # --- backups ---
 BACKUP_INTERVAL=21600
 BACKUP_RETENTION_DAYS=14

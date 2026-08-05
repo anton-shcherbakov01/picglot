@@ -1,18 +1,31 @@
 /** @type {import('next').NextConfig} */
 const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
-// The API is the only external origin we talk to; everything else is denied.
+// Where the object store answers browsers — the origin presigned URLs point at,
+// and a different origin from the site even when it is a subdomain of it. It has
+// to be named here or every picture is blocked before a request is made, which
+// looks nothing like a policy error: the store is healthy, the object is there,
+// the logs are clean, and the canvas is empty. Say so at startup rather than
+// leaving that to be discovered from a blank frame.
+const storageUrl = (process.env.NEXT_PUBLIC_S3_URL ?? "").trim();
+if (!storageUrl && process.env.NODE_ENV === "production") {
+  console.warn(
+    "[picglot] NEXT_PUBLIC_S3_URL is unset: images served straight from object " +
+      "storage will be blocked by the Content-Security-Policy. Set it to the same " +
+      "origin as S3_PUBLIC_ENDPOINT_URL (e.g. https://s3.example.com).",
+  );
+}
+
+// The API and the object store are the only external origins we talk to;
+// everything else is denied.
 const csp = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline'" +
     (process.env.NODE_ENV === "development" ? " 'unsafe-eval'" : ""),
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob: " +
-    apiUrl +
-    " " +
-    (process.env.NEXT_PUBLIC_S3_URL ?? ""),
+  ["img-src 'self' data: blob:", apiUrl, storageUrl].filter(Boolean).join(" "),
   "font-src 'self' data:",
-  "connect-src 'self' " + apiUrl + " " + (process.env.NEXT_PUBLIC_S3_URL ?? ""),
+  ["connect-src 'self'", apiUrl, storageUrl].filter(Boolean).join(" "),
   "media-src 'self' blob:",
   "object-src 'none'",
   "base-uri 'none'",
