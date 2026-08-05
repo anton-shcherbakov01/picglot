@@ -37,9 +37,13 @@ log = get_logger(__name__)
 ENDPOINT_PROBE_TTL_SECONDS = 300
 ENDPOINT_PROBE_TIMEOUT_SECONDS = 3.0
 
-#: (checked_at, answers). Module level so every worker process keeps its own.
-_endpoint_probe: tuple[float, bool] | None = None
+#: (checked_at, answers, detail). Module level so every worker process keeps its own.
+_endpoint_probe: tuple[float, bool, str] | None = None
 _probe_lock = threading.Lock()
+
+#: Written and read back on every probe. At the bucket root, so none of the
+#: lifecycle prefixes expire it, and overwritten rather than accumulated.
+PROBE_KEY = ".reachability-probe"
 
 #: Prefix -> lifecycle intent. Keep in sync with infra/docker/minio-init.sh.
 PREFIX_ORIGINAL = "originals"
@@ -164,60 +168,115 @@ class S3Storage:
         return self._public_client
 
     def public_endpoint_answers(self) -> bool:
-        """Does the browser-visible endpoint actually respond?
+        """Can a visitor actually fetch an object through a presigned URL?
 
         A well-formed address proves nothing: `https://s3.example.com` looks
         perfect whether or not it has a DNS record, a certificate covering that
-        name, or a vhost that reaches the store. Each of those fails the same
-        silent way — the browser drops the image and reports nothing we can see.
+        name, or a vhost that reaches the store. Neither does *an* answer — a
+        reverse proxy that never forwards the `Host` header reaches the store
+        and answers every presigned request with 403, because the signature is
+        recomputed over the wrong host. All of these fail the same silent way:
+        the browser drops the image and reports nothing we can see.
 
-        So this asks. Any HTTP answer counts, including 403 and 404: the object
-        being absent still proves DNS, TLS and routing all work. Only a refused
-        connection, a bad certificate or a timeout mean a visitor would get
-        nothing, and then the caller serves the bytes itself.
+        So this fetches, and only a fetch that returned the bytes counts.
+        """
+        return self.public_endpoint_verdict()[0]
+
+    def public_endpoint_verdict(self) -> tuple[bool, str]:
+        """``(usable, detail)`` — detail names the fault when it is not usable."""
+        global _endpoint_probe
+        now = time.monotonic()
+        cached = _endpoint_probe
+        if cached is not None and now - cached[0] < ENDPOINT_PROBE_TTL_SECONDS:
+            return cached[1], cached[2]
+
+        with _probe_lock:
+            cached = _endpoint_probe
+            if cached is not None and now - cached[0] < ENDPOINT_PROBE_TTL_SECONDS:
+                return cached[1], cached[2]
+            usable, detail = self._probe_public_endpoint()
+            _endpoint_probe = (time.monotonic(), usable, detail)
+            return usable, detail
+
+    def _probe_public_endpoint(self) -> tuple[bool, str]:
+        """Round-trip one object through the browser-visible address.
+
+        The probe object is written first, through the in-cluster client, so
+        every answer is unambiguous — which the previous "any status under 500"
+        rule was not, since it accepted the one status that proves the thing we
+        are testing for is broken:
+
+        * **200** — DNS, TLS, routing *and* signing all work. Presigned URLs are
+          safe to hand out.
+        * **403** — the address is reached, but the store rejects our signature.
+          A visitor's `<img>` gets exactly this and shows nothing. Usually the
+          reverse proxy in front of the store does not pass the original `Host`
+          on (SigV4 signs it), and otherwise a skewed clock, a region that
+          disagrees with `S3_REGION`, or credentials that cannot read the
+          bucket.
+        * **404** — something answers, but not from the bucket the API just
+          wrote to: the vhost points at a different store, or a different
+          bucket.
 
         Certificates are verified exactly as a browser would, which is the whole
         point — an expired or mismatched certificate is invisible to `curl -k`
         and fatal to an `<img>`.
         """
-        global _endpoint_probe
-        now = time.monotonic()
-        cached = _endpoint_probe
-        if cached is not None and now - cached[0] < ENDPOINT_PROBE_TTL_SECONDS:
-            return cached[1]
-
-        with _probe_lock:
-            cached = _endpoint_probe
-            if cached is not None and now - cached[0] < ENDPOINT_PROBE_TTL_SECONDS:
-                return cached[1]
-            answers = self._probe_public_endpoint()
-            _endpoint_probe = (time.monotonic(), answers)
-            return answers
-
-    def _probe_public_endpoint(self) -> bool:
         import httpx
 
         try:
+            self.client.put_object(
+                Bucket=settings.s3_bucket,
+                Key=PROBE_KEY,
+                Body=b"ok",
+                ContentType="text/plain",
+            )
             url = self.public_client.generate_presigned_url(
                 "get_object",
-                Params={"Bucket": settings.s3_bucket, "Key": ".reachability-probe"},
+                Params={"Bucket": settings.s3_bucket, "Key": PROBE_KEY},
                 ExpiresIn=60,
             )
-            # A GET keeps the signature valid (the method is signed); the key
-            # does not exist, so the answer is a small 404 body.
             response = httpx.get(url, timeout=ENDPOINT_PROBE_TIMEOUT_SECONDS)
         except Exception as exc:
+            detail = f"no answer from {settings.s3_browser_endpoint} ({type(exc).__name__})"
             log.warning(
                 "storage.public_endpoint_unreachable",
                 endpoint=settings.s3_browser_endpoint,
                 error=type(exc).__name__,
-                detail=str(exc)[:200],
+                fault=str(exc)[:200],
                 effect="objects are streamed through the API instead",
             )
-            return False
-        # 5xx is the store itself failing, not the path to it being broken;
-        # a browser would get the same and show nothing either way.
-        return response.status_code < 500
+            return False, detail
+
+        if response.is_success:
+            return True, ""
+
+        if response.status_code in (401, 403):
+            detail = "presigned URLs are rejected by the store (403)"
+            log.warning(
+                "storage.presigned_urls_rejected",
+                endpoint=settings.s3_browser_endpoint,
+                status=response.status_code,
+                fault=response.text[:200],
+                cause="the proxy in front of the store most likely rewrites the Host "
+                "header, which SigV4 signs; also check clock skew, S3_REGION and the "
+                "credentials' read access to the bucket",
+                effect="objects are streamed through the API instead",
+            )
+            return False, detail
+
+        detail = f"the endpoint answered {response.status_code} for an object that exists"
+        log.warning(
+            "storage.public_endpoint_wrong_target",
+            endpoint=settings.s3_browser_endpoint,
+            status=response.status_code,
+            bucket=settings.s3_bucket,
+            cause="the vhost reaches a different store or bucket than the API writes to"
+            if response.status_code == 404
+            else "the store itself is failing",
+            effect="objects are streamed through the API instead",
+        )
+        return False, detail
 
     def _extra_args(self, content_type: str) -> dict[str, Any]:
         extra: dict[str, Any] = {"ContentType": content_type}

@@ -355,14 +355,14 @@ def test_a_storage_endpoint_that_does_not_answer_falls_back_to_the_api():
 
         backend = storage_service.S3Storage()
         storage_service._endpoint_probe = None
-        backend._probe_public_endpoint = lambda: False  # type: ignore[method-assign]
+        backend._probe_public_endpoint = lambda: (False, "no answer")  # type: ignore[method-assign]
 
         url = backend.signed_download_url("guest/page.png")
         assert url.startswith("https://example.com/api/v1/files/")
 
         # And once it does answer, links go straight to the store again.
         storage_service._endpoint_probe = None
-        backend._probe_public_endpoint = lambda: True  # type: ignore[method-assign]
+        backend._probe_public_endpoint = lambda: (True, "")  # type: ignore[method-assign]
         assert backend.signed_download_url("guest/page.png").startswith("https://s3.example.com/")
     finally:
         storage_service._endpoint_probe = None
@@ -372,3 +372,66 @@ def test_a_storage_endpoint_that_does_not_answer_falls_back_to_the_api():
             settings.public_web_url,
             settings.public_api_url,
         ) = original
+
+
+@pytest.mark.parametrize(
+    "status,usable",
+    [
+        # The object was just written, so this is the only answer that proves a
+        # visitor can fetch it.
+        (200, True),
+        # Reached, and refusing our signature. A browser gets the same 403 and
+        # shows an empty frame — the exact failure the probe exists to catch,
+        # and the one the old "any status under 500" rule called healthy.
+        (403, False),
+        (401, False),
+        # Something answers, but not from the bucket the API writes to.
+        (404, False),
+        (503, False),
+    ],
+)
+def test_the_probe_only_trusts_an_endpoint_that_returns_the_object(status, usable, monkeypatch):
+    """Reaching the store is not the same as being able to fetch from it.
+
+    A reverse proxy that does not pass the original `Host` through reaches the
+    store perfectly and rejects every presigned URL, because SigV4 signs the
+    host. DNS, TLS and routing are all fine; every picture is still blank.
+    """
+    import httpx
+
+    from picglot.core.config import settings
+    from picglot.services import storage as storage_service
+
+    original = (settings.storage_backend, settings.s3_public_endpoint_url)
+    try:
+        settings.storage_backend = "s3"
+        settings.s3_public_endpoint_url = "https://s3.example.com"
+        storage_service._endpoint_probe = None
+
+        written: list[str] = []
+
+        class FakeClient:
+            def put_object(self, **kwargs):
+                written.append(kwargs["Key"])
+
+            def generate_presigned_url(self, *args, **kwargs):
+                return "https://s3.example.com/picglot/.reachability-probe?X-Amz-Signature=x"
+
+        backend = storage_service.S3Storage()
+        backend._client = FakeClient()
+        backend._public_client = FakeClient()
+        monkeypatch.setattr(
+            httpx,
+            "get",
+            lambda *args, **kwargs: httpx.Response(status, text="denied"),
+        )
+
+        assert backend.public_endpoint_verdict()[0] is usable
+        # The probe reads back an object it wrote, so a 404 is a real fault
+        # rather than the expected answer it used to be.
+        assert written == [storage_service.PROBE_KEY]
+        if not usable:
+            assert backend.public_endpoint_verdict()[1]
+    finally:
+        storage_service._endpoint_probe = None
+        settings.storage_backend, settings.s3_public_endpoint_url = original
