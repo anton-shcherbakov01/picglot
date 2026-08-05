@@ -18,6 +18,7 @@ import mimetypes
 import os
 import shutil
 import threading
+import time
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -29,6 +30,16 @@ from picglot.core.ids import ulid
 from picglot.core.logging import get_logger
 
 log = get_logger(__name__)
+
+#: How long a reachability verdict is trusted. Long enough that signing a URL
+#: is never a network round trip in practice, short enough that fixing DNS or a
+#: certificate takes effect without restarting anything.
+ENDPOINT_PROBE_TTL_SECONDS = 300
+ENDPOINT_PROBE_TIMEOUT_SECONDS = 3.0
+
+#: (checked_at, answers). Module level so every worker process keeps its own.
+_endpoint_probe: tuple[float, bool] | None = None
+_probe_lock = threading.Lock()
 
 #: Prefix -> lifecycle intent. Keep in sync with infra/docker/minio-init.sh.
 PREFIX_ORIGINAL = "originals"
@@ -152,6 +163,62 @@ class S3Storage:
                     self._public_client = self._make_client(settings.s3_browser_endpoint)
         return self._public_client
 
+    def public_endpoint_answers(self) -> bool:
+        """Does the browser-visible endpoint actually respond?
+
+        A well-formed address proves nothing: `https://s3.example.com` looks
+        perfect whether or not it has a DNS record, a certificate covering that
+        name, or a vhost that reaches the store. Each of those fails the same
+        silent way — the browser drops the image and reports nothing we can see.
+
+        So this asks. Any HTTP answer counts, including 403 and 404: the object
+        being absent still proves DNS, TLS and routing all work. Only a refused
+        connection, a bad certificate or a timeout mean a visitor would get
+        nothing, and then the caller serves the bytes itself.
+
+        Certificates are verified exactly as a browser would, which is the whole
+        point — an expired or mismatched certificate is invisible to `curl -k`
+        and fatal to an `<img>`.
+        """
+        global _endpoint_probe
+        now = time.monotonic()
+        cached = _endpoint_probe
+        if cached is not None and now - cached[0] < ENDPOINT_PROBE_TTL_SECONDS:
+            return cached[1]
+
+        with _probe_lock:
+            cached = _endpoint_probe
+            if cached is not None and now - cached[0] < ENDPOINT_PROBE_TTL_SECONDS:
+                return cached[1]
+            answers = self._probe_public_endpoint()
+            _endpoint_probe = (time.monotonic(), answers)
+            return answers
+
+    def _probe_public_endpoint(self) -> bool:
+        import httpx
+
+        try:
+            url = self.public_client.generate_presigned_url(
+                "get_object",
+                Params={"Bucket": settings.s3_bucket, "Key": ".reachability-probe"},
+                ExpiresIn=60,
+            )
+            # A GET keeps the signature valid (the method is signed); the key
+            # does not exist, so the answer is a small 404 body.
+            response = httpx.get(url, timeout=ENDPOINT_PROBE_TIMEOUT_SECONDS)
+        except Exception as exc:
+            log.warning(
+                "storage.public_endpoint_unreachable",
+                endpoint=settings.s3_browser_endpoint,
+                error=type(exc).__name__,
+                detail=str(exc)[:200],
+                effect="objects are streamed through the API instead",
+            )
+            return False
+        # 5xx is the store itself failing, not the path to it being broken;
+        # a browser would get the same and show nothing either way.
+        return response.status_code < 500
+
     def _extra_args(self, content_type: str) -> dict[str, Any]:
         extra: dict[str, Any] = {"ContentType": content_type}
         if settings.s3_server_side_encryption:
@@ -232,10 +299,11 @@ class S3Storage:
         filename: str | None = None,
         content_type: str | None = None,
     ) -> str:
-        # A presigned URL is signed against a host; if that host is one only the
-        # cluster can resolve, the URL is dead on arrival in a browser. Serve it
-        # ourselves instead of handing out a link that cannot be opened.
-        if settings.serve_files_through_api:
+        # A presigned URL is signed against a host. If that host is one only the
+        # cluster can resolve, or one that does not answer, the URL is dead on
+        # arrival in a browser — so serve the bytes rather than hand out a link
+        # that cannot be opened.
+        if settings.serve_files_through_api or not self.public_endpoint_answers():
             return api_download_url(key, filename=filename, ttl=expires_in)
 
         params: dict[str, Any] = {"Bucket": settings.s3_bucket, "Key": key}

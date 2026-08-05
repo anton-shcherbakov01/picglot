@@ -327,3 +327,48 @@ def test_api_served_file_links_never_point_at_localhost():
         assert api_download_url("guest/page.png").startswith("https://picglot.ru/api/v1/files/")
     finally:
         settings.public_api_url, settings.public_web_url = original
+
+
+def test_a_storage_endpoint_that_does_not_answer_falls_back_to_the_api():
+    """A well-formed address proves nothing about whether it resolves.
+
+    `https://s3.example.com` passes every shape check whether or not it has a
+    DNS record, a certificate covering that name, or a vhost behind it — and
+    all three failures look the same to a visitor: no picture, nothing logged.
+    """
+    from picglot.core.config import settings
+    from picglot.services import storage as storage_service
+
+    original = (
+        settings.storage_backend,
+        settings.s3_public_endpoint_url,
+        settings.public_web_url,
+        settings.public_api_url,
+    )
+    try:
+        settings.storage_backend = "s3"
+        settings.s3_public_endpoint_url = "https://s3.example.com"
+        settings.public_web_url = "https://example.com"
+        settings.public_api_url = "https://example.com"
+        # The address itself is unimpeachable; only asking reveals the problem.
+        assert settings.storage_endpoint_reachable_by_browser is True
+
+        backend = storage_service.S3Storage()
+        storage_service._endpoint_probe = None
+        backend._probe_public_endpoint = lambda: False  # type: ignore[method-assign]
+
+        url = backend.signed_download_url("guest/page.png")
+        assert url.startswith("https://example.com/api/v1/files/")
+
+        # And once it does answer, links go straight to the store again.
+        storage_service._endpoint_probe = None
+        backend._probe_public_endpoint = lambda: True  # type: ignore[method-assign]
+        assert backend.signed_download_url("guest/page.png").startswith("https://s3.example.com/")
+    finally:
+        storage_service._endpoint_probe = None
+        (
+            settings.storage_backend,
+            settings.s3_public_endpoint_url,
+            settings.public_web_url,
+            settings.public_api_url,
+        ) = original

@@ -32,6 +32,31 @@ def live() -> HealthOut:
     return HealthOut(status="ok", version=__version__, environment=settings.environment)
 
 
+def _public_url_check() -> dict[str, Any]:
+    """Report how object URLs are being handed to browsers, and why."""
+    from picglot.services import storage
+
+    if settings.storage_backend != "s3":
+        return {"mode": "api", "reason": "local storage backend"}
+    if not settings.storage_endpoint_reachable_by_browser:
+        return {
+            "mode": "api",
+            "endpoint": settings.s3_browser_endpoint,
+            "reason": "endpoint address is not one a browser could open",
+            "fix": "set S3_PUBLIC_ENDPOINT_URL to the public https address of the store",
+        }
+    backend = storage.get_storage()
+    answers = getattr(backend, "public_endpoint_answers", lambda: True)()
+    if not answers:
+        return {
+            "mode": "api",
+            "endpoint": settings.s3_browser_endpoint,
+            "reason": "endpoint does not answer (DNS, TLS or routing)",
+            "fix": "check the DNS record, the certificate for that name, and the vhost",
+        }
+    return {"mode": "direct", "endpoint": settings.s3_browser_endpoint}
+
+
 @router.get("/health/ready", response_model=HealthOut, summary="Readiness probe")
 def ready(response: Response) -> HealthOut:
     """Checks every dependency the app needs to actually do work."""
@@ -49,6 +74,10 @@ def ready(response: Response) -> HealthOut:
         "database": {"ok": database},
         "redis": {"ok": redis, "note": "" if redis else "using in-process fallback"},
         "storage": {"ok": object_storage, "backend": settings.storage_backend},
+        # Whether *visitors* can fetch objects, which is a different question
+        # from whether the API can. When this is false the API streams them
+        # instead, so the app works — it just costs bandwidth it should not.
+        "storage_public_url": _public_url_check(),
         "queue": {"backend": settings.queue_backend},
         "pool": pool_stats(),
     }
