@@ -94,7 +94,14 @@ def api_download_url(key: str, *, filename: str | None = None, ttl: int | None =
         "ttl": ttl or settings.signed_url_ttl_seconds,
     }
     signature = sign_payload(payload, salt="file-download")
-    return f"{settings.public_api_url.rstrip('/')}/api/v1/files/{signature}"
+    path = f"/api/v1/files/{signature}"
+    # `PUBLIC_API_URL` defaults to localhost, and prefixing that would swap one
+    # unopenable link for another — the exact failure this function exists to
+    # avoid. A path resolves against whatever origin the page was served from,
+    # which is by definition one the visitor can reach.
+    if not settings.api_url_reachable_by_browser:
+        return path
+    return f"{settings.public_api_url.rstrip('/')}{path}"
 
 
 # --------------------------------------------------------------------------- #

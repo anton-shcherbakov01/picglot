@@ -458,14 +458,17 @@ class Settings(BaseSettings):
         never appears), so they are detected here and served through the API
         instead.
         """
-        from urllib.parse import urlparse
+        return _browser_reachable(self.s3_browser_endpoint, page_url=self.public_web_url)
 
-        endpoint = urlparse(self.s3_browser_endpoint)
-        host = (endpoint.hostname or "").lower()
-        if not host or host in _UNROUTABLE_HOSTS or "." not in host:
-            return False
-        # Mixed content: an https page may not load an http subresource.
-        return not (endpoint.scheme == "http" and self.public_web_url.startswith("https://"))
+    @property
+    def api_url_reachable_by_browser(self) -> bool:
+        """Same question for `PUBLIC_API_URL`, which defaults to localhost.
+
+        This one matters twice over: it is the base for the URLs we fall back to
+        when storage is unreachable, so getting it wrong replaces one dead link
+        with another.
+        """
+        return _browser_reachable(self.public_api_url, page_url=self.public_web_url)
 
     @property
     def serve_files_through_api(self) -> bool:
@@ -515,9 +518,39 @@ class Settings(BaseSettings):
 
 LOCAL_OCR_PROVIDERS = {"rapidocr", "tesseract", "builtin"}
 
-#: Hosts that resolve inside the deployment and nowhere else. A URL signed
-#: against one of these is useless to a browser.
-_UNROUTABLE_HOSTS = {"minio", "localhost", "127.0.0.1", "0.0.0.0", "::1", "s3", "storage"}
+#: The visitor's own machine. Reachable from a laptop running the stack, and
+#: from nothing else.
+_LOOPBACK_HOSTS = {"localhost", "127.0.0.1", "0.0.0.0", "::1"}
+
+
+def _browser_reachable(url: str, *, page_url: str) -> bool:
+    """Could the browser that loaded `page_url` also open `url`?
+
+    Deliberately about the *shape* of the address rather than whether the host
+    happens to be up. Three ways an address is dead on arrival, all of which
+    look identical on screen — nothing renders, and nothing is logged:
+
+    * a single-label name (`minio`, `api`) is a container alias on a private
+      network;
+    * loopback is the visitor's own machine, which only helps when the page
+      came from there too;
+    * plain http under an https page is refused as mixed content before the
+      request is even made.
+    """
+    from urllib.parse import urlparse
+
+    parsed = urlparse(url)
+    page = urlparse(page_url)
+    host = (parsed.hostname or "").lower()
+    if not host:
+        return False
+    if host in _LOOPBACK_HOSTS:
+        return (page.hostname or "").lower() in _LOOPBACK_HOSTS
+    if "." not in host:
+        return False
+    return not (parsed.scheme == "http" and page.scheme == "https")
+
+
 LOCAL_TRANSLATION_PROVIDERS = {"argos", "echo"}
 
 

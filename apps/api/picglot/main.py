@@ -70,6 +70,13 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             effect="objects are streamed through the API",
             fix="set S3_PUBLIC_ENDPOINT_URL to the public https address of the store",
         )
+    if not settings.api_url_reachable_by_browser:
+        log.warning(
+            "config.public_api_url_not_browser_reachable",
+            public_api_url=settings.public_api_url,
+            effect="file links are emitted as paths, relative to the page origin",
+            fix="set PUBLIC_API_URL to the address visitors use, e.g. https://picglot.ru",
+        )
     _init_optional_observability()
 
     if settings.storage_backend == "s3":

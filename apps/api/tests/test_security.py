@@ -270,7 +270,10 @@ def test_security_headers_are_present(client):
     [
         # The Compose default: resolves inside the network and nowhere else.
         ("http://minio:9000", "https://picglot.ru", False),
-        ("http://localhost:9000", "http://localhost:3000", False),
+        # Loopback is fine when the page came from the same machine — that is
+        # the whole of local development — and useless otherwise.
+        ("http://localhost:9000", "http://localhost:3000", True),
+        ("http://localhost:9000", "https://picglot.ru", False),
         # Reachable host, but plain http under an https page — blocked as mixed
         # content before the request is even made.
         ("http://s3.picglot.ru", "https://picglot.ru", False),
@@ -300,3 +303,27 @@ def test_storage_urls_are_only_handed_out_when_a_browser_can_open_them(
             settings.public_web_url,
             settings.storage_backend,
         ) = original
+
+
+def test_api_served_file_links_never_point_at_localhost():
+    """The fallback must not swap one unopenable link for another.
+
+    `PUBLIC_API_URL` defaults to localhost. Prefixing that onto the URLs we fall
+    back to when storage is unreachable would reproduce the original failure
+    one layer down, so the link is emitted as a path instead and resolves
+    against the origin the page came from.
+    """
+    from picglot.core.config import settings
+    from picglot.services.storage import api_download_url
+
+    original = (settings.public_api_url, settings.public_web_url)
+    try:
+        settings.public_web_url = "https://picglot.ru"
+
+        settings.public_api_url = "http://localhost:8000"
+        assert api_download_url("guest/page.png").startswith("/api/v1/files/")
+
+        settings.public_api_url = "https://picglot.ru"
+        assert api_download_url("guest/page.png").startswith("https://picglot.ru/api/v1/files/")
+    finally:
+        settings.public_api_url, settings.public_web_url = original
