@@ -46,13 +46,18 @@ def _public_url_check() -> dict[str, Any]:
             "fix": "set S3_PUBLIC_ENDPOINT_URL to the public https address of the store",
         }
     backend = storage.get_storage()
-    answers = getattr(backend, "public_endpoint_answers", lambda: True)()
-    if not answers:
+    usable, detail = getattr(backend, "public_endpoint_verdict", lambda: (True, ""))()
+    if not usable:
         return {
             "mode": "api",
             "endpoint": settings.s3_browser_endpoint,
-            "reason": "endpoint does not answer (DNS, TLS or routing)",
-            "fix": "check the DNS record, the certificate for that name, and the vhost",
+            "reason": detail,
+            "fix": (
+                "the store must return the object for a presigned URL signed against "
+                "this address: pass the original Host through the proxy in front of it "
+                "(proxy_set_header Host $host), and check clock skew, S3_REGION and the "
+                "bucket the vhost actually reaches"
+            ),
         }
     return {"mode": "direct", "endpoint": settings.s3_browser_endpoint}
 
