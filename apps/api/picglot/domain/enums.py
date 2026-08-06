@@ -146,6 +146,7 @@ class AssetKind(StrEnum):
     CLEANED = "cleaned"
     RENDERED = "rendered"
     EXPORT = "export"
+    FONT = "font"
     INTERMEDIATE = "intermediate"
 
 

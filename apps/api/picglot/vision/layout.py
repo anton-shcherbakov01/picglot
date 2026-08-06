@@ -339,7 +339,12 @@ def _apply_style(region: Region, image: Image.Image | None, body_size: float) ->
     # is the one thing the product is for.
     measured = None
     if image is not None:
-        box = region.bounding_box
+        # Measured on one line, not on the block. Everything here is a ratio
+        # against the height of the letter band, and the band of a three-line
+        # paragraph is three lines tall: stroke width came back a third of what
+        # it is, so nothing was ever bold and every weight handed to the
+        # foundry was too light to draw with.
+        box, _text = _sample_line(region)
         measured = typeface.estimate(
             image, (int(box.x), int(box.y), int(box.right), int(box.bottom))
         )

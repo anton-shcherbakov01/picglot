@@ -43,6 +43,12 @@ upload → validate → preprocess → detect → recognise → normalise → la
   the translation inherits its serif-ness, weight, slant and alignment. Where no
   installed face has the right proportions — condensed hand lettering, for
   instance — the winner is squeezed to the same width-per-height instead.
+- **Building the face it cannot find** — where no installed font is close
+  enough, one is built: the letters the page shows are traced off it into real
+  outlines, the rest are derived from the nearest face at the measured weight,
+  slant and width, and the result is a TrueType file used for the render and
+  offered as a download. Off by default (`FONT_SYNTHESIS_ENABLED`); see
+  [docs/architecture/font-foundry.md](docs/architecture/font-foundry.md).
 - **Exports** — PNG, JPG, WEBP, PDF, searchable PDF (verified invisible text
   layer), bilingual PDF, DOCX, XLSX with typed cells, TXT, Markdown, CSV, JSON, ZIP.
 

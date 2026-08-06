@@ -50,7 +50,7 @@ from picglot.vision.preprocess import (
     make_thumbnail,
     preprocess,
 )
-from picglot.vision.types import PageResult, Region
+from picglot.vision.types import BoundingBox, PageResult, Region
 
 log = get_logger(__name__)
 
@@ -384,6 +384,19 @@ def _process_page(
             data={"page": page_number},
         )
         renderable = [region for region in regions if translations.get(region.id, "").strip()]
+
+        # A face built from this page's own lettering, when asked for. What it
+        # can trace it traces; the rest it derives from the nearest installed
+        # face at the measured weight, slant and width. Failure is silent by
+        # design — the identified face is still there to draw with.
+        if settings.font_synthesis_enabled and options.get("synthesize_font", True):
+            with observe_stage("font_synthesis"):
+                synthesis = _synthesize_font(
+                    session, project, page, working, renderable, translations
+                )
+            if synthesis is not None:
+                page.metadata_json = {**(page.metadata_json or {}), "font": synthesis}
+
         with observe_stage("inpainting"):
             if render_mode is RenderMode.OVERLAY:
                 cleaned, mask, inpaint_report = working.copy(), None, None
@@ -628,3 +641,122 @@ def estimate_pages(raw: bytes, is_pdf: bool) -> int:
 
 def now() -> datetime:
     return datetime.now(UTC)
+
+
+def _synthesize_font(
+    session: Session,
+    project: Project,
+    page: DocumentPage,
+    image: Image.Image,
+    regions: list[Region],
+    translations: dict[str, str],
+) -> dict[str, Any] | None:
+    """Build a face for this page and put it in front of the renderer.
+
+    The characters asked for are the ones the translation actually uses, not an
+    alphabet: a face carrying forty glyphs builds in a second, and one carrying
+    a script does not.
+
+    Everything here is best-effort. A page whose face cannot be built is a page
+    drawn in the face identification chose, which is the outcome that existed
+    before any of this — so nothing raises, and the reason is logged.
+    """
+    from picglot.foundry import donor as foundry_donor
+    from picglot.foundry import service as foundry
+    from picglot.vision import fonts
+
+    characters = "".join(translations.values())
+    if not characters.strip():
+        return None
+
+    lead = max(regions, key=lambda region: region.bounding_box.area, default=None)
+    if lead is None:
+        return None
+
+    # The donor is whatever the page was identified as, or its stand-in: the
+    # face already chosen as closest to the lettering is the right thing to
+    # bend, and it is the one that can draw the translation.
+    hints = tuple(lead.style.font_fallbacks) or (
+        (lead.style.font_family,) if lead.style.font_family else ()
+    )
+    donor_file = fonts.registry.find(
+        text=characters[:200],
+        family_hint=hints[0] if hints else None,
+        family_hints=hints[1:],
+        bold=lead.style.bold,
+        italic=lead.style.italic,
+    )
+    if donor_file is None:
+        return None
+
+    measured = lead.metadata.get("typeface") or {}
+    style = foundry_donor.StyleParameters(
+        stroke_ratio=measured.get("stroke_ratio"),
+        slant_degrees=float(measured.get("slant_degrees") or 0.0),
+        width_ratio=float(lead.style.width_ratio or 1.0),
+    )
+
+    samples = [
+        foundry.Sample(box=(int(box.x), int(box.y), int(box.right), int(box.bottom)), text=text)
+        for box, text in _line_samples(regions)
+    ]
+    try:
+        result = foundry.synthesize(
+            image,
+            samples,
+            characters=characters,
+            family=f"PicGlot {page.id[-6:]}",
+            donor_path=str(donor_file.path),
+            donor_family=donor_file.family,
+            donor_index=donor_file.index,
+            style=style,
+        )
+    except Exception as error:  # pragma: no cover - defensive
+        log.warning("pipeline.font_synthesis_failed", page=page.id, error=str(error)[:160])
+        return None
+    if result is None:
+        return None
+
+    asset = project_service.store_asset(
+        session,
+        project,
+        data=result.data,
+        kind=AssetKind.FONT,
+        mime_type="font/ttf",
+        extension="ttf",
+        metadata=result.as_dict(),
+    )
+    if foundry.materialize(result.data, asset.id) is None:
+        return None
+
+    for region in regions:
+        region.style.font_family = result.family
+        region.style.font_fallbacks = []
+        # The face carries the original's proportions now, so squeezing what it
+        # draws would apply them twice.
+        region.style.width_ratio = 1.0
+
+    log.info(
+        "pipeline.font_synthesized",
+        page=page.id,
+        family=result.family,
+        traced=len(result.traced),
+        derived=len(result.derived),
+    )
+    return {"asset_id": asset.id, **result.as_dict()}
+
+
+def _line_samples(regions: list[Region]) -> list[tuple[Any, str]]:
+    """Every line of source text on the page, with the box it occupies."""
+    samples: list[tuple[Any, str]] = []
+    for region in regions:
+        boxes = region.metadata.get("line_boxes") or []
+        texts = region.metadata.get("line_texts") or []
+        if boxes and len(boxes) == len(texts):
+            samples.extend(
+                (BoundingBox.from_dict(box), str(text))
+                for box, text in zip(boxes, texts, strict=True)
+            )
+        else:
+            samples.append((region.bounding_box, region.effective_text))
+    return samples

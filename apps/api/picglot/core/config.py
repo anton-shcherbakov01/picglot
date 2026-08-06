@@ -187,6 +187,9 @@ class Settings(BaseSettings):
     local_only_processing: bool = False
     inpaint_strategy: Literal["auto", "telea", "ns", "solid", "overlay"] = "auto"
     advanced_inpaint_enabled: bool = False
+    #: Build a face per page from the lettering on it, instead of setting the
+    #: translation in the nearest installed one. Costs a second or two per page.
+    font_synthesis_enabled: bool = False
     preview_max_dimension: int = 1600
     thumbnail_max_dimension: int = 320
     processing_max_dimension: int = 4000

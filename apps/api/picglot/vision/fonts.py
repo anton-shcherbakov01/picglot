@@ -188,6 +188,23 @@ class FontRegistry:
         self.load()
         return self._files
 
+    def register(self, path: Path) -> FontFile | None:
+        """Add a font that was not on disk when the registry was built.
+
+        Generated faces are written per job, so they cannot be discovered by
+        scanning a directory at startup. Registering one puts it in front of
+        the same selection every other face goes through — coverage checks
+        included, so a generated face missing a character is skipped for that
+        string rather than drawn as tofu.
+        """
+        self.load()
+        described = _describe(path)
+        if described is None:  # pragma: no cover - unreadable file
+            return None
+        with self._lock:
+            self._files = [file for file in self._files if file.path != path] + [described]
+        return described
+
     # -- selection ----------------------------------------------------------
     def find(
         self,
