@@ -94,7 +94,12 @@ FAMILY_PREFERENCES: dict[FontClass, tuple[str, ...]] = {
         "menlo",
         "ubuntumono",
     ),
+    # Caveat ships with the deployment (OFL, Latin + Cyrillic) because the
+    # alternatives here are Windows and macOS faces: on a Linux image the whole
+    # list used to miss and fall through to the grotesque at the end, so
+    # handwriting was detected and then drawn as if it never had been.
     FontClass.HANDWRITING: (
+        "caveat",
         "comicsansms",
         "segoescript",
         "bradleyhand",

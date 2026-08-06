@@ -17,8 +17,13 @@ from PIL import Image
 from picglot.core.ids import ulid
 from picglot.domain import languages
 from picglot.domain.enums import FontClass, RegionType, TextAlign, TextDirection
+from picglot.vision import typeface
 from picglot.vision.preprocess import dominant_color
 from picglot.vision.types import BoundingBox, Region
+
+#: Below this the measurement is not decisive enough to override a default —
+#: too little ink, or a metric sitting on its own threshold.
+MIN_TYPEFACE_CONFIDENCE = 0.5
 
 _BULLET = re.compile(r"^\s*([•·▪◦‣∙*+\-–—]|\(?[a-zA-Z0-9]{1,3}[.)])\s+")
 _NUMERIC = re.compile(r"^[\s\d.,;:%+\-()/$€£¥₽]+$")
@@ -295,10 +300,37 @@ def _apply_style(region: Region, image: Image.Image | None, body_size: float) ->
         style.line_height = 1.1
         style.align = TextAlign.CENTER
 
+    # What the lettering actually looks like, read off the pixels. Without this
+    # every region is redrawn in the same grotesque whatever it replaced, which
+    # is the one thing the product is for.
+    measured = None
+    if image is not None:
+        box = region.bounding_box
+        measured = typeface.estimate(
+            image, (int(box.x), int(box.y), int(box.right), int(box.bottom))
+        )
+        region.metadata["typeface"] = measured.as_dict()
+
     if region.region_type is RegionType.HANDWRITING:
+        # The tool was told the page is handwritten; that beats a measurement.
         style.font_class = FontClass.HANDWRITING
     elif _looks_monospaced(text):
         style.font_class = FontClass.MONO
+    elif (
+        measured is not None
+        and measured.font_class is not None
+        and measured.confidence >= MIN_TYPEFACE_CONFIDENCE
+    ):
+        style.font_class = measured.font_class
+
+    # Weight and slant come from the ink rather than from the region's role: a
+    # heading set in a light face is a light heading, and drawing it bold
+    # because headings are usually bold is exactly the mismatch to avoid.
+    if measured is not None and measured.confidence >= MIN_TYPEFACE_CONFIDENCE:
+        if measured.bold is not None:
+            style.bold = measured.bold
+        if measured.italic is not None:
+            style.italic = measured.italic
 
     if image is not None:
         _sample_colors(region, image)
