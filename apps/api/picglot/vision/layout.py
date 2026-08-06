@@ -11,6 +11,7 @@ from __future__ import annotations
 import re
 import statistics
 from dataclasses import dataclass
+from typing import Any
 
 from PIL import Image
 
@@ -18,15 +19,34 @@ from picglot.core.ids import ulid
 from picglot.core.logging import get_logger
 from picglot.domain import languages
 from picglot.domain.enums import FontClass, RegionType, TextAlign, TextDirection
-from picglot.vision import typeface
+from picglot.domain.languages import Script
+from picglot.vision import fontmatch, typeface
 from picglot.vision.preprocess import dominant_color
 from picglot.vision.types import BoundingBox, Region
 
 log = get_logger(__name__)
 
-#: How many blocks per page are measured against the installed faces. Matching
-#: is a few small renders each; the rest of the page inherits the result.
-TYPEFACE_BUDGET = 16
+#: Below this the measurement is not decisive enough to override a default —
+#: too little ink, or a metric sitting on its own threshold.
+MIN_TYPEFACE_CONFIDENCE = 0.5
+
+#: Identifying a face means rendering every installed candidate with this text,
+#: so a two-letter caption is neither affordable nor decidable.
+MIN_CHARS_TO_IDENTIFY = 6
+
+#: How many blocks per page are identified against the installed collection.
+#: Every block costs a render of every candidate *with that block's own text*,
+#: so the work does not amortise across a page the way a shared probe would.
+#: The rest of the page inherits what the measured blocks agreed on: pages are
+#: typographically consistent far more often than not, and a caption is too
+#: small to identify a face from anyway.
+IDENTIFY_BUDGET = 8
+
+
+def _script_of(language_code: str | None) -> Any:
+    language = languages.get(language_code)
+    return language.script if language else Script.LATIN
+
 
 _BULLET = re.compile(r"^\s*([•·▪◦‣∙*+\-–—]|\(?[a-zA-Z0-9]{1,3}[.)])\s+")
 _NUMERIC = re.compile(r"^[\s\d.,;:%+\-()/$€£¥₽]+$")
@@ -53,11 +73,16 @@ def analyse(
     image: Image.Image | None = None,
     options: LayoutOptions | None = None,
     ui_mode: bool = False,
+    target_language: str | None = None,
 ) -> list[Region]:
     """Group, order, classify and style raw OCR regions.
 
     ``ui_mode`` (screenshots) keeps short strings separate: a button label must
     not be merged into the paragraph next to it.
+
+    ``target_language`` decides which faces may stand in for the one on the
+    page: the original is routinely a Latin-only face, and what replaces it has
+    to be able to draw the translation.
     """
     options = options or LayoutOptions()
     usable = [region for region in regions if not region.is_empty]
@@ -94,7 +119,7 @@ def analyse(
         if region.detected_language is None:
             region.detected_language = languages.guess_language(region.effective_text)
     if image is not None:
-        _match_typefaces(ordered, image)
+        _identify_faces(ordered, image, target_language)
     return ordered
 
 
@@ -309,10 +334,41 @@ def _apply_style(region: Region, image: Image.Image | None, body_size: float) ->
         style.line_height = 1.1
         style.align = TextAlign.CENTER
 
+    # What the lettering actually looks like, read off the pixels. Without this
+    # every region is redrawn in the same grotesque whatever it replaced, which
+    # is the one thing the product is for.
+    measured = None
+    if image is not None:
+        box = region.bounding_box
+        measured = typeface.estimate(
+            image, (int(box.x), int(box.y), int(box.right), int(box.bottom))
+        )
+        region.metadata["typeface"] = measured.as_dict()
+
     if region.region_type is RegionType.HANDWRITING:
+        # The tool was told the page is handwritten; that beats a measurement.
         style.font_class = FontClass.HANDWRITING
     elif _looks_monospaced(text):
         style.font_class = FontClass.MONO
+    elif (
+        measured is not None
+        and measured.font_class is not None
+        and measured.confidence >= MIN_TYPEFACE_CONFIDENCE
+    ):
+        style.font_class = measured.font_class
+
+    # Weight and slant come from the ink rather than from the region's role: a
+    # heading set in a light face is a light heading, and drawing it bold
+    # because headings are usually bold is exactly the mismatch to avoid.
+    if measured is not None and measured.confidence >= MIN_TYPEFACE_CONFIDENCE:
+        if measured.bold is not None:
+            style.bold = measured.bold
+        if measured.italic is not None:
+            style.italic = measured.italic
+
+    # Naming the face is a separate, budgeted pass: it costs a render of every
+    # installed candidate per block, which is not something to spend on all of
+    # a hundred-block document. See `_identify_faces`.
 
     alignment = _detect_alignment(region)
     if alignment is not None and style.direction is not TextDirection.RTL:
@@ -351,51 +407,82 @@ def _detect_alignment(region: Region) -> TextAlign | None:
     return best if spreads[best] <= tolerance else None
 
 
-def _match_typefaces(regions: list[Region], image: Image.Image) -> None:
-    """Set each block's face from what the source lettering actually looks like.
+def _identify_faces(regions: list[Region], image: Image.Image, target_language: str | None) -> None:
+    """Name the face each block is set in, and pick what will stand in for it.
 
-    Matching costs a handful of small renders per block, so only the largest
-    blocks are measured; the rest of the page inherits the face those agreed
-    on. Pages are typographically consistent far more often than not, and a
-    caption is too small to identify a face from anyway.
+    Three things come out of this, and only the first is a name:
+
+    * ``font_family`` — the installed face the lettering measures closest to;
+    * ``font_fallbacks`` — the faces nearest to that one that can draw the
+      language being translated *into*, which is what actually gets used when
+      the original is a Latin-only face and the translation is Russian;
+    * ``width_ratio`` — how much narrower or wider the original is than the
+      face that will replace it, so condensed lettering stays condensed.
+
+    Only the largest blocks are measured. Identification renders every
+    installed candidate with the block's own text, so nothing is shared between
+    blocks and the cost is linear in how many are looked at; the rest of the
+    page inherits what those agreed on.
     """
+    target_script = _script_of(target_language)
     ranked = sorted(regions, key=lambda region: region.bounding_box.area, reverse=True)
-    matched: list[typeface.TypefaceMatch] = []
+    identified: list[tuple[Region, fontmatch.FontIdentity]] = []
 
-    for region in ranked[:TYPEFACE_BUDGET]:
+    for region in ranked[:IDENTIFY_BUDGET]:
         box, text = _sample_line(region)
-        if not text:
+        if len(text.strip()) < MIN_CHARS_TO_IDENTIFY:
             continue
         try:
-            match = typeface.match_text(image, box, text)
+            identity = fontmatch.identify(
+                image,
+                (int(box.x), int(box.y), int(box.right), int(box.bottom)),
+                text=text,
+                script=_script_of(region.detected_language),
+            )
         except Exception as error:  # pragma: no cover - defensive: never fail a page
-            log.warning("layout.typeface_failed", region=region.id, error=str(error)[:120])
+            log.warning("layout.identify_failed", region=region.id, error=str(error)[:120])
             break
-        if match is None:
+        if identity is None or not identity.confident:
             continue
-        _apply_match(region, match)
-        matched.append(match)
+        region.metadata["font_identity"] = identity.as_dict()
+        _apply_identity(region, identity, target_script, image=image, box=box, text=text)
+        identified.append((region, identity))
 
-    if not matched:
+    if not identified:
         return
-    dominant = max(matched, key=lambda match: match.score)
+    # The block the collection agreed with most closely speaks for the page.
+    dominant = min(identified, key=lambda pair: pair[1].distance)
     for region in regions:
         if region.style.font_family is None:
-            _apply_match(region, dominant, measured=False)
+            _apply_identity(region, dominant[1], target_script)
+            region.style.width_ratio = dominant[0].style.width_ratio
 
 
-def _apply_match(region: Region, match: typeface.TypefaceMatch, *, measured: bool = True) -> None:
-    """Put a match on a block — ``measured`` for the block it was taken from."""
+def _apply_identity(
+    region: Region,
+    identity: fontmatch.FontIdentity,
+    target_script: Script,
+    *,
+    image: Image.Image | None = None,
+    box: BoundingBox | None = None,
+    text: str = "",
+) -> None:
     style = region.style
-    style.font_family = match.family
-    style.width_ratio = match.width_ratio
-    if region.region_type is not RegionType.HANDWRITING:
-        style.font_class = match.font_class
-    if measured:
-        # Weight and slant read off this very block beat guessing from its type.
-        # Inherited from another block they would say nothing, so they stay put.
-        style.bold = match.bold
-        style.italic = match.italic
+    style.font_family = identity.family
+    style.font_fallbacks = fontmatch.counterparts(identity, script=target_script, text=text)
+    if image is not None and box is not None:
+        # Measured against the face that will actually be drawn, not against
+        # the one identified: when the original cannot draw the target script
+        # its stand-in is what the ratio has to correct.
+        drawn_with = style.font_fallbacks[0] if style.font_fallbacks else identity.family
+        style.width_ratio = fontmatch.proportion(
+            image,
+            (int(box.x), int(box.y), int(box.right), int(box.bottom)),
+            text=text,
+            family=drawn_with,
+            bold=style.bold,
+            italic=style.italic,
+        )
 
 
 def _sample_line(region: Region) -> tuple[BoundingBox, str]:
@@ -404,9 +491,9 @@ def _sample_line(region: Region) -> tuple[BoundingBox, str]:
     texts = [str(text) for text in region.metadata.get("line_texts") or []]
     if not boxes or len(texts) != len(boxes):
         return region.bounding_box, region.effective_text
-    # The longest line carries the most letterforms — but a line longer than the
-    # matcher looks at is no use, so prefer the longest one it will accept.
-    within = [at for at, text in enumerate(texts) if len(text) <= typeface.MAX_SAMPLE_CHARS]
+    # The longest line carries the most letterforms — but a line longer than
+    # identification looks at is no use, so prefer the longest one it accepts.
+    within = [at for at, text in enumerate(texts) if len(text) <= fontmatch.MAX_MATCH_CHARS]
     index = max(within or range(len(texts)), key=lambda at: len(texts[at]))
     return BoundingBox.from_dict(boxes[index]), texts[index]
 

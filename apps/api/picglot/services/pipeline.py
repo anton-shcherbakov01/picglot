@@ -324,6 +324,9 @@ def _process_page(
         page_size=working.size,
         image=working,
         ui_mode=spec.type is ToolType.SCREENSHOT_TRANSLATOR,
+        # Which faces may stand in for the one on the page: the substitute has
+        # to be able to draw the language the text is going into.
+        target_language=project.target_language if translate else None,
     )
     if spec.type is ToolType.HANDWRITING_TO_TEXT:
         for region in regions:

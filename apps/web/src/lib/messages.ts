@@ -7,7 +7,6 @@ import { pl } from "@/messages/pl";
 import { pt } from "@/messages/pt";
 import { ru } from "@/messages/ru";
 import { tr } from "@/messages/tr";
-import { uk } from "@/messages/uk";
 import { DEFAULT_LOCALE, type Locale } from "./i18n";
 
 /** All ten advertised locales are fully translated. */
@@ -21,7 +20,6 @@ const DICTIONARIES: Partial<Record<Locale, Messages>> = {
   tr,
   id,
   pl,
-  uk,
 };
 
 export const MISSING_TRANSLATIONS: Locale[] = [];

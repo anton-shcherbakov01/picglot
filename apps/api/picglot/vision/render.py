@@ -273,6 +273,7 @@ def _font_for(style: TextStyle, script: Script, text: str, size: float | None = 
         italic=style.italic,
         text=text[:120],
         family_hint=style.font_family,
+        family_hints=tuple(style.font_fallbacks),
     )
 
 

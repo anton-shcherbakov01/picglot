@@ -93,8 +93,8 @@ def plan_specs() -> tuple[PlanSpec, ...]:
             code="pro",
             name="Pro",
             monthly_credits=settings.pro_monthly_credits,
-            price_usd_cents=1900,
-            price_rub_kopecks=190000,
+            price_usd_cents=299,
+            price_rub_kopecks=19900,
             max_upload_bytes=settings.max_upload_bytes_pro,
             max_pdf_pages=settings.max_pdf_pages_pro,
             max_batch_files=settings.max_batch_files_pro,
@@ -121,8 +121,8 @@ def plan_specs() -> tuple[PlanSpec, ...]:
             code="business",
             name="Business",
             monthly_credits=settings.business_monthly_credits,
-            price_usd_cents=7900,
-            price_rub_kopecks=790000,
+            price_usd_cents=899,
+            price_rub_kopecks=69900,
             max_upload_bytes=settings.max_upload_bytes_business,
             max_pdf_pages=settings.max_pdf_pages_business,
             max_batch_files=settings.max_batch_files_business,
@@ -162,10 +162,14 @@ class CreditPack:
     price_rub_kopecks: int
 
 
+#: Packs price a credit above the subscription rate — buying without committing
+#: to a month costs more per credit, and the bigger the pack the smaller that
+#: premium. Pro at 1000 credits/month stays the cheaper way to get volume, which
+#: is the point of having a subscription at all.
 CREDIT_PACKS: tuple[CreditPack, ...] = (
-    CreditPack("pack_100", 100, 500, 50000),
-    CreditPack("pack_500", 500, 2000, 200000),
-    CreditPack("pack_2000", 2000, 6900, 690000),
+    CreditPack("pack_100", 100, 99, 4900),
+    CreditPack("pack_500", 500, 299, 19900),
+    CreditPack("pack_2000", 2000, 799, 59000),
 )
 
 

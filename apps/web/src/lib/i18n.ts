@@ -15,7 +15,6 @@ export const LOCALES = [
   "tr",
   "id",
   "pl",
-  "uk",
 ] as const;
 export type Locale = (typeof LOCALES)[number];
 
@@ -31,7 +30,6 @@ export const LOCALE_NAMES: Record<Locale, string> = {
   tr: "Türkçe",
   id: "Bahasa Indonesia",
   pl: "Polski",
-  uk: "Українська",
 };
 
 /** BCP-47 tags for `hreflang`, which needs regions for some languages. */
@@ -45,7 +43,6 @@ export const HREFLANG: Record<Locale, string> = {
   tr: "tr",
   id: "id",
   pl: "pl",
-  uk: "uk",
 };
 
 export function isLocale(value: string | undefined): value is Locale {

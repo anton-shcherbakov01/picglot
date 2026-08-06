@@ -126,6 +126,10 @@ class TextStyle:
     font_size: float = 16.0
     font_class: FontClass = FontClass.SANS
     font_family: str | None = None
+    #: Families measured closest to `font_family`, best first. Used when the
+    #: identified face cannot draw the target script — the usual case when the
+    #: source is Latin-only and the translation is not.
+    font_fallbacks: list[str] = field(default_factory=list)
     bold: bool = False
     italic: bool = False
     underline: bool = False

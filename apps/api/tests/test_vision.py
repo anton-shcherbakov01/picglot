@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 import pytest
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFont
 
 from picglot.domain import languages
 from picglot.domain.enums import FontClass, RegionType, TextAlign, TextDirection
-from picglot.vision import fonts, layout, normalize, render, tables, typeface
+from picglot.vision import fontmatch, fonts, layout, normalize, render, tables
 from picglot.vision.types import BoundingBox, Region, TextStyle, polygon_rotation
 
 
@@ -167,65 +167,66 @@ def test_low_confidence_regions_are_flagged():
 
 
 # --------------------------------------------------------------------------- #
-# Typeface matching
+# Identifying the face on the page
+#
+# Identification itself is covered in test_fontmatch.py and the measurements it
+# rests on in test_typeface.py. What is tested here is the part layout owns:
+# that the answer reaches the style of every block, that the substitute can
+# draw the language being translated into, and that proportions survive.
 # --------------------------------------------------------------------------- #
-def _lettering(
-    font_class: FontClass, text: str = "Handgloves ABC", *, squeeze: float = 1.0
-) -> Image.Image:
-    """A picture of ``text`` set in an installed face of ``font_class``."""
+def _lettering(text: str, *, font_class: FontClass = FontClass.SANS, squeeze: float = 1.0):
+    """A picture of ``text`` set in an installed face, and the file it used."""
     file = fonts.registry.find(font_class=font_class, text=text)
     assert file is not None, f"no {font_class} face installed to test against"
-    face = fonts.open_font_file(file, 48)
-    assert face is not None
+    face = ImageFont.truetype(str(file.path), size=48, index=file.index)
     left, top, right, bottom = face.getbbox(text)
     image = Image.new("L", (int(right - left) + 40, int(bottom - top) + 40), 255)
     ImageDraw.Draw(image).text((20 - left, 20 - top), text, font=face, fill=25)
     if squeeze != 1.0:
         image = image.resize((round(image.width * squeeze), image.height))
-    return image.convert("RGB")
-
-
-def test_the_face_in_the_picture_decides_the_face_that_is_drawn():
-    image = _lettering(FontClass.SERIF)
-    match = typeface.match_text(
-        image, BoundingBox(0, 0, image.width, image.height), "Handgloves ABC"
-    )
-    assert match is not None
-    assert match.font_class is FontClass.SERIF, "a serif original must not come back as a grotesque"
-
-
-def test_bold_lettering_is_recognised_as_bold():
-    file = fonts.registry.find(font_class=FontClass.SANS, bold=True, text="Handgloves")
-    assert file is not None and file.bold
-    face = fonts.open_font_file(file, 48)
-    assert face is not None
-    image = Image.new("L", (520, 100), 255)
-    ImageDraw.Draw(image).text((20, 20), "Handgloves", font=face, fill=20)
-    match = typeface.match_text(image.convert("RGB"), BoundingBox(0, 0, 520, 100), "Handgloves")
-    assert match is not None and match.bold
+    return image.convert("RGB"), file
 
 
 def test_condensed_lettering_keeps_its_proportions():
-    image = _lettering(FontClass.SANS, squeeze=0.6)
-    match = typeface.match_text(
-        image, BoundingBox(0, 0, image.width, image.height), "Handgloves ABC"
+    image, file = _lettering("Handgloves ABC", squeeze=0.6)
+    ratio = fontmatch.proportion(
+        image, (0, 0, image.width, image.height), text="Handgloves ABC", family=file.family
     )
-    assert match is not None
-    assert match.width_ratio < 0.8, "condensed lettering must not be redrawn at full width"
+    assert ratio < 0.8, "condensed lettering must not be redrawn at full width"
 
 
-def test_a_box_without_text_matches_nothing():
-    blank = Image.new("RGB", (300, 60), (255, 255, 255))
-    assert typeface.match_text(blank, BoundingBox(0, 0, 300, 60), "nothing here") is None
+def test_lettering_at_its_own_width_is_left_alone():
+    image, file = _lettering("Handgloves ABC")
+    ratio = fontmatch.proportion(
+        image, (0, 0, image.width, image.height), text="Handgloves ABC", family=file.family
+    )
+    assert ratio == 1.0, "a face measured against itself needs no correction"
 
 
-def test_the_matched_face_reaches_the_style_of_every_block():
-    image = _lettering(FontClass.SERIF, "Handgloves ABC")
+def test_the_identified_face_reaches_the_style_of_every_block():
+    image, _file = _lettering("Handgloves ABC", font_class=FontClass.SERIF)
     box = BoundingBox(0, 0, image.width, image.height)
     region = Region(id="r1", polygon=box.to_polygon(), bounding_box=box, text="Handgloves ABC")
     analysed = layout.analyse([region], page_size=image.size, image=image)
-    assert analysed[0].style.font_family
-    assert analysed[0].style.font_class is FontClass.SERIF
+    assert analysed[0].style.font_family, "no face was identified for the block"
+    assert analysed[0].metadata.get("font_identity")
+
+
+def test_the_substitute_can_draw_the_language_being_translated_into():
+    # A Latin-only original and a Russian translation is the ordinary case, and
+    # the face named for the original is no use if it cannot draw the answer.
+    image, _file = _lettering("Handgloves ABC")
+    box = BoundingBox(0, 0, image.width, image.height)
+    region = Region(id="r1", polygon=box.to_polygon(), bounding_box=box, text="Handgloves ABC")
+    analysed = layout.analyse([region], page_size=image.size, image=image, target_language="ru")
+    fallbacks = analysed[0].style.font_fallbacks
+    assert fallbacks, "no substitute was offered"
+    for family in fallbacks:
+        file = fonts.registry.find(text="Ты потрясающая", family_hint=family)
+        assert file is not None
+        assert family.lower() in file.family.lower() or file.family.lower() in family.lower(), (
+            f"{family} was offered but cannot draw Cyrillic"
+        )
 
 
 def test_centred_lines_are_redrawn_centred():

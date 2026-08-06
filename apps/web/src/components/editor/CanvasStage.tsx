@@ -154,6 +154,14 @@ export function CanvasStage({
     };
   }, [imageUrl]);
 
+  // The frame takes the page's own proportions. A fixed 4:3 box leaves a band
+  // of empty canvas above and below anything wider, and down either side of
+  // anything taller — dark, unusable, and easily read as the picture having
+  // failed to draw. The clamp keeps a panorama from collapsing to a strip and a
+  // long portrait from pushing the controls off the screen.
+  const pageAspect =
+    page.width > 0 && page.height > 0 ? page.height / page.width : 0.75;
+
   // Track the container so the stage fills it and stays responsive. Measured
   // before paint, not after: the stage carries a fixed pixel width, so a frame
   // rendered at the placeholder size is a frame laid out several hundred pixels
@@ -165,7 +173,7 @@ export function CanvasStage({
       if (width <= 0) return;
       setSize({
         width,
-        height: Math.max(240, Math.min(720, width * 0.75)),
+        height: Math.max(240, Math.min(720, Math.round(width * pageAspect))),
       });
     };
     apply(node.getBoundingClientRect().width);
@@ -174,7 +182,7 @@ export function CanvasStage({
     });
     observer.observe(node);
     return () => observer.disconnect();
-  }, []);
+  }, [pageAspect]);
 
   const fit = useCallback(() => {
     if (!page.width || !page.height) return;
@@ -207,25 +215,36 @@ export function CanvasStage({
   );
 
   // ------------------------------------------------------------------ zoom
+  /**
+   * Scale around a fixed point, defaulting to the middle of the frame.
+   *
+   * Changing the scale without moving the origin with it drags the picture out
+   * of view: two taps on the zoom buttons and the page sits half outside the
+   * frame with dark canvas where it used to be. The wheel already anchored to
+   * the cursor; the buttons and the pinch gesture did not, which is most of the
+   * drift a phone can produce.
+   */
+  const zoomTo = useCallback(
+    (next: number, anchor?: { x: number; y: number }) => {
+      const clamped = Math.min(8, Math.max(0.05, next));
+      if (clamped === zoom) return;
+      const point = anchor ?? { x: size.width / 2, y: size.height / 2 };
+      const ratio = clamped / zoom;
+      setOffset({
+        x: point.x - (point.x - offset.x) * ratio,
+        y: point.y - (point.y - offset.y) * ratio,
+      });
+      onZoomChange(clamped);
+    },
+    [zoom, offset, size.width, size.height, onZoomChange],
+  );
+
   const handleWheel = (event: Konva.KonvaEventObject<WheelEvent>) => {
     event.evt.preventDefault();
-    const stage = stageRef.current;
-    if (!stage) return;
-    const pointer = stage.getPointerPosition();
+    const pointer = stageRef.current?.getPointerPosition();
     if (!pointer) return;
-
     const direction = event.evt.deltaY > 0 ? -1 : 1;
-    const next = Math.min(
-      8,
-      Math.max(0.05, zoom * (direction > 0 ? 1.1 : 1 / 1.1)),
-    );
-    // Keep the point under the cursor stationary while scaling.
-    const world = {
-      x: (pointer.x - offset.x) / zoom,
-      y: (pointer.y - offset.y) / zoom,
-    };
-    setOffset({ x: pointer.x - world.x * next, y: pointer.y - world.y * next });
-    onZoomChange(next);
+    zoomTo(zoom * (direction > 0 ? 1.1 : 1 / 1.1), pointer);
   };
 
   useEffect(() => {
@@ -240,7 +259,13 @@ export function CanvasStage({
         return;
       }
       const ratio = distance / pinchRef.current.distance;
-      onZoomChange(Math.min(8, Math.max(0.05, pinchRef.current.zoom * ratio)));
+      // Anchored between the fingers, so the picture stays where it is being
+      // held rather than sliding off under them.
+      const rect = node.getBoundingClientRect();
+      zoomTo(pinchRef.current.zoom * ratio, {
+        x: (first.clientX + second.clientX) / 2 - rect.left,
+        y: (first.clientY + second.clientY) / 2 - rect.top,
+      });
       event.preventDefault();
     };
     const onTouchEnd = () => {
@@ -252,7 +277,7 @@ export function CanvasStage({
       node.removeEventListener("touchmove", onTouchMove);
       node.removeEventListener("touchend", onTouchEnd);
     };
-  }, [zoom, onZoomChange]);
+  }, [zoom, zoomTo]);
 
   // ------------------------------------------------------------------ mask
   const pointerInImage = (): { x: number; y: number } | null => {
@@ -304,7 +329,7 @@ export function CanvasStage({
           <button
             type="button"
             className="btn-ghost h-8 px-2.5 text-base"
-            onClick={() => onZoomChange(Math.max(0.05, zoom / 1.2))}
+            onClick={() => zoomTo(zoom / 1.2)}
             aria-label={labels.zoomOut}
           >
             −
@@ -315,7 +340,7 @@ export function CanvasStage({
           <button
             type="button"
             className="btn-ghost h-8 px-2.5 text-base"
-            onClick={() => onZoomChange(Math.min(8, zoom * 1.2))}
+            onClick={() => zoomTo(zoom * 1.2)}
             aria-label={labels.zoomIn}
           >
             +
