@@ -7,8 +7,8 @@ system font directories.
 It is intentionally empty in the repository: fonts carry licences, and
 redistributing someone else's typeface through a public repo is a licensing
 problem, not a convenience. The Docker images install DejaVu (core and extra),
-Noto (including CJK), Liberation, Liberation Sans Narrow, Carlito and Caladea
-from the distribution instead. That covers every script the product advertises
+Noto (including CJK), Liberation (whose v1 package carries Sans Narrow),
+Carlito and Caladea from the distribution instead. That covers every script the product advertises
 and, past coverage, gives `vision/typeface.py` a range of shapes and widths to
 match photographed lettering against — with only one grotesque installed, every
 job comes back set in it.

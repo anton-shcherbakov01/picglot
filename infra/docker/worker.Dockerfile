@@ -26,7 +26,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         tesseract-ocr-ind tesseract-ocr-vie tesseract-ocr-tha tesseract-ocr-kaz \
         tesseract-ocr-uzb tesseract-ocr-kat tesseract-ocr-hye tesseract-ocr-osd \
         fonts-dejavu-core fonts-dejavu-extra fonts-noto-core fonts-noto-cjk \
-        fonts-noto-color-emoji fonts-liberation2 fonts-liberation-sans-narrow \
+        fonts-noto-color-emoji fonts-liberation \
         fonts-crosextra-carlito fonts-crosextra-caladea \
         curl \
     && rm -rf /var/lib/apt/lists/*

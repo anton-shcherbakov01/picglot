@@ -28,7 +28,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # is not a plain grotesque can be redrawn as something close to it.
 RUN apt-get update && apt-get install -y --no-install-recommends \
         fonts-dejavu-core fonts-dejavu-extra fonts-noto-core fonts-noto-cjk \
-        fonts-noto-color-emoji fonts-liberation2 fonts-liberation-sans-narrow \
+        fonts-noto-color-emoji fonts-liberation \
         fonts-crosextra-carlito fonts-crosextra-caladea \
     && rm -rf /var/lib/apt/lists/*
 
