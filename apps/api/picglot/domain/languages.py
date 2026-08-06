@@ -442,7 +442,7 @@ for _language in LANGUAGES:
         BY_CODE.setdefault(_alias.lower(), _language)
 
 #: The interface itself ships in these locales.
-UI_LOCALES: tuple[str, ...] = ("en", "ru", "es", "de", "fr", "pt", "tr", "id", "pl", "uk")
+UI_LOCALES: tuple[str, ...] = ("en", "ru", "es", "de", "fr", "pt", "tr", "id", "pl")
 
 AUTO = "auto"
 

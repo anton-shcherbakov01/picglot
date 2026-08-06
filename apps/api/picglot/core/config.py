@@ -133,7 +133,7 @@ class Settings(BaseSettings):
 
     # -------------------------------------------------------------- locales
     default_locale: str = "en"
-    enabled_locales: CsvList = ["en", "ru", "es", "de", "fr", "pt", "tr", "id", "pl", "uk"]
+    enabled_locales: CsvList = ["en", "ru", "es", "de", "fr", "pt", "tr", "id", "pl"]
 
     # --------------------------------------------------------------- OCR
     ocr_provider_priority: CsvList = ["rapidocr", "tesseract"]

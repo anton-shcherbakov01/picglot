@@ -192,6 +192,7 @@ class FontRegistry:
         italic: bool = False,
         text: str = "",
         family_hint: str | None = None,
+        family_hints: tuple[str, ...] = (),
     ) -> FontFile | None:
         self.load()
         if not self._files:
@@ -200,9 +201,13 @@ class FontRegistry:
         required = {ord(char) for char in (text or SCRIPT_PROBES.get(script, "A"))}
         required = {code for code in required if code > 32}
 
+        # Identified face first, then the families measured closest to it, then
+        # the generic lists. A substitution picked for its proportions beats one
+        # picked because it is the first name in a hard-coded list.
         preferences: list[str] = []
         if family_hint:
             preferences.append(_normalize_family(family_hint))
+        preferences.extend(_normalize_family(name) for name in family_hints)
         preferences.extend(SCRIPT_FAMILIES.get(script, ()))
         preferences.extend(FAMILY_PREFERENCES.get(font_class, ()))
 
@@ -332,6 +337,7 @@ def load_font(
     italic: bool = False,
     text: str = "",
     family_hint: str | None = None,
+    family_hints: tuple[str, ...] = (),
 ) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
     """Return a Pillow font object, never ``None``."""
     pixel_size = max(4, round(size))
@@ -342,6 +348,7 @@ def load_font(
         italic=italic,
         text=text,
         family_hint=family_hint,
+        family_hints=family_hints,
     )
     if file is not None:
         try:

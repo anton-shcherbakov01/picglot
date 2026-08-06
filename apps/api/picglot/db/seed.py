@@ -48,7 +48,6 @@ SEO_PAIRS: tuple[tuple[str, str, str], ...] = (
     ("pt", "en", "pt"),
     ("tr", "en", "tr"),
     ("pl", "en", "pl"),
-    ("uk", "en", "uk"),
     ("id", "en", "id"),
 )
 

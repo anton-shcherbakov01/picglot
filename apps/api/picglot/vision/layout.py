@@ -11,19 +11,31 @@ from __future__ import annotations
 import re
 import statistics
 from dataclasses import dataclass
+from typing import Any
 
 from PIL import Image
 
 from picglot.core.ids import ulid
 from picglot.domain import languages
 from picglot.domain.enums import FontClass, RegionType, TextAlign, TextDirection
-from picglot.vision import typeface
+from picglot.domain.languages import Script
+from picglot.vision import fontmatch, typeface
 from picglot.vision.preprocess import dominant_color
 from picglot.vision.types import BoundingBox, Region
 
 #: Below this the measurement is not decisive enough to override a default —
 #: too little ink, or a metric sitting on its own threshold.
 MIN_TYPEFACE_CONFIDENCE = 0.5
+
+#: Identifying a face means rendering every installed candidate with this text,
+#: so a two-letter caption is neither affordable nor decidable.
+MIN_CHARS_TO_IDENTIFY = 6
+
+
+def _script_of(language_code: str | None) -> Any:
+    language = languages.get(language_code)
+    return language.script if language else Script.LATIN
+
 
 _BULLET = re.compile(r"^\s*([•·▪◦‣∙*+\-–—]|\(?[a-zA-Z0-9]{1,3}[.)])\s+")
 _NUMERIC = re.compile(r"^[\s\d.,;:%+\-()/$€£¥₽]+$")
@@ -331,6 +343,22 @@ def _apply_style(region: Region, image: Image.Image | None, body_size: float) ->
             style.bold = measured.bold
         if measured.italic is not None:
             style.italic = measured.italic
+
+    # Which installed face the lettering actually is, and what to substitute
+    # when it cannot draw the language being translated into. The class above
+    # narrows the search to a shape; this narrows it to proportions, which is
+    # what decides whether the redrawn line still fits the box it came from.
+    if image is not None and measured is not None and len(text.strip()) >= MIN_CHARS_TO_IDENTIFY:
+        box = region.bounding_box
+        identity = fontmatch.identify(
+            image,
+            (int(box.x), int(box.y), int(box.right), int(box.bottom)),
+            text=text,
+            script=_script_of(region.detected_language),
+        )
+        if identity is not None and identity.confident:
+            style.font_family = identity.family
+            region.metadata["font_identity"] = identity.as_dict()
 
     if image is not None:
         _sample_colors(region, image)
