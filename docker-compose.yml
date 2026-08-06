@@ -185,7 +185,12 @@ services:
     <<: *worker-base
     command: ["celery", "-A", "picglot.workers.celery_app", "worker", "-Q", "cpu", "-c", "2", "-l", "info", "--max-tasks-per-child", "40"]
     healthcheck:
-      test: ["CMD", "celery", "-A", "picglot.workers.celery_app", "inspect", "ping", "-d", "celery@$$HOSTNAME"]
+      # CMD-SHELL, and `hostname` rather than $HOSTNAME: the exec form has no
+      # shell to expand anything, so this pinged a worker literally named
+      # "celery@$HOSTNAME", never got an answer, and reported the container
+      # unhealthy for its whole life. $HOSTNAME alone would not have fixed it
+      # either — the image's /bin/sh is dash, which does not set it.
+      test: ["CMD-SHELL", "celery -A picglot.workers.celery_app inspect ping -d celery@$$(hostname)"]
       interval: 30s
       timeout: 15s
       retries: 5
