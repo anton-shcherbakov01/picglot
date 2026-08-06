@@ -15,10 +15,18 @@ from dataclasses import dataclass
 from PIL import Image
 
 from picglot.core.ids import ulid
+from picglot.core.logging import get_logger
 from picglot.domain import languages
 from picglot.domain.enums import FontClass, RegionType, TextAlign, TextDirection
+from picglot.vision import typeface
 from picglot.vision.preprocess import dominant_color
 from picglot.vision.types import BoundingBox, Region
+
+log = get_logger(__name__)
+
+#: How many blocks per page are measured against the installed faces. Matching
+#: is a few small renders each; the rest of the page inherits the result.
+TYPEFACE_BUDGET = 16
 
 _BULLET = re.compile(r"^\s*([•·▪◦‣∙*+\-–—]|\(?[a-zA-Z0-9]{1,3}[.)])\s+")
 _NUMERIC = re.compile(r"^[\s\d.,;:%+\-()/$€£¥₽]+$")
@@ -85,6 +93,8 @@ def analyse(
         _apply_style(region, image, body_size)
         if region.detected_language is None:
             region.detected_language = languages.guess_language(region.effective_text)
+    if image is not None:
+        _match_typefaces(ordered, image)
     return ordered
 
 
@@ -214,6 +224,10 @@ def _merge_block(block: list[Region], group_id: str) -> Region:
             **base.metadata,
             "merged_lines": len(block),
             "line_boxes": [region.bounding_box.as_dict() for region in block],
+            # Kept alongside the boxes so a single line can be looked at on its
+            # own later — the joined paragraph text no longer says where one
+            # line ends, and typeface matching needs a box and its own words.
+            "line_texts": [region.effective_text for region in block],
         },
     )
     merged.style.font_size = statistics.median(
@@ -300,11 +314,101 @@ def _apply_style(region: Region, image: Image.Image | None, body_size: float) ->
     elif _looks_monospaced(text):
         style.font_class = FontClass.MONO
 
+    alignment = _detect_alignment(region)
+    if alignment is not None and style.direction is not TextDirection.RTL:
+        style.align = alignment
+
     if image is not None:
         _sample_colors(region, image)
 
     if style.font_size <= 0:
         style.font_size = body_size
+
+
+def _detect_alignment(region: Region) -> TextAlign | None:
+    """Read the alignment off the line boxes of a multi-line block.
+
+    Centred text redrawn flush left is one of the loudest ways a translation
+    stops looking like the original, and the evidence is free: the edges of the
+    lines we already grouped.
+    """
+    boxes = [BoundingBox.from_dict(item) for item in region.metadata.get("line_boxes") or []]
+    if len(boxes) < 2:
+        return None
+    widths = [box.width for box in boxes]
+    if max(widths) - min(widths) < max(widths) * 0.06:
+        return None  # equal-length lines say nothing about alignment
+
+    spreads = {
+        TextAlign.LEFT: max(box.x for box in boxes) - min(box.x for box in boxes),
+        TextAlign.RIGHT: max(box.right for box in boxes) - min(box.right for box in boxes),
+        TextAlign.CENTER: (
+            max(box.center[0] for box in boxes) - min(box.center[0] for box in boxes)
+        ),
+    }
+    best = min(spreads, key=lambda align: spreads[align])
+    tolerance = max(4.0, region.bounding_box.width * 0.03)
+    return best if spreads[best] <= tolerance else None
+
+
+def _match_typefaces(regions: list[Region], image: Image.Image) -> None:
+    """Set each block's face from what the source lettering actually looks like.
+
+    Matching costs a handful of small renders per block, so only the largest
+    blocks are measured; the rest of the page inherits the face those agreed
+    on. Pages are typographically consistent far more often than not, and a
+    caption is too small to identify a face from anyway.
+    """
+    ranked = sorted(regions, key=lambda region: region.bounding_box.area, reverse=True)
+    matched: list[typeface.TypefaceMatch] = []
+
+    for region in ranked[:TYPEFACE_BUDGET]:
+        box, text = _sample_line(region)
+        if not text:
+            continue
+        try:
+            match = typeface.match_text(image, box, text)
+        except Exception as error:  # pragma: no cover - defensive: never fail a page
+            log.warning("layout.typeface_failed", region=region.id, error=str(error)[:120])
+            break
+        if match is None:
+            continue
+        _apply_match(region, match)
+        matched.append(match)
+
+    if not matched:
+        return
+    dominant = max(matched, key=lambda match: match.score)
+    for region in regions:
+        if region.style.font_family is None:
+            _apply_match(region, dominant, measured=False)
+
+
+def _apply_match(region: Region, match: typeface.TypefaceMatch, *, measured: bool = True) -> None:
+    """Put a match on a block — ``measured`` for the block it was taken from."""
+    style = region.style
+    style.font_family = match.family
+    style.width_ratio = match.width_ratio
+    if region.region_type is not RegionType.HANDWRITING:
+        style.font_class = match.font_class
+    if measured:
+        # Weight and slant read off this very block beat guessing from its type.
+        # Inherited from another block they would say nothing, so they stay put.
+        style.bold = match.bold
+        style.italic = match.italic
+
+
+def _sample_line(region: Region) -> tuple[BoundingBox, str]:
+    """The single line of source text a face can be identified from."""
+    boxes = region.metadata.get("line_boxes") or []
+    texts = [str(text) for text in region.metadata.get("line_texts") or []]
+    if not boxes or len(texts) != len(boxes):
+        return region.bounding_box, region.effective_text
+    # The longest line carries the most letterforms — but a line longer than the
+    # matcher looks at is no use, so prefer the longest one it will accept.
+    within = [at for at, text in enumerate(texts) if len(text) <= typeface.MAX_SAMPLE_CHARS]
+    index = max(within or range(len(texts)), key=lambda at: len(texts[at]))
+    return BoundingBox.from_dict(boxes[index]), texts[index]
 
 
 def _looks_monospaced(text: str) -> bool:

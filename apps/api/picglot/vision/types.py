@@ -137,6 +137,9 @@ class TextStyle:
     direction: TextDirection = TextDirection.LTR
     line_height: float = 1.2
     letter_spacing: float = 0.0
+    #: Horizontal scale applied when drawing, so condensed or wide originals
+    #: keep their proportions even when no installed face has them.
+    width_ratio: float = 1.0
     outline_color: str | None = None
     outline_width: float = 0.0
     shadow: bool = False

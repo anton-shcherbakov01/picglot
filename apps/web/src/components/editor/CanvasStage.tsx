@@ -337,7 +337,7 @@ export function CanvasStage({
 
       <div
         ref={containerRef}
-        className="dotfield overflow-hidden rounded-card border border-border bg-raised"
+        className="dotfield relative overflow-hidden rounded-card border border-border bg-raised"
         // Pinch and drag belong to the stage; letting the browser also treat
         // them as page gestures makes both feel broken on a phone.
         style={{ touchAction: "none" }}

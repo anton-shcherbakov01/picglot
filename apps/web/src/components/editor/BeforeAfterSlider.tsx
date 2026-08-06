@@ -53,20 +53,18 @@ export function BeforeAfterSlider({
           className="block w-full"
           draggable={false}
         />
-        <div
-          className="absolute inset-y-0 left-0 overflow-hidden"
-          style={{ width: `${position}%` }}
-        >
-          {/* The clipped copy must keep the full frame width so the two line up. */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={beforeUrl}
-            alt={beforeLabel}
-            draggable={false}
-            className="block max-w-none"
-            style={{ width: frameRef.current?.clientWidth ?? "100%" }}
-          />
-        </div>
+        {/* The two images are stacked at identical size and the top one is
+            clipped, rather than sized against a measured container: a width
+            read from the DOM is unknown on the first paint, which left the
+            original squeezed into a corner until something re-rendered it. */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={beforeUrl}
+          alt={beforeLabel}
+          draggable={false}
+          className="absolute inset-0 block h-full w-full object-cover"
+          style={{ clipPath: `inset(0 ${100 - position}% 0 0)` }}
+        />
         <div
           aria-hidden
           className="pointer-events-none absolute inset-y-0 w-0.5 bg-accent"

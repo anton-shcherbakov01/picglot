@@ -6,8 +6,8 @@ import pytest
 from PIL import Image, ImageDraw
 
 from picglot.domain import languages
-from picglot.domain.enums import RegionType, TextDirection
-from picglot.vision import fonts, layout, normalize, render, tables
+from picglot.domain.enums import FontClass, RegionType, TextAlign, TextDirection
+from picglot.vision import fonts, layout, normalize, render, tables, typeface
 from picglot.vision.types import BoundingBox, Region, TextStyle, polygon_rotation
 
 
@@ -167,8 +167,102 @@ def test_low_confidence_regions_are_flagged():
 
 
 # --------------------------------------------------------------------------- #
+# Typeface matching
+# --------------------------------------------------------------------------- #
+def _lettering(
+    font_class: FontClass, text: str = "Handgloves ABC", *, squeeze: float = 1.0
+) -> Image.Image:
+    """A picture of ``text`` set in an installed face of ``font_class``."""
+    file = fonts.registry.find(font_class=font_class, text=text)
+    assert file is not None, f"no {font_class} face installed to test against"
+    face = fonts.open_font_file(file, 48)
+    assert face is not None
+    left, top, right, bottom = face.getbbox(text)
+    image = Image.new("L", (int(right - left) + 40, int(bottom - top) + 40), 255)
+    ImageDraw.Draw(image).text((20 - left, 20 - top), text, font=face, fill=25)
+    if squeeze != 1.0:
+        image = image.resize((round(image.width * squeeze), image.height))
+    return image.convert("RGB")
+
+
+def test_the_face_in_the_picture_decides_the_face_that_is_drawn():
+    image = _lettering(FontClass.SERIF)
+    match = typeface.match_text(
+        image, BoundingBox(0, 0, image.width, image.height), "Handgloves ABC"
+    )
+    assert match is not None
+    assert match.font_class is FontClass.SERIF, "a serif original must not come back as a grotesque"
+
+
+def test_bold_lettering_is_recognised_as_bold():
+    file = fonts.registry.find(font_class=FontClass.SANS, bold=True, text="Handgloves")
+    assert file is not None and file.bold
+    face = fonts.open_font_file(file, 48)
+    assert face is not None
+    image = Image.new("L", (520, 100), 255)
+    ImageDraw.Draw(image).text((20, 20), "Handgloves", font=face, fill=20)
+    match = typeface.match_text(image.convert("RGB"), BoundingBox(0, 0, 520, 100), "Handgloves")
+    assert match is not None and match.bold
+
+
+def test_condensed_lettering_keeps_its_proportions():
+    image = _lettering(FontClass.SANS, squeeze=0.6)
+    match = typeface.match_text(
+        image, BoundingBox(0, 0, image.width, image.height), "Handgloves ABC"
+    )
+    assert match is not None
+    assert match.width_ratio < 0.8, "condensed lettering must not be redrawn at full width"
+
+
+def test_a_box_without_text_matches_nothing():
+    blank = Image.new("RGB", (300, 60), (255, 255, 255))
+    assert typeface.match_text(blank, BoundingBox(0, 0, 300, 60), "nothing here") is None
+
+
+def test_the_matched_face_reaches_the_style_of_every_block():
+    image = _lettering(FontClass.SERIF, "Handgloves ABC")
+    box = BoundingBox(0, 0, image.width, image.height)
+    region = Region(id="r1", polygon=box.to_polygon(), bounding_box=box, text="Handgloves ABC")
+    analysed = layout.analyse([region], page_size=image.size, image=image)
+    assert analysed[0].style.font_family
+    assert analysed[0].style.font_class is FontClass.SERIF
+
+
+def test_centred_lines_are_redrawn_centred():
+    regions = [
+        _region("Short centred line", 100, 10, 200, 20),
+        _region("A rather longer centred line", 50, 34, 300, 20),
+        _region("Middle length line here", 75, 58, 250, 20),
+    ]
+    result = layout.analyse(regions, page_size=(400, 200))
+    assert result[0].style.align is TextAlign.CENTER
+
+
+def test_condensed_text_is_drawn_condensed():
+    def ink_width(width_ratio: float) -> int:
+        image = Image.new("RGB", (600, 120), (255, 255, 255))
+        box = BoundingBox(20, 20, 560, 60)
+        region = Region(id="r1", polygon=box.to_polygon(), bounding_box=box)
+        region.style = TextStyle(font_size=32, align=TextAlign.LEFT, width_ratio=width_ratio)
+        drawn = render.draw_region(image, region, "Handgloves")
+        bounds = drawn.convert("L").point(lambda value: 255 if value < 200 else 0).getbbox()
+        assert bounds is not None
+        return bounds[2] - bounds[0]
+
+    assert ink_width(0.6) < ink_width(1.0) * 0.8
+
+
+# --------------------------------------------------------------------------- #
 # Fonts and text fitting
 # --------------------------------------------------------------------------- #
+def test_a_translation_is_not_set_larger_than_what_it_replaces():
+    # A short translation in a roomy box must keep the size of the original
+    # text, not grow until it fills the space it was given.
+    box = BoundingBox(0, 0, 600, 200)
+    result, _font = render.fit_text("Exit", box, TextStyle(font_size=20))
+    assert result.font_size <= 20 * render.MAX_SIZE_GROWTH
+
+
 def test_every_advertised_script_has_a_usable_font():
     coverage = fonts.registry.coverage_report()
     missing = [name for name, ok in coverage.items() if not ok]

@@ -13,6 +13,7 @@ import unicodedata
 from dataclasses import dataclass, field
 from typing import Any
 
+import numpy as np
 from PIL import Image, ImageDraw
 
 from picglot.core.logging import get_logger
@@ -28,6 +29,15 @@ log = get_logger(__name__)
 MIN_FONT_SIZE = 7.0
 #: How far a box may grow beyond its original size before we stop and warn.
 MAX_BOX_GROWTH = 1.25
+#: How much larger than the source text the translation may be set. The fitter
+#: used to take the whole box, which meant a short translation in a roomy box
+#: came back visibly bigger than the words it replaced. A little slack absorbs
+#: the error in estimating the original size; more than that stops looking like
+#: the same picture.
+MAX_SIZE_GROWTH = 1.12
+#: Horizontal scaling closer to 1 than this is not worth an extra resampling
+#: pass.
+MIN_WIDTH_SCALE_STEP = 0.03
 
 
 @dataclass(slots=True)
@@ -207,7 +217,7 @@ def fit_text(
     if not text:
         return FitResult([], style.font_size, style.font_size, 0, 0), _font_for(style, script, "")
 
-    low, high = min_size, max(min_size, style.font_size * 1.6)
+    low, high = min_size, max(min_size, style.font_size * MAX_SIZE_GROWTH)
     best: FitResult | None = None
     best_font: Any = None
 
@@ -313,7 +323,14 @@ def draw_region(
         style.direction = TextDirection.RTL
 
     box = region.bounding_box
-    fit, font = fit_text(text, box, style, script=script)
+    # Condensed or wide originals are reproduced by drawing at natural width
+    # and squeezing horizontally, so fitting happens in that unsqueezed space:
+    # a box 0.7 as wide as the text will end up is 1/0.7 as wide to fit into.
+    scale = _width_scale(style)
+    work_box = (
+        box if scale == 1.0 else BoundingBox(box.x / scale, box.y, box.width / scale, box.height)
+    )
+    fit, font = fit_text(text, work_box, style, script=script)
 
     if report is not None:
         report.regions_rendered += 1
@@ -326,21 +343,70 @@ def draw_region(
             report.missing_glyphs.append(region.id)
             log.warning("render.missing_glyphs", region=region.id, count=len(absent))
 
-    layer = Image.new("RGBA", image.size, (0, 0, 0, 0))
+    layer = Image.new(
+        "RGBA",
+        image.size if scale == 1.0 else (max(1, round(image.width / scale)), image.height),
+        (0, 0, 0, 0),
+    )
     draw = ImageDraw.Draw(layer)
 
     color = (*hex_to_rgb(style.color), int(max(0.0, min(1.0, style.opacity)) * 255))
     outline = hex_to_rgb(style.outline_color) if style.outline_color else None
 
     if style.direction is TextDirection.VERTICAL_RL:
-        _draw_vertical(draw, fit, font, box, style, color, outline)
+        _draw_vertical(draw, fit, font, work_box, style, color, outline)
     else:
-        _draw_horizontal(draw, fit, font, box, style, color, outline)
+        _draw_horizontal(draw, fit, font, work_box, style, color, outline)
+
+    if scale != 1.0:
+        # Squeezing what was drawn maps every x back onto the real box, outline
+        # and shadow included, without touching the glyph rasteriser.
+        layer = _squeeze(layer, image.size, scale)
 
     if abs(region.rotation) > 0.5:
         layer = _rotate_layer(layer, region, fit)
 
     return Image.alpha_composite(image.convert("RGBA"), layer).convert("RGB")
+
+
+def _squeeze(layer: Image.Image, size: tuple[int, int], scale: float) -> Image.Image:
+    """Scale the drawn text horizontally by ``scale`` onto a page-sized layer.
+
+    Only the drawn patch is resampled, not the whole page: pages run to tens of
+    megapixels and the text covers a sliver of one.
+    """
+    result = Image.new("RGBA", size, (0, 0, 0, 0))
+    bounds = layer.getbbox()
+    if bounds is None:
+        return result
+    left, top, right, bottom = bounds
+    target_left = round(left * scale)
+    width = max(1, round(right * scale) - target_left)
+    result.paste(_resample(layer.crop(bounds), (width, bottom - top)), (target_left, top))
+    return result
+
+
+def _resample(patch: Image.Image, size: tuple[int, int]) -> Image.Image:
+    """Resize with premultiplied alpha.
+
+    Resampling the colour channels on their own blends every glyph edge towards
+    the transparent black around it, which fringes light text on a dark page.
+    """
+    array = np.asarray(patch, dtype=np.float32).copy()
+    array[..., :3] *= array[..., 3:4] / 255.0
+    resized = np.asarray(
+        Image.fromarray(array.astype(np.uint8), "RGBA").resize(size, Image.Resampling.LANCZOS),
+        dtype=np.float32,
+    ).copy()
+    resized[..., :3] /= np.maximum(resized[..., 3:4] / 255.0, 1e-4)
+    return Image.fromarray(np.clip(resized, 0, 255).astype(np.uint8), "RGBA")
+
+
+def _width_scale(style: TextStyle) -> float:
+    """The horizontal squeeze that reproduces the original's proportions."""
+    ratio = float(getattr(style, "width_ratio", 1.0) or 1.0)
+    ratio = min(2.0, max(0.5, ratio))
+    return 1.0 if abs(ratio - 1.0) < MIN_WIDTH_SCALE_STEP else ratio
 
 
 def _draw_horizontal(

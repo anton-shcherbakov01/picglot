@@ -9,7 +9,10 @@ ENV PYTHONUNBUFFERED=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
     OPENCV_IO_ENABLE_OPENEXR=0
 
-# Tesseract language data: the scripts we advertise as supported.
+# Tesseract language data: the scripts we advertise as supported. The font set
+# goes beyond script coverage: the extra families give the typeface matcher
+# something to choose between — condensed and humanist faces, so lettering that
+# is not a plain grotesque can be redrawn as something close to it.
 RUN apt-get update && apt-get install -y --no-install-recommends \
         libpq5 libjpeg62-turbo libpng16-16 libtiff6 libwebp7 libopenjp2-7 \
         libheif1 libgl1 libglib2.0-0 libgomp1 \
@@ -22,7 +25,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         tesseract-ocr-jpn tesseract-ocr-jpn-vert tesseract-ocr-kor tesseract-ocr-hin \
         tesseract-ocr-ind tesseract-ocr-vie tesseract-ocr-tha tesseract-ocr-kaz \
         tesseract-ocr-uzb tesseract-ocr-kat tesseract-ocr-hye tesseract-ocr-osd \
-        fonts-dejavu-core fonts-noto-core fonts-noto-cjk fonts-noto-color-emoji \
+        fonts-dejavu-core fonts-dejavu-extra fonts-noto-core fonts-noto-cjk \
+        fonts-noto-color-emoji fonts-liberation2 fonts-liberation-sans-narrow \
+        fonts-crosextra-carlito fonts-crosextra-caladea \
         curl \
     && rm -rf /var/lib/apt/lists/*
 

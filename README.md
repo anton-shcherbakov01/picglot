@@ -38,6 +38,11 @@ upload → validate → preprocess → detect → recognise → normalise → la
 - **Typesetting** — font size is binary-searched against real glyph metrics
   (never an average character width), with script-aware wrapping, CJK line-break
   rules, RTL shaping and reordering, and a warning when text genuinely does not fit.
+- **Matching the original face** — the source string is redrawn in every
+  installed candidate face and compared against the photographed lettering, so
+  the translation inherits its serif-ness, weight, slant and alignment. Where no
+  installed face has the right proportions — condensed hand lettering, for
+  instance — the winner is squeezed to the same width-per-height instead.
 - **Exports** — PNG, JPG, WEBP, PDF, searchable PDF (verified invisible text
   layer), bilingual PDF, DOCX, XLSX with typed cells, TXT, Markdown, CSV, JSON, ZIP.
 

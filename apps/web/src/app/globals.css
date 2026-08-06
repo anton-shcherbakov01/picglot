@@ -230,8 +230,24 @@
       );
   }
 
-  /* Faint dot field. Keeps large empty areas from reading as unfinished. */
+  /* Faint dot field. Keeps large empty areas from reading as unfinished.
+     The fade-out mask lives on a pseudo-element rather than on the element
+     itself: a mask applies to everything the element paints, children
+     included, so putting it on the box would dim whatever is inside it — the
+     editor canvas came out half faded that way. The element it is used on must
+     establish a containing block (it is positioned or `relative`). */
   .dotfield {
+    /* Own stacking context, so the pseudo-element below sits above this box's
+       own background instead of falling behind it. */
+    isolation: isolate;
+  }
+
+  .dotfield::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
     background-image: radial-gradient(
       rgb(var(--fg) / 0.07) 1px,
       transparent 1px

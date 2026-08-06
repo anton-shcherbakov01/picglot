@@ -96,11 +96,38 @@ FAMILY_PREFERENCES: dict[FontClass, tuple[str, ...]] = {
     ),
     FontClass.HANDWRITING: (
         "comicsansms",
+        "comicneue",
+        "humorsans",
         "segoescript",
         "bradleyhand",
+        # Humanist shapes read closer to hand lettering than a grotesque does,
+        # and unlike the faces above they are actually installed in the images.
+        "carlito",
         "notosans",
     ),
 }
+
+#: Narrow faces, used when the source lettering is condensed. Matching the
+#: proportions of the original matters as much as matching its shapes: a
+#: grotesque set at the same size is visibly wider than hand lettering.
+CONDENSED_FAMILIES: tuple[str, ...] = (
+    "notosansdisplaycondensed",
+    "liberationsansnarrow",
+    "dejavusanscondensed",
+    "dejavuserifcondensed",
+    "notosanscondensed",
+)
+
+#: Families that are never the answer to "what face is this text set in".
+_NON_TEXT_FAMILIES: tuple[str, ...] = (
+    "emoji",
+    "symbol",
+    "unifont",
+    "webdings",
+    "wingdings",
+    "dingbats",
+    "musical",
+)
 
 #: CJK and RTL need dedicated families regardless of the requested class.
 SCRIPT_FAMILIES: dict[Script, tuple[str, ...]] = {
@@ -218,6 +245,49 @@ class FontRegistry:
 
         return min(covering, key=rank)
 
+    def candidates(self, text: str, *, limit: int = 24) -> list[FontFile]:
+        """Faces that can draw ``text``, for visual matching against an image.
+
+        One file per family and style, symbol/fallback faces left out: matching
+        compares letterforms, and a pan-Unicode fallback that covers every
+        script is never the face a designer set the poster in.
+        """
+        self.load()
+        required = {ord(char) for char in text if ord(char) > 32}
+        ranked = tuple(
+            family
+            for group in (
+                FAMILY_PREFERENCES[FontClass.SANS],
+                FAMILY_PREFERENCES[FontClass.SERIF],
+                FAMILY_PREFERENCES[FontClass.MONO],
+                FAMILY_PREFERENCES[FontClass.HANDWRITING],
+                CONDENSED_FAMILIES,
+            )
+            for family in group
+        )
+
+        def rank(file: FontFile) -> tuple[int, str]:
+            for index, family in enumerate(ranked):
+                if family in file.normalized_family:
+                    return (index, file.normalized_family)
+            return (len(ranked), file.normalized_family)
+
+        seen: set[tuple[str, bool, bool]] = set()
+        chosen: list[FontFile] = []
+        for file in sorted(self._files, key=rank):
+            if any(marker in file.normalized_family for marker in _NON_TEXT_FAMILIES):
+                continue
+            if not _covers(file, required):
+                continue
+            key = (file.normalized_family, file.bold, file.italic)
+            if key in seen:
+                continue
+            seen.add(key)
+            chosen.append(file)
+            if len(chosen) >= limit:
+                break
+        return chosen
+
     def coverage_report(self) -> dict[str, bool]:
         """Which scripts this installation can actually render."""
         self.load()
@@ -316,6 +386,14 @@ def _covers(file: FontFile, required: set[int], *, ratio: float = 1.0) -> bool:
 @functools.lru_cache(maxsize=512)
 def _load_truetype(path_str: str, size: int, index: int) -> ImageFont.FreeTypeFont:
     return ImageFont.truetype(path_str, size=size, index=index)
+
+
+def open_font_file(file: FontFile, size: float) -> ImageFont.FreeTypeFont | None:
+    """Open one specific discovered face — used when matching against an image."""
+    try:
+        return _load_truetype(str(file.path), max(4, round(size)), file.index)
+    except OSError:  # pragma: no cover - corrupt font file
+        return None
 
 
 def load_font(

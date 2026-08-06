@@ -23,8 +23,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # The API renders too — `POST /projects/{id}/rerender` redraws pages in-process
 # — so it needs the same font coverage as the workers, not just the workers.
+# Beyond script coverage, the extra families give the typeface matcher
+# something to choose between: condensed and humanist faces, so lettering that
+# is not a plain grotesque can be redrawn as something close to it.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        fonts-dejavu-core fonts-noto-core fonts-noto-cjk fonts-noto-color-emoji \
+        fonts-dejavu-core fonts-dejavu-extra fonts-noto-core fonts-noto-cjk \
+        fonts-noto-color-emoji fonts-liberation2 fonts-liberation-sans-narrow \
+        fonts-crosextra-carlito fonts-crosextra-caladea \
     && rm -rf /var/lib/apt/lists/*
 
 FROM base AS builder
