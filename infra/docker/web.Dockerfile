@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.7
 # Next.js standalone build.
-FROM node:22-alpine AS deps
+FROM node:25-alpine AS deps
 WORKDIR /app
 RUN apk add --no-cache libc6-compat
 COPY package.json package-lock.json* ./
@@ -23,7 +23,7 @@ COPY scripts/install-hooks.mjs ./scripts/
 RUN npm ci --workspaces --include-workspace-root \
     && mkdir -p /app/apps/web/node_modules
 
-FROM node:22-alpine AS builder
+FROM node:25-alpine AS builder
 WORKDIR /app
 ARG NEXT_PUBLIC_API_URL=http://localhost:8000
 ARG NEXT_PUBLIC_SITE_URL=http://localhost:3000
@@ -39,7 +39,7 @@ COPY --from=deps /app/apps/web/node_modules ./apps/web/node_modules
 COPY . .
 RUN npm run build --workspace @picglot/web
 
-FROM node:22-alpine AS runner
+FROM node:25-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
