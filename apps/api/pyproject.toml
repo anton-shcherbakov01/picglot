@@ -20,7 +20,7 @@ dependencies = [
     "email-validator>=2.2.0",
     "itsdangerous>=2.2.0",
     # persistence
-    "SQLAlchemy>=2.0.36,<2.1",
+    "SQLAlchemy>=2.0.36,<2.2",
     "alembic>=1.14.0,<2",
     "psycopg[binary]>=3.2.3,<4",
     "redis>=5.2.1,<6",
